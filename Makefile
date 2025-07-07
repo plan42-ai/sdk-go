@@ -27,8 +27,7 @@ fmt:
 
 .PHONY: lint
 lint:
-#	TODO: Uncomment once we add source files
-#	golangci-lint run
+	golangci-lint run
 
 
 .PHONY: build
@@ -37,5 +36,4 @@ build:
 
 .PHONY: test
 test:
-#	TODO: Uncomment once we add source files
-#	go test -v ./...
+	go test -v ./...

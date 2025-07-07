@@ -103,23 +103,22 @@ When an error occurs, the API will return a 4xx or 5xx HTTP status code, along w
 
 On a 409 response, a conflict error will be returned. This uses the following JSON body:
 
-
 ```json
 {
-  "ResponseCode": "int",
-  "Message": "string",
-  "ErrorType": "string",
-  "ObjectType": "string",
-  "Object": {}
+   "ResponseCode": "int",
+   "Message": "string",
+   "ErrorType": "string",
+   "CurrentType": "string",
+   "Current": {}
 }
 ```
 
 This is the same as the standard error response, but with additional fields:
 
-| Field      | Type   | Description                                                                                                                                                                                       |
-|------------|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ObjectType | string | The type of object that caused the conflict. Use this value to determine how to parse the fields of Object.                                                                                       |
-| Object     | object | The object that caused the conflict. This is the object that was being created or updated when the conflict occurred. The type of this object is determined by the value in the ObjectType field. |
+| Field       | Type   | Description                                                                                                                                                                                       |
+|-------------|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| CurrentType | string | The type of object that caused the conflict. Use this value to determine how to parse the fields of Object.                                                                                       |
+| Current     | object | The object that caused the conflict. This is the object that was being created or updated when the conflict occurred. The type of this object is determined by the value in the ObjectType field. |
 
 We return the current state of conflict objects in the Object field, so that you can retry the operation without needing
 to make a separate request to get the object state.
@@ -154,7 +153,7 @@ possible. If the owner is not specified and cannot be inferred, an error will be
 ## 3.1 
 
 ```http request
-PUT /v1/tenatns/{tenant_id} HTTP/1.1
+PUT /v1/tenants/{tenant_id} HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Accept: application/json
 Authorization: <authorization>
@@ -180,14 +179,13 @@ X-Event-Horizon-SignedHeaders: <signed headers>
 | X-EventHorizon-DelegatingAuthorization | header   | string                       | The authorization header for the delegating principal.                                                                                                                                                                                                                                                                     |
 | X-Event-Horizon-SignedHeaders          | header   | string                       | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                                                                                                                        |
 | Type                                   | body     | [TenantType](#33-tenanttype) | The type of tenant to create. Valid values are "User", "Organization", and "Enterprise".                                                                                                                                                                                                                                   |
-| FullName                               | body     | *string                      | The full name of the user, if creating a user tenant.                                                                                                                                                                                                                                                                      |
-| OrgName                                | body     | *string                      | The name of the organization, if creating an organization tenant.                                                                                                                                                                                                                                                          |
-| EnterpriseName                         | body     | *string                      | The name of the enterprise, if creating an enterprise tenant.                                                                                                                                                                                                                                                              |
-| Email                                  | body     | *string                      | The email address of the user, if creating a user tenant.                                                                                                                                                                                                                                                                  |
-| FirstName                              | body     | *string                      | The first name of the user, if creating a user tenant.                                                                                                                                                                                                                                                                     |
-| LastName                               | body     | *string                      | The last name of the user, if creating a user tenant.                                                                                                                                                                                                                                                                      |
+| FullName                               | body     | *string                      | For user tenants: the user's full name.                                                                                                                                                                                                                                                                                    |
+| OrgName                                | body     | *string                      | For organization tenants: the organization name.                                                                                                                                                                                                                                                                           |
+| EnterpriseName                         | body     | *string                      | For enterprise tenants: the enterprise name.                                                                                                                                                                                                                                                                               |
+| Email                                  | body     | *string                      | For user tenants: the user's email address.                                                                                                                                                                                                                                                                                |
+| FirstName                              | body     | *string                      | For user tenants: the user's first name.                                                                                                                                                                                                                                                                                   |
+| LastName                               | body     | *string                      | For user tenants: the user's last name.                                                                                                                                                                                                                                                                                    |
 | InitialOwner                           | body     | *string                      | The tenant ID of the initial owner of the organization or enterprise. Optional. Only valid for organization and enterprise tenants. If not provided, the initial owner will be inferred from the delegating principal if possible. If not supplied and no delegating principal can be inferred, an error will be returned. |
-
 
 ## 3.2 Response
 
@@ -203,18 +201,30 @@ Content-Type: application/json; charset=utf-8
   "Version": int,
   "Deleted": boolean,
   "CreatedAt": "string",
-  "UpdatedAt": "string"
+  "UpdatedAt": "string",
+  "FullName": "*string",
+  "OrgName": "*string",
+  "EnterpriseName": "*string",
+  "Email": "*string",
+  "FirstName": "*string",
+  "LastName": "*string"
 }
 ```
 
-| Field     | Type                         | Description                                                                                                 |
-|-----------|------------------------------|-------------------------------------------------------------------------------------------------------------|
-| TenantId  | string                       | The ID of the tenant that was created. This is a v4 UUID.                                                   |
-| Type      | [TenantType](#33-tenanttype) | The type of tenant that was created. Valid values are "user", "organization", and "enterprise".             |
-| Version   | int                          | The version of the tenant object. Will be 1 on create. This is incremented each time the tenant is updated. |
-| Deleted   | boolean                      | Whether the tenant is deleted. This is false on create.                                                     |
-| CreatedAt | string                       | The timestamp when the tenant was created, in ISO 8601 format.                                              |
-| UpdatedAt | string                       | The timestamp when the tenant was last updated, in ISO 8601 format.                                         |
+| Field          | Type                         | Description                                                                                                 |
+|----------------|------------------------------|-------------------------------------------------------------------------------------------------------------|
+| TenantId       | string                       | The ID of the tenant that was created. This is a v4 UUID.                                                   |
+| Type           | [TenantType](#33-tenanttype) | The type of tenant that was created. Valid values are "user", "organization", and "enterprise".             |
+| Version        | int                          | The version of the tenant object. Will be 1 on create. This is incremented each time the tenant is updated. |
+| Deleted        | boolean                      | Whether the tenant is deleted. This is false on create.                                                     |
+| CreatedAt      | string                       | The timestamp when the tenant was created, in ISO 8601 format.                                              |
+| UpdatedAt      | string                       | The timestamp when the tenant was last updated, in ISO 8601 format.                                         |
+| FullName       | *string                      | For user tenants: the user's full name.                                                                     |
+| OrgName        | *string                      | For organization tenants: the organization name.                                                            |
+| EnterpriseName | *string                      | For enterprise tenants: the enterprise name.                                                                |
+| Email          | *string                      | For user tenants: the user's email address.                                                                 |
+| FirstName      | *string                      | For user tenants: the user's first name.                                                                    |
+| LastName       | *string                      | For user tenants: the user's last name.                                                                     |
 
 See [Error Handling](#2-error-handling) for details on error responses.
 

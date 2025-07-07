@@ -25,11 +25,10 @@ jobs:
     - name: Build
       run: make build
 
-#    TODO: uncomment once we add code
-#    - name: golangci-lint
-#      uses: golangci/golangci-lint-action@v7
-#      with:
-#        version: v2.1.5
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v7
+      with:
+        version: v2.1.5
 
     - name: Test
       run: make test
