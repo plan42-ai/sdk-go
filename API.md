@@ -259,64 +259,6 @@ The key must specify a resource policy that allows:
   3. Decrypt for the "Agent Wrapper" role in the compute account.
 
 
-## 3.7 DSQL Schema
-
-```postgresql
-CREATE SCHEMA IF NOT EXISTS event_horizon;
-
-CREATE TABLE IF NOT EXISTS event_horizon.Tenants (
-  tenant_id UUID PRIMARY KEY,
-  type TEXT NOT NULL CHECK (type IN ('User', 'Organization', 'Enterprise')),
-  version INT NOT NULL DEFAULT 1,
-  deleted BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS  event_horizon.Users (
-  tenant_id UUID PRIMARY KEY,
-  fullname TEXT NOT NULL,
-  email TEXT NOT NULL,
-  firstname TEXT NOT NULL,
-  lastname TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS event_horizon.Organizations (
-  tenant_id UUID PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
-  enterprise_tenant_id UUID
-);
-
-CREATE INDEX ASYNC IF NOT EXISTS idex_organizations_enterprise_tenant_id ON event_horizon.Organizations (enterprise_tenant_id, name, tenant_id);
-
-CREATE TABLE IF NOT EXISTS event_horizon.Enterprises (
-  tenant_id UUID PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE
-);
-
-CREATE TABLE IF NOT EXISTS event_horizon.GooglePrincipals (
-  tenant_id UUID NOT NULL,
-  principalid UUID NOT NULL UNIQUE ,
-  version INT NOT NULL DEFAULT 1,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  iss TEXT NOT NULL,
-  aud TEXT NOT NULL,
-  sub TEXT NOT NULL,
-  primary key (tenant_id, principalid),
-  unique(sub, aud, iss)
-);
-
-CREATE INDEX ASYNC IF NOT EXISTS idex_google_principals_tenant_id ON event_horizon.GooglePrincipals (tenant_id, created_at, principalid);
-
-CREATE TABLE IF NOT EXISTS event_horizon.Members (
-  parent_tenant_id UUID NOT NULL,
-  child_tenant_id UUID NOT NULL,
-  member_role TEXT NOT NULL CHECK (member_role IN ('Owner', 'Member')),
-  primary key (parent_tenant_id, child_tenant_id)
-);
-```
-
 # 4. GetTenant
 
 The GetTenant API is used to retrieve information about a tenant. 
@@ -515,26 +457,7 @@ MemberRole is an enum that defines the role of a user in an organization or ente
 ## 11.9 DSQL Schema
 
 ```postgresql
-CREATE TABLE IF NOT EXISTS event_horizon.Policies (
-  tenant_id TEXT,
-  policy_id UUID NOT NULL,
-  version int NOT NULL DEFAULT 1,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  name TEXT NOT NULL,
-  effect TEXT NOT NULL CHECK (effect IN('Allow', 'Deny')),
-  principal_json TEXT NOT NULL,
-  /* DSQL doesn't support bit(n), bit varying, bit varying(n), or bigint[], so just use a bigint for our bitvector.
-   * This is ok until we have more than 64 actions. Then we may need to change this, or add actions_bitvector_2, etc.    
-   */ 
-  actions_bitvector bigint NOT NULL,
-  delegated_principal_json  TEXT,
-  /* Same thing about bit(n), bit varying, bit varying(n), or bigint[]. */
-  delegated_actions_bitvector bigint NOT NULL,
-  primary key (tenant_id, policy_id),
-  UNIQUE(tenant_id, name),
-  UNIQUE(tenant_id, created_at, policy_id)
-);
+
 ```
 
 # 12. Default Global Policies
