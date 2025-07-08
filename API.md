@@ -162,12 +162,12 @@ X-Event-Horizon-SignedHeaders: <signed headers>
 
 {
   "Type": "TenantType",
-  "FullName": "string",
-  "OrgName": "string",
-  "EnterpriseName": "string",
-  "Email": "string",
-  "FirstName": "string",
-  "LastName": "string",
+  "FullName": "*string",
+  "OrgName": "*string",
+  "EnterpriseName": "*string",
+  "Email": "*string",
+  "FirstName": "*string",
+  "LastName": "*string",
   "InitialOwner" : "*string"
 }
 ```
@@ -176,8 +176,8 @@ X-Event-Horizon-SignedHeaders: <signed headers>
 |----------------------------------------|----------|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | tenant_id                              | path     | string                       | The ID of the tenant to create. This must be a v4 UUID.                                                                                                                                                                                                                                                                    |
 | Authorization                          | header   | string                       | The authorization header for the request.                                                                                                                                                                                                                                                                                  |
-| X-EventHorizon-DelegatingAuthorization | header   | string                       | The authorization header for the delegating principal.                                                                                                                                                                                                                                                                     |
-| X-Event-Horizon-SignedHeaders          | header   | string                       | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                                                                                                                        |
+| X-EventHorizon-DelegatingAuthorization | header   | *string                      | The authorization header for the delegating principal.                                                                                                                                                                                                                                                                     |
+| X-Event-Horizon-SignedHeaders          | header   | *string                      | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                                                                                                                        |
 | Type                                   | body     | [TenantType](#33-tenanttype) | The type of tenant to create. Valid values are "User", "Organization", and "Enterprise".                                                                                                                                                                                                                                   |
 | FullName                               | body     | *string                      | For user tenants: the user's full name.                                                                                                                                                                                                                                                                                    |
 | OrgName                                | body     | *string                      | For organization tenants: the organization name.                                                                                                                                                                                                                                                                           |
