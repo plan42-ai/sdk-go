@@ -7,7 +7,35 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/debugging-sucks/clock"
+	sigv4clientutil "github.com/debugging-sucks/sigv4util/client"
 )
+
+// Option configures a Client.
+type Option func(c *Client)
+
+// AuthHandler adds authentication to an HTTP request.
+type AuthHandler interface {
+	Authenticate(req *http.Request) error
+}
+
+type sigv4AuthHandler struct {
+	cfg *aws.Config
+	clk clock.Clock
+}
+
+func (h *sigv4AuthHandler) Authenticate(req *http.Request) error {
+	return sigv4clientutil.AddAuthHeaders(req.Context(), req, h.cfg, h.cfg.Region, h.clk)
+}
+
+// WithSigv4Auth configures the client to use SigV4 authentication.
+func WithSigv4Auth(cfg aws.Config, clk clock.Clock) Option {
+	return func(c *Client) {
+		c.authHandler = &sigv4AuthHandler{cfg: &cfg, clk: clk}
+	}
+}
 
 // Client is the API client for Event Horizon.
 type Client struct {
@@ -16,15 +44,22 @@ type Client struct {
 
 	// HTTPClient is the http client used to make requests. If nil, http.DefaultClient is used.
 	HTTPClient *http.Client
+
+	// authHandler is used to add authentication to requests.
+	authHandler AuthHandler
 }
 
 // NewClient returns a new API client with the given baseURL.
-func NewClient(baseURL string) *Client {
+func NewClient(baseURL string, opts ...Option) *Client {
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		panic(fmt.Sprintf("invalid base URL: %v", err))
 	}
-	return &Client{BaseURL: parsedURL, HTTPClient: http.DefaultClient}
+	c := &Client{BaseURL: parsedURL, HTTPClient: http.DefaultClient}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 func (c *Client) httpClient() *http.Client {
@@ -32,6 +67,13 @@ func (c *Client) httpClient() *http.Client {
 		return c.HTTPClient
 	}
 	return http.DefaultClient
+}
+
+func (c *Client) authenticate(req *http.Request) error {
+	if c.authHandler == nil {
+		return nil
+	}
+	return c.authHandler.Authenticate(req)
 }
 
 // TenantType is the type of tenant.
@@ -217,6 +259,10 @@ func (c *Client) CreateTenant(ctx context.Context, req *CreateTenantRequest) (*T
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
 
+	if err := c.authenticate(httpReq); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.httpClient().Do(httpReq)
 	if err != nil {
 		return nil, err
@@ -249,6 +295,10 @@ func (c *Client) GetTenant(ctx context.Context, req *GetTenantRequest) (*Tenant,
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(httpReq); err != nil {
+		return nil, err
+	}
 
 	resp, err := c.httpClient().Do(httpReq)
 	if err != nil {
