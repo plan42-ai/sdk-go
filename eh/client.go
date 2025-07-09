@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/debugging-sucks/clock"
@@ -109,8 +110,8 @@ type Tenant struct {
 	Type           TenantType `json:"Type"`
 	Version        int        `json:"Version"`
 	Deleted        bool       `json:"Deleted"`
-	CreatedAt      string     `json:"CreatedAt"`
-	UpdatedAt      string     `json:"UpdatedAt"`
+	CreatedAt      time.Time  `json:"CreatedAt"`
+	UpdatedAt      time.Time  `json:"UpdatedAt"`
 	FullName       *string    `json:"FullName,omitempty"`
 	OrgName        *string    `json:"OrgName,omitempty"`
 	EnterpriseName *string    `json:"EnterpriseName,omitempty"`
@@ -123,15 +124,30 @@ func (t Tenant) ObjectType() ObjectType {
 	return ObjectTypeTenant
 }
 
+type HTTPError interface {
+	error
+	Code() int
+	Unwrap() error
+}
+
 // Error represents an error returned by the API.
 type Error struct {
 	ResponseCode int    `json:"ResponseCode"`
 	Message      string `json:"Message"`
 	ErrorType    string `json:"ErrorType"`
+	Cause        error  `json:"-"`
 }
 
 func (e *Error) Error() string {
 	return e.Message
+}
+
+func (e *Error) Code() int {
+	return e.ResponseCode
+}
+
+func (e *Error) Unwrap() error {
+	return e.Cause
 }
 
 type ObjectType string
@@ -150,6 +166,7 @@ type ConflictError struct {
 	Message      string
 	ErrorType    string
 	Current      ConflictObj
+	Cause        error `json:"-"`
 }
 
 type conflictError struct {
@@ -162,6 +179,14 @@ type conflictError struct {
 
 func (e *ConflictError) Error() string {
 	return e.Message
+}
+
+func (e *ConflictError) Code() int {
+	return e.ResponseCode
+}
+
+func (e *ConflictError) Unwrap() error {
+	return e.Cause
 }
 
 func (e *ConflictError) UnmarshalJSON(b []byte) error {
