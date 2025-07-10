@@ -150,7 +150,7 @@ a new user tenant is created, the provided Auth Provider Token is automatically 
 When creating an organization or enterprise tenant, if InitialOwner is not provided, it is inferred from the caller, if
 possible. If the owner is not specified and cannot be inferred, an error will be returned.
 
-## 3.1 
+## 3.1 Request 
 
 ```http request
 PUT /v1/tenants/{tenant_id} HTTP/1.1
@@ -772,3 +772,45 @@ This policy allows members of an enterprise to perform non-admin actions on the 
   ],
 }
 ```
+
+# 16. ListPolicies
+
+The ListPolicies API is used to list all policies for a tenant. 
+
+# 16.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/policies?maxResults={maxResults}&token={token} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-EventHorizon-DelegatingAuthorization: <authorization>
+X-Event-Horizon-SignedHeaders: <signed headers>
+```
+
+| Parameter                              | Location | Type    | Description                                                                                                                                                                                    |
+|----------------------------------------|----------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                              | path     | string  | The ID of the tenant to list policies for. The can be a tenant ID, "*" for global policies that apply to all tenants, or "_" for policies that apply to contexts that do not specify a tenant. |
+| maxResults                             | query    | *int    | The maximum number of policies to return. Optional. Default is 500. Must be >=1 and <= 500.                                                                                                    |
+| token                                  | query    | *string | A token to retrieve the next page of results. Optional. If not provided, the first page of results is returned.                                                                                |
+| Authorization                          | header   | string  | The authorization header for the request.                                                                                                                                                      |
+| X-EventHorizon-DelegatingAuthorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                         |
+| X-Event-Horizon-SignedHeaders          | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                            |
+
+# 16.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Policies": [],
+  "NextToken": "*string"
+}
+```
+
+| Field     | Type                    | Description                                                                                    |
+|-----------|-------------------------|------------------------------------------------------------------------------------------------|
+| Policies  | [][Policy](#111-policy) | A list of policies for the tenant. See [Policy](#111-policy) for details on the policy object. |
+| NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
