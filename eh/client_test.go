@@ -289,7 +289,7 @@ func TestListPolicies(t *testing.T) {
 		require.Equal(t, "tok", r.URL.Query().Get("token"))
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.ListPoliciesResponse{Policies: []eh.Policy{{Name: "p", SchemaVersion: "1.0"}}}
+		resp := eh.ListPoliciesResponse{Policies: []eh.Policy{{Name: "p"}}}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 

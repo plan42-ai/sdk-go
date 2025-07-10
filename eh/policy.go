@@ -84,9 +84,6 @@ const (
 	MemberRoleMember MemberRole = "Member"
 )
 
-// Expression represents a constraint expression.
-type Expression string
-
 // PolicyPrincipal defines the principal that a policy applies to.
 type PolicyPrincipal struct {
 	Type             PrincipalType `json:"Type"`
@@ -116,7 +113,7 @@ func (p *PolicyPrincipal) UnmarshalJSON(b []byte) error {
 
 // Policy represents an authorization policy.
 type Policy struct {
-	SchemaVersion      string           `json:"SchemaVersion"`
+	PolicyID           string           `json:"PolicyID"`
 	Name               string           `json:"Name"`
 	Effect             EffectType       `json:"Effect"`
 	Tenant             *string          `json:"Tenant"`
@@ -124,7 +121,7 @@ type Policy struct {
 	Actions            []Action         `json:"Actions"`
 	DelegatedActions   []Action         `json:"DelegatedActions"`
 	DelegatedPrincipal *PolicyPrincipal `json:"DelegatedPrincipal"`
-	Constraints        []Expression     `json:"Constraints"`
+	Constraints        []string         `json:"Constraints"`
 	CreatedAt          time.Time        `json:"CreatedAt"`
 	UpdatedAt          time.Time        `json:"UpdatedAt"`
 
