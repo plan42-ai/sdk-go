@@ -25,6 +25,9 @@ import (
 var (
 	expectedSigCreate = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnRob3Jpem9uLXJlcXVlc3QtaGFzaCwgU2lnbmF0dXJlPTU4MzhjMTMwNjgxMmQwZTFhNWQ0ZTQ0ZjlmM2FjZjE4OTBhYTFjZGQ0ZWU3MGFlYjFlNmRlMThmN2RiMzBjYjYNCkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24veC13d3ctZm9ybS11cmxlbmNvZGVkDQpYLUFtei1EYXRlOiAyMDI1MDEwMVQwMDAwMDBaDQpYLUFtei1TZWN1cml0eS1Ub2tlbjogVE9LRU4NClgtRXZlbnRob3Jpem9uLVJlcXVlc3QtSGFzaDogZGM4YmRlZTRhMGYzNWVkYzQzNjY5NmVkODVmOTdkNjRjMjU0ZDIyZmQzNmU5ZDhjYWFkY2VlZTliYzQ1M2UxZQ0KDQoyZA0KQWN0aW9uPUdldENhbGxlcklkZW50aXR5JlZlcnNpb249MjAxMS0wNi0xNQ0KDQowDQoNCg=="
 	expectedSigGet    = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnRob3Jpem9uLXJlcXVlc3QtaGFzaCwgU2lnbmF0dXJlPTc0MTQ2YzllNjMwYjBmOTkwNTdjMWQyOTQ2MTVjNWE0OTQ0ZGRlNDExY2YxY2Q3MWEzYWRhYzRhODM4MDRlNjMNCkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24veC13d3ctZm9ybS11cmxlbmNvZGVkDQpYLUFtei1EYXRlOiAyMDI1MDEwMVQwMDAwMDBaDQpYLUFtei1TZWN1cml0eS1Ub2tlbjogVE9LRU4NClgtRXZlbnRob3Jpem9uLVJlcXVlc3QtSGFzaDogNDdkODc1MzkzZDM5YjVhODgxNjU2NWQzODNhYTZmNmQ0MDVhNGNjN2FiNjhiMTI0ZDI5ZmYzNjIxMmE5ZTFlNA0KDQoyZA0KQWN0aW9uPUdldENhbGxlcklkZW50aXR5JlZlcnNpb249MjAxMS0wNi0xNQ0KDQowDQoNCg=="
+
+	tenantIDThatNeedsEscaping = "foo/../../bar"
+	escapedTenantID           = "foo%2F..%2F..%2Fbar"
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -138,8 +141,6 @@ func TestGetTenantError(t *testing.T) {
 
 func TestCreateTenantPathEscaping(t *testing.T) {
 	t.Parallel()
-	tenantID := "foo/../../bar"
-	expectedEscaped := "foo%2F..%2F..%2Fbar" // The properly escaped version
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the path and verify proper escaping
@@ -150,10 +151,10 @@ func TestCreateTenantPathEscaping(t *testing.T) {
 		require.Equal(t, len(parts), 4, "path doesn't have correct # of parts: %s", escapedPath)
 
 		// The last part should be the escaped tenant ID
-		require.Equal(t, expectedEscaped, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
 
 		w.WriteHeader(http.StatusCreated)
-		resp := eh.Tenant{TenantID: tenantID, Type: eh.TenantTypeUser, Version: 1}
+		resp := eh.Tenant{TenantID: tenantIDThatNeedsEscaping, Type: eh.TenantTypeUser, Version: 1}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -162,7 +163,7 @@ func TestCreateTenantPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.CreateTenant(context.Background(), &eh.CreateTenantRequest{
-		TenantID: tenantID,
+		TenantID: tenantIDThatNeedsEscaping,
 		Type:     eh.TenantTypeUser,
 	})
 
@@ -171,8 +172,6 @@ func TestCreateTenantPathEscaping(t *testing.T) {
 
 func TestGetTenantPathEscaping(t *testing.T) {
 	t.Parallel()
-	tenantID := "foo/../../bar"
-	expectedEscaped := "foo%2F..%2F..%2Fbar" // The properly escaped version
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the path and verify proper escaping
@@ -183,10 +182,10 @@ func TestGetTenantPathEscaping(t *testing.T) {
 		require.Equal(t, len(parts), 4, "path doesn't have correct # of parts: %s", escapedPath)
 
 		// The last part should be the escaped tenant ID
-		require.Equal(t, expectedEscaped, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.Tenant{TenantID: tenantID, Type: eh.TenantTypeUser, Version: 1}
+		resp := eh.Tenant{TenantID: tenantIDThatNeedsEscaping, Type: eh.TenantTypeUser, Version: 1}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -195,7 +194,7 @@ func TestGetTenantPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.GetTenant(context.Background(), &eh.GetTenantRequest{
-		TenantID: tenantID,
+		TenantID: tenantIDThatNeedsEscaping,
 	})
 
 	require.NoError(t, err)
@@ -278,5 +277,69 @@ func TestSigv4Auth(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = client.GetTenant(context.Background(), &eh.GetTenantRequest{TenantID: "abc"})
+	require.NoError(t, err)
+}
+
+func TestListPolicies(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/policies", r.URL.Path)
+		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
+		require.Equal(t, "tok", r.URL.Query().Get("token"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListPoliciesResponse{Policies: []eh.Policy{{Name: "p", SchemaVersion: "1.0"}}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	maxResults := 123
+	tok := "tok"
+	resp, err := client.ListPolicies(context.Background(), &eh.ListPoliciesRequest{TenantID: "abc", MaxResults: &maxResults, Token: &tok})
+	require.NoError(t, err)
+	require.Len(t, resp.Policies, 1)
+	require.Equal(t, "p", resp.Policies[0].Name)
+}
+
+func TestListPoliciesError(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListPolicies(context.Background(), &eh.ListPoliciesRequest{TenantID: "abc"})
+	require.Error(t, err)
+}
+
+func TestListPoliciesPathEscaping(t *testing.T) {
+	t.Parallel()
+	tenantID := tenantIDThatNeedsEscaping
+	expectedEscaped := "foo%2F..%2F..%2Fbar"
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, expectedEscaped, parts[3], "TenantID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListPoliciesResponse{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListPolicies(context.Background(), &eh.ListPoliciesRequest{TenantID: tenantID})
 	require.NoError(t, err)
 }

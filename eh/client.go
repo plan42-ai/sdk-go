@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -369,4 +370,63 @@ func (c *Client) GetTenant(ctx context.Context, req *GetTenantRequest) (*Tenant,
 		return nil, err
 	}
 	return &tenant, nil
+}
+
+// ListPoliciesRequest is the request for ListPolicies.
+type ListPoliciesRequest struct {
+	TenantID   string
+	MaxResults *int
+	Token      *string
+}
+
+// ListPoliciesResponse is the response from ListPolicies.
+type ListPoliciesResponse struct {
+	Policies  []Policy `json:"Policies"`
+	NextToken *string  `json:"NextToken"`
+}
+
+// ListPolicies retrieves the policies for a tenant.
+func (c *Client) ListPolicies(ctx context.Context, req *ListPoliciesRequest) (*ListPoliciesResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "policies")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out ListPoliciesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
