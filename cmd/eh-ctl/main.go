@@ -43,7 +43,7 @@ func (o *CreateUserOptions) Run(ctx context.Context, shared *SharedOptions) erro
 	return printJSON(t)
 }
 
-func printJSON(resp *eh.Tenant) error {
+func printJSON(resp any) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(resp)
@@ -64,11 +64,39 @@ func (o *GetTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
 	return printJSON(t)
 }
 
+type ListPoliciesOptions struct {
+	TenantID string `help:"The ID of the tenant to list policies for" short:"i"`
+}
+
+func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var token *string
+	for {
+		resp, err := s.Client.ListPolicies(ctx, &eh.ListPoliciesRequest{
+			TenantID: o.TenantID,
+			Token:    token,
+		})
+		if err != nil {
+			return err
+		}
+		for _, pol := range resp.Policies {
+			if err := printJSON(pol); err != nil {
+				return err
+			}
+		}
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+	return nil
+}
+
 type Options struct {
 	SharedOptions
 	Tenant struct {
-		CreateUser CreateUserOptions `cmd:"create-user"`
-		Get        GetTenantOptions  `cmd:"get"`
+		CreateUser   CreateUserOptions   `cmd:"create-user"`
+		Get          GetTenantOptions    `cmd:"get"`
+		ListPolicies ListPoliciesOptions `cmd:"list-policies"`
 	} `cmd:""`
 }
 
@@ -85,6 +113,8 @@ func main() {
 		err = options.Tenant.CreateUser.Run(ctx, &options.SharedOptions)
 	case "tenant get":
 		err = options.Tenant.Get.Run(ctx, &options.SharedOptions)
+	case "tenant list-policies":
+		err = options.Tenant.ListPolicies.Run(ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
