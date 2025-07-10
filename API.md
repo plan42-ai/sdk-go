@@ -464,7 +464,7 @@ MemberRole is an enum that defines the role of a user in an organization or ente
 
 The policies below are defined globally (on either the null tenant or the "*" tenant) and apply to all tenants.
 
-## 12.1 Enable Account Creation
+## 12.1 Enable Account Creation From UI
 
 This policy allows the web ui to create new accounts for users that authenticate via Google Identity Tokens.
 There are some interesting things to note about the policy definition:
@@ -476,7 +476,7 @@ There are some interesting things to note about the policy definition:
 ```json
 {
   "SchemaVersion": "1.0",
-  "Name": "EnableAccountCreation",
+  "Name": "EnableAccountCreationFromUI",
   "Effect": "Allow",
   "Tenant": null,
   "Principal": {
@@ -495,7 +495,31 @@ There are some interesting things to note about the policy definition:
 }
 ```
 
-## 12.2 Enable Admin Access
+## 12.2 Enable Account Creation Via the Admin Role
+
+```json
+{
+  "SchemaVersion": "1.0",
+  "Name": "EnableAccountCreationFromUI",
+  "Effect": "Allow",
+  "Tenant": null,
+  "Principal": {
+    "Type": "Service",
+    "Name": "AdminRole"
+  },
+  "Actions": ["PerformDelegatedAction"],
+  "DelegatedActions": ["CreateTenant"],
+  "DelegatedPrincipal": {
+    "Type": "User",
+    "Tenant" : null,
+    "TokenTypes": ["AuthProviderToken"],
+    "Provider": "Google"
+  },
+  "Constraints" : ["$request.TenantType == 'User'"] 
+}
+```
+
+## 12.3 Enable Admin Access
 
 This policy allows our internal admin role to perform any action on any tenant.
 
@@ -540,7 +564,32 @@ Tokens.
 }
 ```
 
-## 13.2 GenerateWebUIToken
+## 13.2 EnableAdminDelegation
+
+This policy allows the Admin Role to perform any delegated actions on behalf of user tenants that authenticate via Web UI
+Tokens.
+
+```json
+{
+  "SchemaVersion": "1.0",
+  "Name": "EnableWebUIDelegation",
+  "Effect": "Allow",
+  "Tenant": "tenant_id",
+  "Principal": {
+    "Type": "Service",
+    "Name": "AdminRole"
+  },
+  "Actions": ["PerformDelegatedAction"],
+  "DelegatedActions": ["*"],
+  "DelegatedPrincipal": {
+    "Type": "User",
+    "Tenant" : "$policy.Tenant",
+    "TokenTypes": ["WebUIToken"]
+  }
+}
+```
+
+## 13.3 GenerateWebUIToken
 
 This policy allows the Web UI to generate Web UI tokens for users that authenticate via Google Identity Tokens.
 
@@ -565,7 +614,7 @@ This policy allows the Web UI to generate Web UI tokens for users that authentic
 }
 ```
 
-## 13.3 UserAccess
+## 13.4 UserAccess
 
 This policy allows users to access their own tenant.
 
