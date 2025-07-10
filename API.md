@@ -347,7 +347,9 @@ Policies are defined using JSON.
   "Actions": [],   
   "DelegatedActions":  [],
   "DelegatedPrincipal": {},
-  "Constraints":  [] 
+  "Constraints":  [],
+  "CreatedAt": "string", 
+  "UpdatedAt": "string",
 }
 ```
 
@@ -362,6 +364,8 @@ Policies are defined using JSON.
 | DelegatedActions   | [][Action](#115-action)            | Only valid when action is `PerformDelegatedAction`. It identifies the section of actions that can be delegated.                                                                                                                                                            |
 | DelegatedPrincipal | [*Principal](#113-policyprincipal) | Only valid when action is `PerformDelegatedAction`. It identifies the principal for which delegation is enabled                                                                                                                                                            |
 | Constraints        | [][Expression](#116-expressions)   | A list of constraints expressions that must be satisfied for the policy to apply. They are dynamic and are evaluated at policy evaluation time.                                                                                                                            |
+| CreatedAt          | string                             | The timestamp when the policy was created, in ISO 8601 format.                                                                                                                                                                                                             |
+| UpdatedAt          | string                             | The timestamp when the policy was last updated, in ISO 8601 format.                                                                                                                                                                                                        |
 
 ## 11.2 EffectType
 

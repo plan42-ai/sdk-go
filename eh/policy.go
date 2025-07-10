@@ -2,6 +2,7 @@ package eh
 
 import (
 	"encoding/json"
+	"time"
 )
 
 func createEnumMaps[T ~string](values []T) (map[T]int64, map[int64]T) {
@@ -124,6 +125,8 @@ type Policy struct {
 	DelegatedActions   []Action         `json:"DelegatedActions"`
 	DelegatedPrincipal *PolicyPrincipal `json:"DelegatedPrincipal"`
 	Constraints        []Expression     `json:"Constraints"`
+	CreatedAt          time.Time        `json:"CreatedAt"`
+	UpdatedAt          time.Time        `json:"UpdatedAt"`
 
 	ActionsBitVector          int64 `json:"-"`
 	DelegatedActionsBitVector int64 `json:"-"`
