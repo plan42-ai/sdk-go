@@ -14,8 +14,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/debugging-sucks/clock v1.1.3 h1:ue1gE8FfiCNt5C47Fm0+VUa+lUONU84t6ezw4ajsjX0=
 github.com/debugging-sucks/clock v1.1.3/go.mod h1:1IOSb/OONPLaReA0GmQ1+7o28VnNwhrnXOK0qLum6fk=
-github.com/debugging-sucks/sigv4util v1.0.4 h1:yezXPqD9dj8EZ8jZymnlj7cUIGSO5zbph0el+ZE+whA=
-github.com/debugging-sucks/sigv4util v1.0.4/go.mod h1:bQ5L9WKwfbBBSEqdeuBP1tUV1kADtpyfVMIEKH7EKJI=
+github.com/debugging-sucks/sigv4util v1.0.5 h1:ngrp2XYwGSx8r8cfGnQezprDpRjfOi2CkAUmEpNxCbk=
+github.com/debugging-sucks/sigv4util v1.0.5/go.mod h1:bQ5L9WKwfbBBSEqdeuBP1tUV1kADtpyfVMIEKH7EKJI=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=
