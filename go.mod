@@ -5,10 +5,12 @@ go 1.24.3
 require github.com/stretchr/testify v1.10.0
 
 require (
+	github.com/alecthomas/kong v1.12.0
 	github.com/aws/aws-sdk-go-v2 v1.36.5
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.70
 	github.com/debugging-sucks/clock v1.1.3
 	github.com/debugging-sucks/sigv4util v1.0.4
+	github.com/google/uuid v1.6.0
 )
 
 require (

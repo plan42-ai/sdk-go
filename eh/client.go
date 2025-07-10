@@ -3,6 +3,7 @@ package eh
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -38,6 +39,31 @@ func WithSigv4Auth(cfg aws.Config, clk clock.Clock) Option {
 	}
 }
 
+func WithInsecureSkipVerify() Option {
+	return func(c *Client) {
+		if c.HTTPClient == nil {
+			c.HTTPClient = &http.Client{}
+		}
+
+		transport, _ := c.HTTPClient.Transport.(*http.Transport)
+		if transport == nil {
+			transport = &http.Transport{}
+			c.HTTPClient.Transport = transport
+		}
+
+		if transport.TLSClientConfig == nil {
+			// #nosec: G402: TLS MinVersion too low.
+			//    This is literally configured 6 lines below.
+			transport.TLSClientConfig = &tls.Config{}
+		}
+
+		transport.TLSClientConfig.InsecureSkipVerify = true
+		if transport.TLSClientConfig.MinVersion < tls.VersionTLS12 {
+			transport.TLSClientConfig.MinVersion = tls.VersionTLS12
+		}
+	}
+}
+
 // Client is the API client for Event Horizon.
 type Client struct {
 	// BaseURL is the HTTP base url for the API, e.g. https://api.example.com
@@ -56,9 +82,12 @@ func NewClient(baseURL string, opts ...Option) *Client {
 	if err != nil {
 		panic(fmt.Sprintf("invalid base URL: %v", err))
 	}
-	c := &Client{BaseURL: parsedURL, HTTPClient: http.DefaultClient}
+	c := &Client{BaseURL: parsedURL, HTTPClient: nil}
 	for _, opt := range opts {
 		opt(c)
+	}
+	if c.HTTPClient == nil {
+		c.HTTPClient = http.DefaultClient
 	}
 	return c
 }
