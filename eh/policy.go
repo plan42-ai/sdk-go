@@ -65,6 +65,7 @@ const (
 	ActionCreateTenant           Action = "CreateTenant"
 	ActionGetTenant              Action = "GetTenant"
 	ActionGenerateWebUIToken     Action = "GenerateWebUIToken"
+	ActionListPolicies           Action = "ListPolicies"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -154,6 +155,7 @@ func init() {
 		ActionCreateTenant,
 		ActionGetTenant,
 		ActionGenerateWebUIToken,
+		ActionListPolicies,
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
