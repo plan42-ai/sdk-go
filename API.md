@@ -6,6 +6,7 @@ following types of tokens:
 1. Web UI Tokens
 2. Auth Provider Tokens (i.e. Google Identity Tokens)
 3. Service Account Tokens
+4. Agent Tokens
 
 ## 1.1 Web UI Tokens
 
@@ -35,14 +36,19 @@ the API. Service Account Tokens are typically long-lived (up to 366 days).
 
 If you automation has access to AWS IAM credentials, consider using Sigv4 Auth instead.
 
-## 1.4 Sigv4 Auth
+## 1.4 Agent Tokens
+
+Agent Tokens are JWT tokens signed by Event Horizon that authenticate agents that run tasks on behalf of users.
+They are used to update turn status and to upload turn logs. 
+
+## 1.5 Sigv4 Auth
 
 Sigv4 Auth uses AWS IAM Role credentials to sign requests to the API using Sigv4. For automation scripts that have access to
 AWS, this is the preferred method of authentication, as it does not require explicit secret management or rotation.
 
 This is also the mechanism Event Horizon uses internally, for example, to authenticate between the web ui and the API.
 
-## 1.5 Delegation
+## 1.6 Delegation
 
 We support "delegated authentication". When ever a service (like the Web UI) performs an action on behalf of a user,
 it will supply both its own authentication information, and that of the user it is acting on behalf of (the delegating principal).
@@ -59,7 +65,7 @@ See [Authorization](#11-authorization) for more details on how policies are defi
 Both "Web UI" and "Auth Provider" tokens are only usable in delegated contexts. They cannot be used to invoke the api
 directly.
 
-## 1.6 Authentication Headers
+## 1.7 Authentication Headers
 
 The following HTTP headers are used for authentication:
 
@@ -68,9 +74,9 @@ X-Event-Horizon-Delegating-Authorization: <type> <token>
 X-Event-Horizon-Signed-Headers: <signed headers>
 
 
-| Header                                 | Description                                                                                                                                                                    |
-|----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Authentication                         | The authorization header for the request. See [Authorization Types](#17-authorization-types) for the list of valid <type values.                                               |
+| Header                                   | Description                                                                                                                                                                    |
+|------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Authentication                           | The authorization header for the request. See [Authorization Types](#17-authorization-types) for the list of valid <type values.                                               |
 | X-Event-Horizon-Delegating-Authorization | The authorization header for the delegating principal. This is only used when the request is delegated. It is optional, but if provided, must be a valid authorization header. |
 | X-Event-Horizon-Signed-Headers           | The signed headers for the request, when authenticating with Sigv4. This is only used when the request is signed using Sigv4. It is optional, but if provided, must be valid.  |
 
@@ -82,6 +88,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | AuthProviderToken     | Used for Auth Provider tokens, such as Google Identity Tokens. The token should be the base64 encoding of the Auth Provider Token json.                                                         |
 | ServiceAccountToken   | Used for Service Account tokens. The token should be the base64 encoding of the Service Account Token json.                                                                                     |
 | sts:GetCallerIdentity | Used for Sigv4 authentication. The token should be the base64 encoding of a a valid signed http request to sts:GetCallerIdentity. See https://github.com/debugging-sucks/sigv4util for details. |
+| AgentToken            | Used for Agent Tokens. The token should be the base64 encoding of the Agent Token json.                                                                                                         |
 
 # 2. Error Handling
 
@@ -421,6 +428,7 @@ PrincipalType is an enum that defines the type of principal that a policy applie
 | IAMRole        | An AWS IAM Role authenticating via Sigv4.                                                                                                                                                                                                              |
 | Service        | An named alias for an IAM Role. This is used to enable policies to refer to event horizon services without exposing our role arns to customers (which would make it impossible to ever change them). Valid Services names are 'WebUI' and 'AdminRole'. |
 | ServiceAccount | A service account.                                                                                                                                                                                                                                     |
+| Agent          | An executing agent invocation.                                                                                                                                                                                                                         |
 
 ## 11.5 Action
 
@@ -433,28 +441,35 @@ Action is an enum that defines the actions that a policy can allow or deny.
 | GetTenant              |
 | GenerateWebUIToken     |
 | ListTenants            |
+| UpdateTurn             |
+| UpdateTask             |
+| GetTask                |
+| GetTurn                |
+| UploadTurnLogs         |
 
 ## 11.6 Expressions
 
 We support evaluating expressions in policies. Eventually we should define a full expression grammar here. For MVP we
 only need to support the following expressions:
 
-| Expression           | Description                                                                                 |
-|----------------------|---------------------------------------------------------------------------------------------|
-| $request.<FieldName> | A field from the request object for an api call.                                            |
-| $policy.<FieldName>  | A field from the policy object being evaluated.                                             |
-| 'StringLiteral'      | A string literal.                                                                           |
-| expr == expr         | An expression that evaluates to true if the left-hand side is equal to the right-hand side. |
+| Expression             | Description                                                                                 |
+|------------------------|---------------------------------------------------------------------------------------------|
+| $request.<FieldName>   | A field from the request object for an api call.                                            |
+| $policy.<FieldName>    | A field from the policy object being evaluated.                                             |
+| $principal.<FieldName> | A field from the principal at authn timeS                                                   |
+| 'StringLiteral'        | A string literal.                                                                           |
+| expr == expr           | An expression that evaluates to true if the left-hand side is equal to the right-hand side. |
 
 ## 11.7 TokenType
 
 TokenType is an enum that defines the type of token that a principal used to authenticate.
 
-| Value               | Description                                                                                          |
-|---------------------|------------------------------------------------------------------------------------------------------|
-| WebUIToken          | A token issued by the web ui.                                                                        |
-| AuthProviderToken   | A token issued by an external identity provider, such as Google Identity Tokens.                     |
-| ServiceAccountToken | A token issued by a service account. This is used for automation scripts that interact with the API. |
+| Value               | Description                                                                                              |
+|---------------------|----------------------------------------------------------------------------------------------------------|
+| WebUIToken          | A token issued by the web ui.                                                                            |
+| AuthProviderToken   | A token issued by an external identity provider, such as Google Identity Tokens.                         |
+| ServiceAccountToken | A token issued by a service account. This is used for automation scripts that interact with the API.     |
+| AgentToken          | A token representing an invocation of agent. Used to update Turn and Task state and to update turn logs. |
 
 ## 11.8 MemberRole
 
@@ -636,6 +651,25 @@ This policy allows users to access their own tenant.
 }
 ```
 
+## 13.5 AgentAccess
+
+```json
+{
+    "Name": "AgentAccess",
+    "Effect": "Allow",
+    "Tenant": "tenant_id",
+    "Principal": {
+        "Type": "Agent"
+    },
+    "Actions": ["UpdateTurn", "UpdateTask", "GetTask", "GetTurn", "UploadTurnLogs"],
+    "Constraints": [
+        "$request.Tenant == $policy.Tenant",
+        "$request.Tenant == $Principal.Tenant",
+        "$request.TaskID == $Principal.TaskID",
+        "$request.TurnID == $Principal.TurnID"
+    ]
+}
+```
 # 14. Default Organization Tenant Policies
 
 This section defines the default policies that are created when an organization tenant is created.
@@ -705,6 +739,26 @@ This policy allows members of an organization to perform non-admin actions on th
 }
 ```
 
+## 14.4 TaskAccess
+
+```json
+{
+    "Name": "AgentAccess",
+    "Effect": "Allow",
+    "Tenant": "tenant_id",
+    "Principal": {
+        "Type": "Agent"
+    },
+    "Actions": ["UpdateTurn", "UpdateTask", "GetTask", "GetTurn", "UploadTurnLogs"],
+    "Constraints": [
+        "$request.Tenant == $policy.Tenant",
+        "$request.Tenant == $principal.Tenant",
+        "$request.TaskID == $principal.TaskID",
+        "$request.TurnID == $principal.TurnID"
+    ]
+}
+```
+
 # 15. Default Enterprise Tenant Policies
 
 This section defines the default policies that are created when an enterprise tenant is created.
@@ -768,6 +822,26 @@ This policy allows members of an enterprise to perform non-admin actions on the 
   },
   "Actions": [
   ],
+}
+```
+
+## 15.4 AgentAccess
+
+```json
+{
+    "Name": "AgentAccess",
+    "Effect": "Allow",
+    "Tenant": "tenant_id",
+    "Principal": {
+        "Type": "Agent"
+    },
+    "Actions": ["UpdateTurn", "UpdateTask", "GetTask", "GetTurn", "UploadTurnLogs"],
+    "Constraints": [
+        "$request.Tenant == $policy.Tenant",
+        "$request.Tenant == $principal.Tenant",
+        "$request.TaskID == $principal.TaskID",
+        "$request.TurnID == $principal.TurnID"
+    ]
 }
 ```
 
