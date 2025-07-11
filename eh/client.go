@@ -127,6 +127,8 @@ type CreateTenantRequest struct {
 	FirstName      *string    `json:"FirstName,omitempty"`
 	LastName       *string    `json:"LastName,omitempty"`
 	InitialOwner   *string    `json:"InitialOwner,omitempty"`
+	PictureURL     *string    `json:"PictureUrl,omitempty"`
+	PictureBytes   []byte     `json:"PictureBytes,omitempty"`
 }
 
 // GetTenantRequest is the request for GetTenant.
@@ -148,6 +150,7 @@ type Tenant struct {
 	Email          *string    `json:"Email,omitempty"`
 	FirstName      *string    `json:"FirstName,omitempty"`
 	LastName       *string    `json:"LastName,omitempty"`
+	PictureURL     *string    `json:"PictureUrl,omitempty"`
 }
 
 func (t Tenant) ObjectType() ObjectType {

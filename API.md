@@ -169,6 +169,8 @@ X-Event-Horizon-SignedHeaders: <signed headers>
   "FirstName": "*string",
   "LastName": "*string",
   "InitialOwner" : "*string"
+  "PictureURL": "*string"
+  "PictureBytes": "*string"
 }
 ```
 
@@ -186,6 +188,8 @@ X-Event-Horizon-SignedHeaders: <signed headers>
 | FirstName                              | body     | *string                      | For user tenants: the user's first name.                                                                                                                                                                                                                                                                                   |
 | LastName                               | body     | *string                      | For user tenants: the user's last name.                                                                                                                                                                                                                                                                                    |
 | InitialOwner                           | body     | *string                      | The tenant ID of the initial owner of the organization or enterprise. Optional. Only valid for organization and enterprise tenants. If not provided, the initial owner will be inferred from the delegating principal if possible. If not supplied and no delegating principal can be inferred, an error will be returned. |
+| PictureURL                             | body     | *string                      | The URL of the picture for the tenant. Optional.                                                                                                                                                                                                                                                                           |
+| PictureBytes                           | body     | *string                      | A base64 encoding of uploaded image bytes. Optional.Takes precedence over PictureURL.                                                                                                                                                                                                                                      |
 
 ## 3.2 Response
 
@@ -207,7 +211,9 @@ Content-Type: application/json; charset=utf-8
   "EnterpriseName": "*string",
   "Email": "*string",
   "FirstName": "*string",
-  "LastName": "*string"
+  "LastName": "*string",
+  "PictureURL": "*string",
+  "PictureBytes": "*string"
 }
 ```
 
@@ -225,6 +231,8 @@ Content-Type: application/json; charset=utf-8
 | Email          | *string                      | For user tenants: the user's email address.                                                                 |
 | FirstName      | *string                      | For user tenants: the user's first name.                                                                    |
 | LastName       | *string                      | For user tenants: the user's last name.                                                                     |
+| PictureURL     | *string                      | The URL of the picture for the tenant. Optional.                                                            |
+| PictureBytes   | *string                      | A base64 encoding of uploaded image bytes. Optional. Takes precedence over PictureURL.                      |
 
 See [Error Handling](#2-error-handling) for details on error responses.
 
@@ -427,6 +435,8 @@ Action is an enum that defines the actions that a policy can allow or deny.
 | PerformDelegatedAction |
 | CreateTenant           |
 | GetTenant              |
+| ListTenants            |
+| GenerateWebUIToken     |
 
 ## 11.6 Expressions
 
