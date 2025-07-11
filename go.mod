@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.36.5
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.70
 	github.com/debugging-sucks/clock v1.1.3
-	github.com/debugging-sucks/sigv4util v1.0.4
+	github.com/debugging-sucks/sigv4util v1.0.5
 	github.com/google/uuid v1.6.0
 )
 

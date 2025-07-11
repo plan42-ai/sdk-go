@@ -64,15 +64,15 @@ directly.
 The following HTTP headers are used for authentication:
 
 Authentication: <type> <token>
-X-EventHorizon-DelegatingAuthorization: <type> <token>
-X-EventHorizon-SignedHeaders: <signed headers>
+X-Event-Horizon-Delegating-Authorization: <type> <token>
+X-Event-Horizon-Signed-Headers: <signed headers>
 
 
 | Header                                 | Description                                                                                                                                                                    |
 |----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Authentication                         | The authorization header for the request. See [Authorization Types](#17-authorization-types) for the list of valid <type values.                                               |
-| X-EventHorizon-DelegatingAuthorization | The authorization header for the delegating principal. This is only used when the request is delegated. It is optional, but if provided, must be a valid authorization header. |
-| X-EventHorizon-SignedHeaders           | The signed headers for the request, when authenticating with Sigv4. This is only used when the request is signed using Sigv4. It is optional, but if provided, must be valid.  |
+| X-Event-Horizon-Delegating-Authorization | The authorization header for the delegating principal. This is only used when the request is delegated. It is optional, but if provided, must be a valid authorization header. |
+| X-Event-Horizon-Signed-Headers           | The signed headers for the request, when authenticating with Sigv4. This is only used when the request is signed using Sigv4. It is optional, but if provided, must be valid.  |
 
 ## 1.7 Authorization Types
 
@@ -157,8 +157,8 @@ PUT /v1/tenants/{tenant_id} HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Accept: application/json
 Authorization: <authorization>
-X-EventHorizon-DelegatingAuthorization: <authorization>
-X-Event-Horizon-SignedHeaders: <signed headers>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
 
 {
   "Type": "TenantType",
@@ -170,26 +170,24 @@ X-Event-Horizon-SignedHeaders: <signed headers>
   "LastName": "*string",
   "InitialOwner" : "*string"
   "PictureURL": "*string"
-  "PictureBytes": "*string"
 }
 ```
 
-| Parameter                              | Location | Type                         | Description                                                                                                                                                                                                                                                                                                                |
-|----------------------------------------|----------|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                              | path     | string                       | The ID of the tenant to create. This must be a v4 UUID.                                                                                                                                                                                                                                                                    |
-| Authorization                          | header   | string                       | The authorization header for the request.                                                                                                                                                                                                                                                                                  |
-| X-EventHorizon-DelegatingAuthorization | header   | *string                      | The authorization header for the delegating principal.                                                                                                                                                                                                                                                                     |
-| X-Event-Horizon-SignedHeaders          | header   | *string                      | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                                                                                                                        |
-| Type                                   | body     | [TenantType](#33-tenanttype) | The type of tenant to create. Valid values are "User", "Organization", and "Enterprise".                                                                                                                                                                                                                                   |
-| FullName                               | body     | *string                      | For user tenants: the user's full name.                                                                                                                                                                                                                                                                                    |
-| OrgName                                | body     | *string                      | For organization tenants: the organization name.                                                                                                                                                                                                                                                                           |
-| EnterpriseName                         | body     | *string                      | For enterprise tenants: the enterprise name.                                                                                                                                                                                                                                                                               |
-| Email                                  | body     | *string                      | For user tenants: the user's email address.                                                                                                                                                                                                                                                                                |
-| FirstName                              | body     | *string                      | For user tenants: the user's first name.                                                                                                                                                                                                                                                                                   |
-| LastName                               | body     | *string                      | For user tenants: the user's last name.                                                                                                                                                                                                                                                                                    |
-| InitialOwner                           | body     | *string                      | The tenant ID of the initial owner of the organization or enterprise. Optional. Only valid for organization and enterprise tenants. If not provided, the initial owner will be inferred from the delegating principal if possible. If not supplied and no delegating principal can be inferred, an error will be returned. |
-| PictureURL                             | body     | *string                      | The URL of the picture for the tenant. Optional.                                                                                                                                                                                                                                                                           |
-| PictureBytes                           | body     | *string                      | A base64 encoding of uploaded image bytes. Optional.Takes precedence over PictureURL.                                                                                                                                                                                                                                      |
+| Parameter                                | Location | Type                         | Description                                                                                                                                                                                                                                                                                                                |
+|------------------------------------------|----------|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                       | The ID of the tenant to create. This must be a v4 UUID.                                                                                                                                                                                                                                                                    |
+| Authorization                            | header   | string                       | The authorization header for the request.                                                                                                                                                                                                                                                                                  |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                      | The authorization header for the delegating principal.                                                                                                                                                                                                                                                                     |
+| X-Event-Horizon-Signed-Headers           | header   | *string                      | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                                                                                                                        |
+| Type                                     | body     | [TenantType](#33-tenanttype) | The type of tenant to create. Valid values are "User", "Organization", and "Enterprise".                                                                                                                                                                                                                                   |
+| FullName                                 | body     | *string                      | For user tenants: the user's full name.                                                                                                                                                                                                                                                                                    |
+| OrgName                                  | body     | *string                      | For organization tenants: the organization name.                                                                                                                                                                                                                                                                           |
+| EnterpriseName                           | body     | *string                      | For enterprise tenants: the enterprise name.                                                                                                                                                                                                                                                                               |
+| Email                                    | body     | *string                      | For user tenants: the user's email address.                                                                                                                                                                                                                                                                                |
+| FirstName                                | body     | *string                      | For user tenants: the user's first name.                                                                                                                                                                                                                                                                                   |
+| LastName                                 | body     | *string                      | For user tenants: the user's last name.                                                                                                                                                                                                                                                                                    |
+| InitialOwner                             | body     | *string                      | The tenant ID of the initial owner of the organization or enterprise. Optional. Only valid for organization and enterprise tenants. If not provided, the initial owner will be inferred from the delegating principal if possible. If not supplied and no delegating principal can be inferred, an error will be returned. |
+| PictureURL                               | body     | *string                      | The URL of the picture for the tenant. Optional.                                                                                                                                                                                                                                                                           |
 
 ## 3.2 Response
 
@@ -213,7 +211,6 @@ Content-Type: application/json; charset=utf-8
   "FirstName": "*string",
   "LastName": "*string",
   "PictureURL": "*string",
-  "PictureBytes": "*string"
 }
 ```
 
@@ -232,7 +229,6 @@ Content-Type: application/json; charset=utf-8
 | FirstName      | *string                      | For user tenants: the user's first name.                                                                    |
 | LastName       | *string                      | For user tenants: the user's last name.                                                                     |
 | PictureURL     | *string                      | The URL of the picture for the tenant. Optional.                                                            |
-| PictureBytes   | *string                      | A base64 encoding of uploaded image bytes. Optional. Takes precedence over PictureURL.                      |
 
 See [Error Handling](#2-error-handling) for details on error responses.
 
@@ -277,14 +273,14 @@ The GetTenant API is used to retrieve information about a tenant.
 GET /v1/tenants/{tenant_id} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
-X-EventHorizon-DelegatingAuthorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
 ```
 
-| Parameter                              | Location | Type   | Description                                                                                                                     |
-|----------------------------------------|----------|--------|---------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                              | path     | string | The ID of the tenant to retrieve. This must be a v4 UUID.                                                                       |
-| Authorization                          | header   | string | The authorization header for the request.                                                                                       |
-| X-EventHorizon-DelegatingAuthorization | header   | string | The authorization header for the delegating principal. This is optional, but if provided, must be a valid authorization header. |
+| Parameter                                | Location | Type   | Description                                                                                                                     |
+|------------------------------------------|----------|--------|---------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string | The ID of the tenant to retrieve. This must be a v4 UUID.                                                                       |
+| Authorization                            | header   | string | The authorization header for the request.                                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | string | The authorization header for the delegating principal. This is optional, but if provided, must be a valid authorization header. |
 
 # 4.2 Response
 
@@ -785,18 +781,18 @@ The ListPolicies API is used to list all policies for a tenant.
 GET /v1/tenants/{tenant_id}/policies?maxResults={maxResults}&token={token} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
-X-EventHorizon-DelegatingAuthorization: <authorization>
-X-Event-Horizon-SignedHeaders: <signed headers>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
 ```
 
-| Parameter                              | Location | Type    | Description                                                                                                                                                                                    |
-|----------------------------------------|----------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                              | path     | string  | The ID of the tenant to list policies for. The can be a tenant ID, "*" for global policies that apply to all tenants, or "_" for policies that apply to contexts that do not specify a tenant. |
-| maxResults                             | query    | *int    | The maximum number of policies to return. Optional. Default is 500. Must be >=1 and <= 500.                                                                                                    |
-| token                                  | query    | *string | A token to retrieve the next page of results. Optional. If not provided, the first page of results is returned.                                                                                |
-| Authorization                          | header   | string  | The authorization header for the request.                                                                                                                                                      |
-| X-EventHorizon-DelegatingAuthorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                         |
-| X-Event-Horizon-SignedHeaders          | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                            |
+| Parameter                                | Location | Type    | Description                                                                                                                                                                                    |
+|------------------------------------------|----------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to list policies for. The can be a tenant ID, "*" for global policies that apply to all tenants, or "_" for policies that apply to contexts that do not specify a tenant. |
+| maxResults                               | query    | *int    | The maximum number of policies to return. Optional. Default is 500. Must be >=1 and <= 500.                                                                                                    |
+| token                                    | query    | *string | A token to retrieve the next page of results. Optional. If not provided, the first page of results is returned.                                                                                |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                                                      |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                         |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                            |
 
 # 16.2 Response
 
