@@ -20,12 +20,11 @@ type SharedOptions struct {
 }
 
 type CreateUserOptions struct {
-	FullName    string  `help:"The user's full name" name:"full-name" short:"n"`
-	FirstName   string  `help:"The user's first name" name:"first-name" short:"f"`
-	LastName    string  `help:"The user's last name" name:"last-name" short:"l"`
-	Email       string  `help:"The user's email address" short:"e"`
-	PictureURL  *string `help:"The user's profile picture URL" short:"p"`
-	PictureFile *string `help:"Path to a local file to use as the user's profile picture" short:"P"`
+	FullName   string  `help:"The user's full name" name:"full-name" short:"n"`
+	FirstName  string  `help:"The user's first name" name:"first-name" short:"f"`
+	LastName   string  `help:"The user's last name" name:"last-name" short:"l"`
+	Email      string  `help:"The user's email address" short:"e"`
+	PictureURL *string `help:"The user's profile picture URL" short:"p"`
 }
 
 func (o *CreateUserOptions) Run(ctx context.Context, shared *SharedOptions) error {
@@ -37,14 +36,6 @@ func (o *CreateUserOptions) Run(ctx context.Context, shared *SharedOptions) erro
 		FirstName:  &o.FirstName,
 		LastName:   &o.LastName,
 		PictureURL: o.PictureURL,
-	}
-
-	var err error
-	if o.PictureFile != nil {
-		req.PictureBytes, err = os.ReadFile(*o.PictureFile)
-		if err != nil {
-			return fmt.Errorf("failed to read picture file %s: %w", *o.PictureFile, err)
-		}
 	}
 
 	t, err := shared.Client.CreateTenant(ctx, req)

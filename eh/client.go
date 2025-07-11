@@ -128,7 +128,6 @@ type CreateTenantRequest struct {
 	LastName       *string    `json:"LastName,omitempty"`
 	InitialOwner   *string    `json:"InitialOwner,omitempty"`
 	PictureURL     *string    `json:"PictureUrl,omitempty"`
-	PictureBytes   []byte     `json:"PictureBytes,omitempty"`
 }
 
 // GetTenantRequest is the request for GetTenant.

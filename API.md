@@ -435,8 +435,8 @@ Action is an enum that defines the actions that a policy can allow or deny.
 | PerformDelegatedAction |
 | CreateTenant           |
 | GetTenant              |
-| ListTenants            |
 | GenerateWebUIToken     |
+| ListTenants            |
 
 ## 11.6 Expressions
 
