@@ -1,12 +1,12 @@
 package eh_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,14 +17,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/debugging-sucks/clock"
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
-	sigv4clientutil "github.com/debugging-sucks/sigv4util/client"
 	sigv4auth "github.com/debugging-sucks/sigv4util/server/sigv4auth"
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	expectedSigCreate = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnRob3Jpem9uLXJlcXVlc3QtaGFzaCwgU2lnbmF0dXJlPTU4MzhjMTMwNjgxMmQwZTFhNWQ0ZTQ0ZjlmM2FjZjE4OTBhYTFjZGQ0ZWU3MGFlYjFlNmRlMThmN2RiMzBjYjYNCkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24veC13d3ctZm9ybS11cmxlbmNvZGVkDQpYLUFtei1EYXRlOiAyMDI1MDEwMVQwMDAwMDBaDQpYLUFtei1TZWN1cml0eS1Ub2tlbjogVE9LRU4NClgtRXZlbnRob3Jpem9uLVJlcXVlc3QtSGFzaDogZGM4YmRlZTRhMGYzNWVkYzQzNjY5NmVkODVmOTdkNjRjMjU0ZDIyZmQzNmU5ZDhjYWFkY2VlZTliYzQ1M2UxZQ0KDQoyZA0KQWN0aW9uPUdldENhbGxlcklkZW50aXR5JlZlcnNpb249MjAxMS0wNi0xNQ0KDQowDQoNCg=="
-	expectedSigGet    = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnRob3Jpem9uLXJlcXVlc3QtaGFzaCwgU2lnbmF0dXJlPTc0MTQ2YzllNjMwYjBmOTkwNTdjMWQyOTQ2MTVjNWE0OTQ0ZGRlNDExY2YxY2Q3MWEzYWRhYzRhODM4MDRlNjMNCkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24veC13d3ctZm9ybS11cmxlbmNvZGVkDQpYLUFtei1EYXRlOiAyMDI1MDEwMVQwMDAwMDBaDQpYLUFtei1TZWN1cml0eS1Ub2tlbjogVE9LRU4NClgtRXZlbnRob3Jpem9uLVJlcXVlc3QtSGFzaDogNDdkODc1MzkzZDM5YjVhODgxNjU2NWQzODNhYTZmNmQ0MDVhNGNjN2FiNjhiMTI0ZDI5ZmYzNjIxMmE5ZTFlNA0KDQoyZA0KQWN0aW9uPUdldENhbGxlcklkZW50aXR5JlZlcnNpb249MjAxMS0wNi0xNQ0KDQowDQoNCg=="
+const (
+	expectedSigCreateTenant = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnQtaG9yaXpvbi1yZXF1ZXN0LWhhc2gsIFNpZ25hdHVyZT1lZmI1MGZlODE4NzRjOWFkMjI2ODJiNjAzYjI2OTkxNDQ4ZTRjNTIzODJmMTM4ZWM2NzQ1YmIzOTE0YzNiM2E1DQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZA0KWC1BbXotRGF0ZTogMjAyNTAxMDFUMDAwMDAwWg0KWC1BbXotU2VjdXJpdHktVG9rZW46IFRPS0VODQpYLUV2ZW50LUhvcml6b24tUmVxdWVzdC1IYXNoOiAyOTdmNzRkYmRkY2RmZGU3NjY4OTYyZGYwM2YxMGMwZjVmYzYwNzA3YmExNGM2ZjJhNDgwMzE0ZDAxMzg5ZjZmDQoNCjJkDQpBY3Rpb249R2V0Q2FsbGVySWRlbnRpdHkmVmVyc2lvbj0yMDExLTA2LTE1DQoNCjANCg0K"
+	expectedSigGetTenant    = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnQtaG9yaXpvbi1yZXF1ZXN0LWhhc2gsIFNpZ25hdHVyZT02OGU5ZWZhZTJkNjc0ZTc3NTViZWRiMDViNTYyOWNkZGJiY2QwMGZjYWQzMzE2Mjg5OWQ3ZGM2NzZhZWMxMDg3DQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZA0KWC1BbXotRGF0ZTogMjAyNTAxMDFUMDAwMDAwWg0KWC1BbXotU2VjdXJpdHktVG9rZW46IFRPS0VODQpYLUV2ZW50LUhvcml6b24tUmVxdWVzdC1IYXNoOiBiYzhmOWZlNDM3ZjEwZmMwZWQ0YmExOWRkZjYyNmEzN2Y4NmI0Y2Y3Mzg4MTZkOGI1YTQ3ZmRmNmNjNWFiMTFlDQoNCjJkDQpBY3Rpb249R2V0Q2FsbGVySWRlbnRpdHkmVmVyc2lvbj0yMDExLTA2LTE1DQoNCjANCg0K"
 
 	tenantIDThatNeedsEscaping = "foo/../../bar"
 	escapedTenantID           = "foo%2F..%2F..%2Fbar"
@@ -34,7 +33,7 @@ func TestCreateTenant(t *testing.T) {
 	t.Parallel()
 	// Mock server returns successful response
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, http.MethodPut, r.Method)
 		require.Equal(t, "/v1/tenants/abc", r.URL.Path)
 
 		var reqBody eh.CreateTenantRequest
@@ -208,12 +207,7 @@ func verifySigv4(t *testing.T, r *http.Request, cfg *aws.Config, expected string
 	parts := strings.SplitN(auth, " ", 2)
 	require.Len(t, parts, 2)
 	require.Equal(t, "sts:GetCallerIdentity", parts[0])
-
-	if expected != "" {
-		require.Equal(t, expected, parts[1])
-	} else {
-		t.Logf("sigv4: %s", parts[1])
-	}
+	require.Equal(t, expected, parts[1])
 
 	decoded, err := base64.StdEncoding.DecodeString(parts[1])
 	require.NoError(t, err)
@@ -242,11 +236,11 @@ func TestSigv4Auth(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/tenants/abc", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
-		case http.MethodPost:
-			verifySigv4(t, r, &cfg, expectedSigCreate, clk)
+		case http.MethodPut:
+			verifySigv4(t, r, &cfg, expectedSigCreateTenant, clk)
 			w.WriteHeader(http.StatusCreated)
 		case http.MethodGet:
-			verifySigv4(t, r, &cfg, expectedSigGet, clk)
+			verifySigv4(t, r, &cfg, expectedSigGetTenant, clk)
 			w.WriteHeader(http.StatusOK)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -256,24 +250,16 @@ func TestSigv4Auth(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewUnstartedServer(mux)
 	defer srv.Close()
-
-	// Compute expected signatures using the server URL.
-	body, _ := json.Marshal(eh.CreateTenantRequest{TenantID: "abc", Type: eh.TenantTypeUser})
-	postReq, _ := http.NewRequest(http.MethodPost, srv.URL+"/v1/tenants/abc", bytes.NewReader(body))
-	postReq.Header.Set("Content-Type", "application/json")
-	postReq.Header.Set("Accept", "application/json")
-	getReq, _ := http.NewRequest(http.MethodGet, srv.URL+"/v1/tenants/abc", nil)
-	getReq.Header.Set("Accept", "application/json")
-	_ = sigv4clientutil.AddAuthHeaders(context.Background(), postReq, &cfg, cfg.Region, clk)
-	_ = sigv4clientutil.AddAuthHeaders(context.Background(), getReq, &cfg, cfg.Region, clk)
-	expectedSigCreate = postReq.Header.Get("Authorization")[len("sts:GetCallerIdentity "):]
-	expectedSigGet = getReq.Header.Get("Authorization")[len("sts:GetCallerIdentity "):]
+	_ = srv.Listener.Close()
+	var err error
+	srv.Listener, err = net.Listen("tcp", "localhost:4242")
+	require.NoError(t, err)
+	srv.Start()
 
 	client := eh.NewClient(srv.URL, eh.WithSigv4Auth(cfg, clk))
-
-	_, err := client.CreateTenant(context.Background(), &eh.CreateTenantRequest{TenantID: "abc", Type: eh.TenantTypeUser})
+	_, err = client.CreateTenant(context.Background(), &eh.CreateTenantRequest{TenantID: "abc", Type: eh.TenantTypeUser})
 	require.NoError(t, err)
 
 	_, err = client.GetTenant(context.Background(), &eh.GetTenantRequest{TenantID: "abc"})

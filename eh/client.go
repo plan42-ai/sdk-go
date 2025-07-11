@@ -309,7 +309,7 @@ func (c *Client) CreateTenant(ctx context.Context, req *CreateTenantRequest) (*T
 	}
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID))
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(bodyBytes))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, err
 	}
