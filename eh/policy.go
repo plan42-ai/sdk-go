@@ -6,6 +6,9 @@ import (
 )
 
 func createEnumMaps[T ~string](values []T) (map[T]int64, map[int64]T) {
+	if len(values) > 64 {
+		panic("too many enum values")
+	}
 	encodingMap := make(map[T]int64)
 	decodingMap := make(map[int64]T)
 	for i := range values {
@@ -55,6 +58,7 @@ const (
 	PrincipalIAMRole        PrincipalType = "IAMRole"
 	PrincipalService        PrincipalType = "Service"
 	PrincipalServiceAccount PrincipalType = "ServiceAccount"
+	PrincipalAgent          PrincipalType = "Agent"
 )
 
 // Action defines the actions that a policy can allow or deny.
@@ -66,6 +70,11 @@ const (
 	ActionGetTenant              Action = "GetTenant"
 	ActionGenerateWebUIToken     Action = "GenerateWebUIToken"
 	ActionListPolicies           Action = "ListPolicies"
+	ActionUpdateTurn             Action = "UpdateTurn"
+	ActionUpdateTask             Action = "UpdateTask"
+	ActionGetTask                Action = "GetTask"
+	ActionGetTurn                Action = "GetTurn"
+	ActionUploadTurnLogs         Action = "UploadTurnLogs"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -75,6 +84,7 @@ const (
 	TokenTypeWebUI          TokenType = "WebUIToken"
 	TokenTypeAuthProvider   TokenType = "AuthProviderToken"   // #nosec: G101: This is an enum value, not a hardcoded credential.
 	TokenTypeServiceAccount TokenType = "ServiceAccountToken" // #nosec: G101: This is an enum value, not a hardcoded credential.
+	TokenTypeAgent          TokenType = "AgentToken"
 )
 
 // MemberRole defines the role of a user in an organization or enterprise.
@@ -156,10 +166,26 @@ func init() {
 		ActionGetTenant,
 		ActionGenerateWebUIToken,
 		ActionListPolicies,
+		ActionUpdateTurn,
+		ActionUpdateTask,
+		ActionGetTask,
+		ActionGetTurn,
+		ActionUploadTurnLogs,
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
 		TokenTypeAuthProvider,
 		TokenTypeServiceAccount,
+		TokenTypeAgent,
 	})
 }
+
+type AuthorizationType string
+
+const (
+	AuthorizationTypeWebUIToken           AuthorizationType = "WebUIToken"
+	AuthorizationTypeAuthProviderToken    AuthorizationType = "AuthProviderToken" // #nosec: G101: This is an enum value, not a hardcoded credential.
+	AuthorizationTypeServiceAccountToken  AuthorizationType = "ServiceAccountToken"
+	AuthorizationTypeSTSGetCallerIdentity AuthorizationType = "sts:GetCallerIdentity"
+	AuthorizationTypeAgentToken           AuthorizationType = "AgentToken"
+)
