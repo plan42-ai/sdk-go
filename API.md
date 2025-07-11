@@ -339,7 +339,8 @@ Policies are defined using JSON.
 
 ```json
 {
-  "SchemaVersion": "string",
+
+  "PolicyID" : "string",
   "Name":   "string",
   "Effect" : "EffectType",
   "Tenant" : "*string",
@@ -355,7 +356,7 @@ Policies are defined using JSON.
 
 | Field              | Type                               | Description                                                                                                                                                                                                                                                                |
 |--------------------|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| SchemaVersion      | string                             | The version of the policy schema. Currently, this is always "1.0".                                                                                                                                                                                                         |
+| PolicyID           | string                             | The unique identifier for the policy. This is a v4 UUID.                                                                                                                                                                                                                   |
 | Name               | string                             | The name of the policy. This must be unique within the tenant.                                                                                                                                                                                                             |
 | Effect             | [EffectType](#112-effecttype)      | The effect of the policy. This can be "Allow" or "Deny".                                                                                                                                                                                                                   |
 | Tenant             | *string                            | The TennantID that the policy applies to. If this is null, the policy applies to contexts that do not specify a tenant (such as CreateTenant). If this is "*", the policy applies to all tenants. If this is a specific tenant ID, the policy applies only to that tenant. |
@@ -479,7 +480,6 @@ There are some interesting things to note about the policy definition:
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "EnableAccountCreationFromUI",
   "Effect": "Allow",
   "Tenant": null,
@@ -503,8 +503,7 @@ There are some interesting things to note about the policy definition:
 
 ```json
 {
-  "SchemaVersion": "1.0",
-  "Name": "EnableAccountCreationFromUI",
+  "Name": "EnableAccountCreationFromAdminRole",
   "Effect": "Allow",
   "Tenant": null,
   "Principal": {
@@ -529,7 +528,6 @@ This policy allows our internal admin role to perform any action on any tenant.
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "EnableAdminAccess",
   "Effect": "Allow",
   "Tenant": "*",
@@ -550,7 +548,6 @@ Tokens.
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "EnableWebUIDelegation",
   "Effect": "Allow",
   "Tenant": "tenant_id",
@@ -575,7 +572,6 @@ Tokens.
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "EnableWebUIDelegation",
   "Effect": "Allow",
   "Tenant": "tenant_id",
@@ -599,7 +595,6 @@ This policy allows the Web UI to generate Web UI tokens for users that authentic
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "GenerateWebUIToken",
   "Effect": "Allow", 
   "Tenant": "tenant_id",
@@ -624,7 +619,6 @@ This policy allows users to access their own tenant.
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "UserAccess",
   "Effect": "Allow",
   "Tenant": "tenant_id",
@@ -646,7 +640,6 @@ This enables the Web UI to perform delegated actions on an Organization by membe
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "EnableWebUIDelegation",
   "Effect": "Allow",
   "Tenant": "tenant_id",
@@ -670,7 +663,6 @@ This policy allows owners of an organization to perform any action on the organi
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "OwnerAccess",
   "Effect": "Allow",
   "Tenant": "tenant_id",
@@ -692,7 +684,6 @@ This policy allows members of an organization to perform non-admin actions on th
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "MemberAccess",
   "Effect": "Allow",
   "Tenant": "tenant_id",
@@ -718,7 +709,6 @@ This enables the Web UI to perform delegated actions on an enterprise by members
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "EnableWebUIDelegation",
   "Effect": "Allow",
   "Tenant": "tenant_id",
@@ -742,7 +732,6 @@ This policy allows owners of an enterprise to perform any action on the enterpri
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "OwnerAccess",
   "Effect": "Allow",
   "Tenant": "tenant_id",
@@ -763,7 +752,6 @@ This policy allows members of an enterprise to perform non-admin actions on the 
 
 ```json
 {
-  "SchemaVersion": "1.0",
   "Name": "MemberAccess",
   "Effect": "Allow",
   "Tenant": "tenant_id",
