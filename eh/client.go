@@ -36,7 +36,7 @@ func (h *sigv4AuthHandler) Authenticate(req *http.Request) error {
 // WithSigv4Auth configures the client to use SigV4 authentication.
 func WithSigv4Auth(cfg aws.Config, clk clock.Clock) Option {
 	return func(c *Client) {
-		c.authHandler = &sigv4AuthHandler{cfg: &cfg, clk: clk}
+		c.authHandlers = append(c.authHandlers, &sigv4AuthHandler{cfg: &cfg, clk: clk})
 	}
 }
 
@@ -74,7 +74,7 @@ type Client struct {
 	HTTPClient *http.Client
 
 	// authHandler is used to add authentication to requests.
-	authHandler AuthHandler
+	authHandlers []AuthHandler
 }
 
 // NewClient returns a new API client with the given baseURL.
@@ -100,11 +100,16 @@ func (c *Client) httpClient() *http.Client {
 	return http.DefaultClient
 }
 
-func (c *Client) authenticate(req *http.Request) error {
-	if c.authHandler == nil {
-		return nil
+func (c *Client) authenticate(delegatedAuth DelegatedAuthInfo, req *http.Request) error {
+	for _, handler := range c.authHandlers {
+		if err := handler.Authenticate(req); err != nil {
+			return fmt.Errorf("failed to authenticate request: %w", err)
+		}
 	}
-	return c.authHandler.Authenticate(req)
+	if delegatedAuth.AuthType != nil && delegatedAuth.JWT != nil {
+		req.Header.Set("X-Event-Horizon-Delegating-Authorization", fmt.Sprintf("%s %s", *delegatedAuth.AuthType, *delegatedAuth.JWT))
+	}
+	return nil
 }
 
 // TenantType is the type of tenant.
@@ -116,8 +121,14 @@ const (
 	TenantTypeEnterprise   TenantType = "Enterprise"
 )
 
+type DelegatedAuthInfo struct {
+	AuthType *AuthorizationType `json:"-"`
+	JWT      *string            `json:"-"`
+}
+
 // CreateTenantRequest is the request payload for CreateTenant.
 type CreateTenantRequest struct {
+	DelegatedAuthInfo
 	TenantID       string     `json:"-"`
 	Type           TenantType `json:"Type"`
 	FullName       *string    `json:"FullName,omitempty"`
@@ -132,6 +143,7 @@ type CreateTenantRequest struct {
 
 // GetTenantRequest is the request for GetTenant.
 type GetTenantRequest struct {
+	DelegatedAuthInfo
 	TenantID string
 }
 
@@ -316,7 +328,7 @@ func (c *Client) CreateTenant(ctx context.Context, req *CreateTenantRequest) (*T
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	if err := c.authenticate(httpReq); err != nil {
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
 	}
 
@@ -353,7 +365,7 @@ func (c *Client) GetTenant(ctx context.Context, req *GetTenantRequest) (*Tenant,
 	}
 	httpReq.Header.Set("Accept", "application/json")
 
-	if err := c.authenticate(httpReq); err != nil {
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
 	}
 
@@ -376,6 +388,7 @@ func (c *Client) GetTenant(ctx context.Context, req *GetTenantRequest) (*Tenant,
 
 // ListPoliciesRequest is the request for ListPolicies.
 type ListPoliciesRequest struct {
+	DelegatedAuthInfo
 	TenantID   string
 	MaxResults *int
 	Token      *string
@@ -412,7 +425,7 @@ func (c *Client) ListPolicies(ctx context.Context, req *ListPoliciesRequest) (*L
 	}
 	httpReq.Header.Set("Accept", "application/json")
 
-	if err := c.authenticate(httpReq); err != nil {
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
 	}
 

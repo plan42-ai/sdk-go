@@ -8,15 +8,19 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/debugging-sucks/clock"
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/google/uuid"
 )
 
 type SharedOptions struct {
-	Endpoint string     `help:"Set to override the api endpoint." optional:""`
-	Insecure bool       `help:"Don't validate the api cert." optional:""`
-	Local    bool       `help:"Short for --endpoint localhost:7443 --insecure"`
-	Client   *eh.Client `kong:"-"`
+	Endpoint          string     `help:"Set to override the api endpoint." optional:""`
+	Insecure          bool       `help:"Don't validate the api cert." optional:""`
+	Local             bool       `help:"Short for --endpoint localhost:7443 --insecure"`
+	DelegatedAuthType *string    `help:"The delegated auth type to use." optional:""`
+	DelegatedToken    *string    `help:"The delegated JWT token to use." optional:""`
+	Client            *eh.Client `kong:"-"`
 }
 
 type CreateUserOptions struct {
@@ -25,6 +29,13 @@ type CreateUserOptions struct {
 	LastName   string  `help:"The user's last name" name:"last-name" short:"l"`
 	Email      string  `help:"The user's email address" short:"e"`
 	PictureURL *string `help:"The user's profile picture URL" short:"p"`
+}
+
+func processDelegatedAuth(shared *SharedOptions, info *eh.DelegatedAuthInfo) {
+	if shared.DelegatedAuthType != nil {
+		info.AuthType = pointer(eh.AuthorizationType(*shared.DelegatedAuthType))
+	}
+	info.JWT = shared.DelegatedToken
 }
 
 func (o *CreateUserOptions) Run(ctx context.Context, shared *SharedOptions) error {
@@ -37,12 +48,17 @@ func (o *CreateUserOptions) Run(ctx context.Context, shared *SharedOptions) erro
 		LastName:   &o.LastName,
 		PictureURL: o.PictureURL,
 	}
+	processDelegatedAuth(shared, &req.DelegatedAuthInfo)
 
 	t, err := shared.Client.CreateTenant(ctx, req)
 	if err != nil {
 		return err
 	}
 	return printJSON(t)
+}
+
+func pointer[T any](value T) *T {
+	return &value
 }
 
 func printJSON(resp any) error {
@@ -59,6 +75,8 @@ func (o *GetTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &eh.GetTenantRequest{
 		TenantID: o.TenantID,
 	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
 	t, err := s.Client.GetTenant(ctx, req)
 	if err != nil {
 		return err
@@ -73,10 +91,13 @@ type ListPoliciesOptions struct {
 func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var token *string
 	for {
-		resp, err := s.Client.ListPolicies(ctx, &eh.ListPoliciesRequest{
+		req := &eh.ListPoliciesRequest{
 			TenantID: o.TenantID,
 			Token:    token,
-		})
+		}
+		processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+		resp, err := s.Client.ListPolicies(ctx, req)
 		if err != nil {
 			return err
 		}
@@ -100,34 +121,37 @@ type Options struct {
 		Get          GetTenantOptions    `cmd:"get"`
 		ListPolicies ListPoliciesOptions `cmd:"list-policies"`
 	} `cmd:""`
+	Ctx context.Context `kong:"-"`
 }
 
 func main() {
 	var options Options
 	kongctx := kong.Parse(&options)
-	ctx := context.Background()
 
-	postProcessOptions(&options)
+	err := postProcessOptions(&options)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+		os.Exit(1)
+	}
 
-	var err error
 	switch kongctx.Command() {
 	case "tenant create-user":
-		err = options.Tenant.CreateUser.Run(ctx, &options.SharedOptions)
+		err = options.Tenant.CreateUser.Run(options.Ctx, &options.SharedOptions)
 	case "tenant get":
-		err = options.Tenant.Get.Run(ctx, &options.SharedOptions)
+		err = options.Tenant.Get.Run(options.Ctx, &options.SharedOptions)
 	case "tenant list-policies":
-		err = options.Tenant.ListPolicies.Run(ctx, &options.SharedOptions)
+		err = options.Tenant.ListPolicies.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
 
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
-		os.Exit(1)
+		os.Exit(2)
 	}
 }
 
-func postProcessOptions(o *Options) {
+func postProcessOptions(o *Options) error {
 	if o.Local && o.Endpoint == "" {
 		o.Endpoint = "https://localhost:7443"
 	}
@@ -140,9 +164,22 @@ func postProcessOptions(o *Options) {
 		o.Insecure = true
 	}
 
+	if (o.DelegatedAuthType == nil) != (o.DelegatedToken == nil) {
+		return errors.New("if supplied, both --delegated-auth-type and --delegated-token must be provided together")
+	}
+
 	var options []eh.Option
 	if o.Insecure {
 		options = append(options, eh.WithInsecureSkipVerify())
 	}
+
+	o.Ctx = context.Background()
+	awsCfg, err := config.LoadDefaultConfig(o.Ctx)
+	if err != nil {
+		return fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	options = append(options, eh.WithSigv4Auth(awsCfg, clock.RealClock{}))
 	o.Client = eh.NewClient(o.Endpoint, options...)
+	return nil
 }
