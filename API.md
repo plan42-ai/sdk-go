@@ -456,8 +456,8 @@ only need to support the following expressions:
 |------------------------|---------------------------------------------------------------------------------------------|
 | $request.<FieldName>   | A field from the request object for an api call.                                            |
 | $policy.<FieldName>    | A field from the policy object being evaluated.                                             |
-| $principal.<FieldName> | A field from the principal at authn timeS                                                   |
 | 'StringLiteral'        | A string literal.                                                                           |
+| uuid                   | A uuid litera. For example, 42B996AB-D130-45A6-B9D6-085313CFB0DF                            |
 | expr == expr           | An expression that evaluates to true if the left-hand side is equal to the right-hand side. |
 
 ## 11.7 TokenType
@@ -516,7 +516,7 @@ There are some interesting things to note about the policy definition:
     "TokenTypes": ["AuthProviderToken"],
     "Provider": "Google"
   },
-  "Constraints" : ["$request.TenantType == 'User'"] 
+  "Constraints" : ["$request.Type == 'User'"] 
 }
 ```
 
@@ -539,7 +539,7 @@ There are some interesting things to note about the policy definition:
     "TokenTypes": ["AuthProviderToken"],
     "Provider": "Google"
   },
-  "Constraints" : ["$request.TenantType == 'User'"] 
+  "Constraints" : ["$request.Type == 'User'"] 
 }
 ```
 
@@ -560,6 +560,25 @@ This policy allows our internal admin role to perform any action on any tenant.
 }
 ```
 
+## 12.4 Enable Account Creation
+
+```json
+{
+   "Name": "EnableAccountCreation",
+   "Effect": "Allow",
+   "Tenant": "null",
+   "Principal": {
+     "Type": "User",
+     "Tenant": null,
+     "TokenTypes": [
+       "AuthProviderToken"
+     ],
+     "Provider": "Google"
+   },
+   "Actions": ["CreateTenant"],
+   "Constraints" : ["$request.Type == 'User'"]
+}
+```
 # 13. Default User Tenant Policies
 
 # 13.1 EnableWebUIDelegation
