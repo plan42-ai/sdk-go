@@ -111,6 +111,33 @@ type PolicyPrincipal struct {
 	TokenTypesBitVector int64 `json:"-"`
 }
 
+func (p *PolicyPrincipal) GetField(name string) (any, bool) {
+	switch name {
+	case "Type":
+		return p.Type, true
+	case "Name":
+		return evalNullable(p.Name)
+	case "RoleArn":
+		return evalNullable(p.RoleArn)
+	case "Tenant":
+		return evalNullable(p.Tenant)
+	case "TokenTypes":
+		return p.TokenTypes, true
+	case "Provider":
+		return evalNullable(p.Provider)
+	case "Organization":
+		return evalNullable(p.Organization)
+	case "OrganizationRole":
+		return evalNullable(p.OrganizationRole)
+	case "Enterprise":
+		return evalNullable(p.Enterprise)
+	case "EnterpriseRole":
+		return evalNullable(p.EnterpriseRole)
+	default:
+		return nil, false
+	}
+}
+
 func (p *PolicyPrincipal) UnmarshalJSON(b []byte) error {
 	type Alias PolicyPrincipal
 	var tmp Alias
@@ -138,6 +165,42 @@ type Policy struct {
 
 	ActionsBitVector          int64 `json:"-"`
 	DelegatedActionsBitVector int64 `json:"-"`
+}
+
+func (p *Policy) GetField(name string) (any, bool) {
+	switch name {
+	case "PolicyID":
+		return p.PolicyID, true
+	case "Name":
+		return p.Name, true
+	case "Effect":
+		return p.Effect, true
+	case "Tenant":
+		return evalNullable(p.Tenant)
+	case "Principal":
+		return p.Principal, true
+	case "Actions":
+		return p.Actions, true
+	case "DelegatedActions":
+		return p.DelegatedActions, true
+	case "DelegatedPrincipal":
+		return evalNullable(p.DelegatedPrincipal)
+	case "Constraints":
+		return p.Constraints, true
+	case "CreatedAt":
+		return p.CreatedAt, true
+	case "UpdatedAt":
+		return p.UpdatedAt, true
+	default:
+		return nil, false
+	}
+}
+
+func evalNullable[T any](ptr *T) (any, bool) {
+	if ptr == nil {
+		return nil, true
+	}
+	return *ptr, true
 }
 
 func (p *Policy) UnmarshalJSON(b []byte) error {

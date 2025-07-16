@@ -141,10 +141,46 @@ type CreateTenantRequest struct {
 	PictureURL     *string    `json:"PictureUrl,omitempty"`
 }
 
+func (r *CreateTenantRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID": //nolint
+		return r.TenantID, true
+	case "Type":
+		return r.Type, true
+	case "FullName":
+		return evalNullable(r.FullName)
+	case "OrgName":
+		return evalNullable(r.OrgName)
+	case "EnterpriseName":
+		return evalNullable(r.EnterpriseName)
+	case "Email":
+		return evalNullable(r.Email)
+	case "FirstName":
+		return evalNullable(r.FirstName)
+	case "LastName":
+		return evalNullable(r.LastName)
+	case "InitialOwner":
+		return evalNullable(r.InitialOwner)
+	case "PictureUrl":
+		return evalNullable(r.PictureURL)
+	default:
+		return nil, false
+	}
+}
+
 // GetTenantRequest is the request for GetTenant.
 type GetTenantRequest struct {
 	DelegatedAuthInfo
 	TenantID string
+}
+
+func (r *GetTenantRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	default:
+		return nil, false
+	}
 }
 
 // Tenant is the representation of a tenant returned by the API.
@@ -392,6 +428,19 @@ type ListPoliciesRequest struct {
 	TenantID   string
 	MaxResults *int
 	Token      *string
+}
+
+func (r *ListPoliciesRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "MaxResults":
+		return evalNullable(r.MaxResults)
+	case "Token":
+		return evalNullable(r.Token)
+	default:
+		return nil, false
+	}
 }
 
 // ListPoliciesResponse is the response from ListPolicies.
