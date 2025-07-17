@@ -494,3 +494,56 @@ func (c *Client) ListPolicies(ctx context.Context, req *ListPoliciesRequest) (*L
 	}
 	return &out, nil
 }
+
+// GenerateWebUITokenRequest is the request for GenerateWebUIToken.
+type GenerateWebUITokenRequest struct {
+	DelegatedAuthInfo
+	TenantID string
+	TokenID  string
+}
+
+func (r *GenerateWebUITokenRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TokenID":
+		return r.TokenID, true
+	default:
+		return nil, false
+	}
+}
+
+// GenerateWebUITokenResponse is the response from GenerateWebUIToken.
+type GenerateWebUITokenResponse struct {
+	JWT string `json:"JWT"`
+}
+
+// GenerateWebUIToken generates a new Web UI token.
+func (c *Client) GenerateWebUIToken(ctx context.Context, req *GenerateWebUITokenRequest) (*GenerateWebUITokenResponse, error) {
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "ui-tokens", url.PathEscape(req.TokenID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out GenerateWebUITokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}

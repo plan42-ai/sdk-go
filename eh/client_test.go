@@ -27,6 +27,9 @@ const (
 
 	tenantIDThatNeedsEscaping = "foo/../../bar"
 	escapedTenantID           = "foo%2F..%2F..%2Fbar"
+
+	tokenIDThatNeedsEscaping = "tok/../../id"       // #nosec G101: This is not a credential.
+	escapedTokenID           = "tok%2F..%2F..%2Fid" // #nosec G101: This is not a credential.
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -327,5 +330,62 @@ func TestListPoliciesPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.ListPolicies(context.Background(), &eh.ListPoliciesRequest{TenantID: tenantID})
+	require.NoError(t, err)
+}
+
+func TestGenerateWebUIToken(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/ui-tokens/tok", r.URL.Path)
+
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(eh.GenerateWebUITokenResponse{JWT: "jwt"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	resp, err := client.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{TenantID: "abc", TokenID: "tok"})
+	require.NoError(t, err)
+	require.Equal(t, "jwt", resp.JWT)
+}
+
+func TestGenerateWebUITokenError(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{TenantID: "abc", TokenID: "tok"})
+	require.Error(t, err)
+}
+
+func TestGenerateWebUITokenPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedTokenID, parts[5], "TokenID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(eh.GenerateWebUITokenResponse{JWT: "jwt"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{TenantID: tenantIDThatNeedsEscaping, TokenID: tokenIDThatNeedsEscaping})
 	require.NoError(t, err)
 }

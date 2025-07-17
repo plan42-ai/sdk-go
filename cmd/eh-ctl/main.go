@@ -147,6 +147,10 @@ func main() {
 
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
+		var conflictError *eh.ConflictError
+		if errors.As(err, &conflictError) && conflictError.Current != nil {
+			_ = printJSON(conflictError.Current)
+		}
 		os.Exit(2)
 	}
 }
