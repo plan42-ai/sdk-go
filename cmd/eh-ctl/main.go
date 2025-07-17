@@ -117,9 +117,11 @@ func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 type Options struct {
 	SharedOptions
 	Tenant struct {
-		CreateUser   CreateUserOptions   `cmd:"create-user"`
-		Get          GetTenantOptions    `cmd:"get"`
-		ListPolicies ListPoliciesOptions `cmd:"list-policies"`
+		CreateUser CreateUserOptions `cmd:"create-user"`
+		Get        GetTenantOptions  `cmd:"get"`
+	} `cmd:""`
+	Policies struct {
+		List ListPoliciesOptions `cmd:"list"`
 	} `cmd:""`
 	Ctx context.Context `kong:"-"`
 }
@@ -139,8 +141,8 @@ func main() {
 		err = options.Tenant.CreateUser.Run(options.Ctx, &options.SharedOptions)
 	case "tenant get":
 		err = options.Tenant.Get.Run(options.Ctx, &options.SharedOptions)
-	case "tenant list-policies":
-		err = options.Tenant.ListPolicies.Run(options.Ctx, &options.SharedOptions)
+	case "policies list":
+		err = options.Policies.List.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
