@@ -897,7 +897,7 @@ This policy allows members of an enterprise to perform non-admin actions on the 
 
 The ListPolicies API is used to list all policies for a tenant. 
 
-# 11.1 Request
+## 11.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/policies?maxResults={maxResults}&token={token} HTTP/1.1
@@ -916,7 +916,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                         |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                            |
 
-# 11.2 Response
+## 11.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -934,3 +934,53 @@ Content-Type: application/json; charset=utf-8
 |-----------|-------------------------|------------------------------------------------------------------------------------------------|
 | Policies  | [][Policy](#111-policy) | A list of policies for the tenant. See [Policy](#111-policy) for details on the policy object. |
 | NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
+
+# 12. GetCurrentUser
+
+The GetCurrentUser API is similar to the GetTenant API, but it returns information about the currently authenticated user.
+If the caller is not a user, it returns a 403 Forbidden error.
+
+## 12.1 Request
+
+```http request
+GET /v1/tenants/current-user HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 12.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantId": "string",
+  "Type": "TenantType",
+  "Version": int,
+  "Deleted": boolean,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "FullName": "*string",
+  "OrgName": "*string",
+  "EnterpriseName": "*string",
+  "Email": "*string",
+  "FirstName": "*string",
+  "LastName": "*string"
+}
+```
+
+| See Also                            | Description                     |
+|-------------------------------------|---------------------------------|
+| [GetTenant](#32-response)           | For details on response fields. |
+
