@@ -27,7 +27,7 @@ are supported.
 Generally, AuthProvider tokens are used for 2 purposes:
 
 1. To create new accounts via [CreateTenant](#3-createtenant)
-2. To create Web UI tokens via [GenerateWebUIToken](#10-generatewebuitoken).
+2. To create Web UI tokens via [GenerateWebUIToken](#5-generatewebuitoken).
 
 ## 1.3 Service Account Tokens
 
@@ -60,7 +60,7 @@ When authorizing the request, the api will verify the following:
 2. That the "calling principal" has "PerformDelegatedAction" permission for the delegating principal and the requested
    action.
 
-See [Authorization](#11-authorization) for more details on how policies are defined and evaluated.
+See [Authorization](#6-authorization) for more details on how policies are defined and evaluated.
 
 Both "Web UI" and "Auth Provider" tokens are only usable in delegated contexts. They cannot be used to invoke the api
 directly.
@@ -318,33 +318,23 @@ Content-Type: application/json; charset=utf-8
 | [CreateTenant](#32-response)        | For details on response fields. |
 | [Error Handling](#2-error-handling) | For details on error responses. |
 
-# 5. ListTenantPrincipals
+# 5. GenerateWebUIToken
 
-# 6. GetTenantPrincipal
-
-# 7. DeleteTenantPrincipal
-
-# 8. UpdateTenantBinding
-
-# 9. GetTenantForPrincipal
-
-# 10. GenerateWebUIToken
-
-# 11. Authorization
+# 6. Authorization
 
 The API implements authorization using a policy-based model. For the MVP, the set of policies used is fixed, and
 we do not define any policy management apis. This will be changed in the future as we add support for service accounts.
 We have 2 sets of default policies:
 
-1. Global policies that apply to all tenants. See [Default Global Policies](#12-default-global-policies) for details.
+1. Global policies that apply to all tenants. See [Default Global Policies](#7-default-global-policies) for details.
 2. Default tenant policies that are created when a new tenant is created. The specific policies created depend on the
    type of tenant.
 
-   - For user tenants, see [Default User Tenant Policies](#13-default-user-tenant-policies).
-   - For organization tenants, see [Default Organization Tenant Policies](#14-default-organization-tenant-policies).
-   - For enterprise tenants, see [Default Enterprise Tenant Policies](#15-default-enterprise-tenant-policies).
+   - For user tenants, see [Default User Tenant Policies](#8-default-user-tenant-policies).
+   - For organization tenants, see [Default Organization Tenant Policies](#9-default-organization-tenant-policies).
+   - For enterprise tenants, see [Default Enterprise Tenant Policies](#10-default-enterprise-tenant-policies).
 
-## 11.1 Policy Schema
+## 6.1 Policy Schema
 
 Policies are defined using JSON. 
 
@@ -365,21 +355,21 @@ Policies are defined using JSON.
 }
 ```
 
-| Field              | Type                               | Description                                                                                                                                                                                                                                                                |
-|--------------------|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| PolicyID           | string                             | The unique identifier for the policy. This is a v4 UUID.                                                                                                                                                                                                                   |
-| Name               | string                             | The name of the policy. This must be unique within the tenant.                                                                                                                                                                                                             |
-| Effect             | [EffectType](#112-effecttype)      | The effect of the policy. This can be "Allow" or "Deny".                                                                                                                                                                                                                   |
-| Tenant             | *string                            | The TennantID that the policy applies to. If this is null, the policy applies to contexts that do not specify a tenant (such as CreateTenant). If this is "*", the policy applies to all tenants. If this is a specific tenant ID, the policy applies only to that tenant. |
-| Principal          | [Principal](#113-policyprincipal)  | The principal that the policy applies to.                                                                                                                                                                                                                                  |
-| Actions            | [][Action](#115-action)            | The actions the policy allows or denies.                                                                                                                                                                                                                                   |
-| DelegatedActions   | [][Action](#115-action)            | Only valid when action is `PerformDelegatedAction`. It identifies the section of actions that can be delegated.                                                                                                                                                            |
-| DelegatedPrincipal | [*Principal](#113-policyprincipal) | Only valid when action is `PerformDelegatedAction`. It identifies the principal for which delegation is enabled                                                                                                                                                            |
-| Constraints        | [][Expression](#116-expressions)   | A list of constraints expressions that must be satisfied for the policy to apply. They are dynamic and are evaluated at policy evaluation time.                                                                                                                            |
-| CreatedAt          | string                             | The timestamp when the policy was created, in ISO 8601 format.                                                                                                                                                                                                             |
-| UpdatedAt          | string                             | The timestamp when the policy was last updated, in ISO 8601 format.                                                                                                                                                                                                        |
+| Field              | Type                              | Description                                                                                                                                                                                                                                                                |
+|--------------------|-----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| PolicyID           | string                            | The unique identifier for the policy. This is a v4 UUID.                                                                                                                                                                                                                   |
+| Name               | string                            | The name of the policy. This must be unique within the tenant.                                                                                                                                                                                                             |
+| Effect             | [EffectType](#62-effecttype)      | The effect of the policy. This can be "Allow" or "Deny".                                                                                                                                                                                                                   |
+| Tenant             | *string                           | The TennantID that the policy applies to. If this is null, the policy applies to contexts that do not specify a tenant (such as CreateTenant). If this is "*", the policy applies to all tenants. If this is a specific tenant ID, the policy applies only to that tenant. |
+| Principal          | [Principal](#63-policyprincipal)  | The principal that the policy applies to.                                                                                                                                                                                                                                  |
+| Actions            | [][Action](#65-action)           | The actions the policy allows or denies.                                                                                                                                                                                                                                   |
+| DelegatedActions   | [][Action](#65-action)           | Only valid when action is `PerformDelegatedAction`. It identifies the section of actions that can be delegated.                                                                                                                                                            |
+| DelegatedPrincipal | [*Principal](#63-policyprincipal) | Only valid when action is `PerformDelegatedAction`. It identifies the principal for which delegation is enabled                                                                                                                                                            |
+| Constraints        | [][Expression](#66-expressions)  | A list of constraints expressions that must be satisfied for the policy to apply. They are dynamic and are evaluated at policy evaluation time.                                                                                                                            |
+| CreatedAt          | string                            | The timestamp when the policy was created, in ISO 8601 format.                                                                                                                                                                                                             |
+| UpdatedAt          | string                            | The timestamp when the policy was last updated, in ISO 8601 format.                                                                                                                                                                                                        |
 
-## 11.2 EffectType
+## 6.2 EffectType
 
 EffectType is an enum that defines whether a policy allows or denies access to a resource.
 
@@ -388,7 +378,7 @@ EffectType is an enum that defines whether a policy allows or denies access to a
 | Allow |
 | Deny  |
 
-## 11.3 PolicyPrincipal
+## 6.3 PolicyPrincipal
 
 A PolicyPrincipal is an object that defines the principal that a policy applies to. 
 
@@ -405,20 +395,20 @@ A PolicyPrincipal is an object that defines the principal that a policy applies 
 }
 ```
 
-| Field            | Type                                | Description                                                                                                                                                                                                                                                               |
-|------------------|-------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Type             | [PrincipalType](#114-principaltype) | The type of principal.                                                                                                                                                                                                                                                    |
-| Name             | *string                             | The name of the principal. Only used for `Service` and `ServiceAccount` principals.                                                                                                                                                                                       |
-| RoleArn          | *string                             | The ARN of the IAM role. Only used for `IAMRole` principals.                                                                                                                                                                                                              |
-| Tenant           | *string                             | The TenantID of the principal. Only used for `User` and `ServiceAccount` principals. May also be an [Expression](#116-expressions or the value `*`.                                                                                                                       |
-| TokenTypes       | [][TokenType](#117-tokentype)       | When specified, restricts the policy to only apply to principals that authenticated using one of the specified token types.                                                                                                                                               |
-| Provider         | *string                             | The name of the authentication provider for the principal. Only valid for `AuthProviderToken` token types. Currently only "Google" is supported.                                                                                                                          |
-| Organization     | *string                             | The TenantID of the organization that the principal is a member of. When set restricts the policy to only apply to principals that are members of the provided org. Only valid for `User` and `ServiceAccount` principals. May also be an [Expression](#116-expressions). |
-| OrganizationRole | [*MemberRole](#118-memberrole)      | The role of the principal in the organization. Only valid for `User` principals. Valid values are "Owner" and "Member".                                                                                                                                                   |
-| Enterprise       | *string                             | The TenantID of the enterprise that the principal is a member of. When set restricts the policy to only apply to principals that are members of the provided enterprise. Only valid for `User` and `ServiceAccount` principals.                                           |
-| EnterpriseRole   | [*MemberRole](#118-memberrole)      | The role of the principal in the enterprise. Only valid for `User` principals. Valid values are "Owner" and "Member".                                                                                                                                                     |
+| Field            | Type                               | Description                                                                                                                                                                                                                                                               |
+|------------------|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Type             | [PrincipalType](#64-principaltype) | The type of principal.                                                                                                                                                                                                                                                    |
+| Name             | *string                            | The name of the principal. Only used for `Service` and `ServiceAccount` principals.                                                                                                                                                                                       |
+| RoleArn          | *string                            | The ARN of the IAM role. Only used for `IAMRole` principals.                                                                                                                                                                                                              |
+| Tenant           | *string                            | The TenantID of the principal. Only used for `User` and `ServiceAccount` principals. May also be an [Expression](#116-expressions or the value `*`.                                                                                                                       |
+| TokenTypes       | [][TokenType](#67-tokentype)      | When specified, restricts the policy to only apply to principals that authenticated using one of the specified token types.                                                                                                                                               |
+| Provider         | *string                            | The name of the authentication provider for the principal. Only valid for `AuthProviderToken` token types. Currently only "Google" is supported.                                                                                                                          |
+| Organization     | *string                            | The TenantID of the organization that the principal is a member of. When set restricts the policy to only apply to principals that are members of the provided org. Only valid for `User` and `ServiceAccount` principals. May also be an [Expression](#66-expressions). |
+| OrganizationRole | [*MemberRole](#68-memberrole)     | The role of the principal in the organization. Only valid for `User` principals. Valid values are "Owner" and "Member".                                                                                                                                                   |
+| Enterprise       | *string                            | The TenantID of the enterprise that the principal is a member of. When set restricts the policy to only apply to principals that are members of the provided enterprise. Only valid for `User` and `ServiceAccount` principals.                                           |
+| EnterpriseRole   | [*MemberRole](#68-memberrole)     | The role of the principal in the enterprise. Only valid for `User` principals. Valid values are "Owner" and "Member".                                                                                                                                                     |
 
-## 11.4 PrincipalType
+## 6.4 PrincipalType
 
 PrincipalType is an enum that defines the type of principal that a policy applies to.
 
@@ -430,7 +420,7 @@ PrincipalType is an enum that defines the type of principal that a policy applie
 | ServiceAccount | A service account.                                                                                                                                                                                                                                     |
 | Agent          | An executing agent invocation.                                                                                                                                                                                                                         |
 
-## 11.5 Action
+## 6.5 Action
 
 Action is an enum that defines the actions that a policy can allow or deny.
 
@@ -447,7 +437,7 @@ Action is an enum that defines the actions that a policy can allow or deny.
 | GetTurn                |
 | UploadTurnLogs         |
 
-## 11.6 Expressions
+## 6.6 Expressions
 
 We support evaluating expressions in policies. Eventually we should define a full expression grammar here. For MVP we
 only need to support the following expressions:
@@ -460,7 +450,7 @@ only need to support the following expressions:
 | uuid                   | A uuid litera. For example, 42B996AB-D130-45A6-B9D6-085313CFB0DF                            |
 | expr == expr           | An expression that evaluates to true if the left-hand side is equal to the right-hand side. |
 
-## 11.7 TokenType
+## 6.7 TokenType
 
 TokenType is an enum that defines the type of token that a principal used to authenticate.
 
@@ -471,7 +461,7 @@ TokenType is an enum that defines the type of token that a principal used to aut
 | ServiceAccountToken | A token issued by a service account. This is used for automation scripts that interact with the API.     |
 | AgentToken          | A token representing an invocation of agent. Used to update Turn and Task state and to update turn logs. |
 
-## 11.8 MemberRole
+## 6.8 MemberRole
 
 MemberRole is an enum that defines the role of a user in an organization or enterprise.
 
@@ -480,17 +470,17 @@ MemberRole is an enum that defines the role of a user in an organization or ente
 | Owner  |
 | Member |
 
-## 11.9 DSQL Schema
+## 6.9 DSQL Schema
 
 ```postgresql
 
 ```
 
-# 12. Default Global Policies
+# 7. Default Global Policies
 
 The policies below are defined globally (on either the null tenant or the "*" tenant) and apply to all tenants.
 
-## 12.1 Enable Account Creation From UI
+## 7.1 Enable Account Creation From UI
 
 This policy allows the web ui to create new accounts for users that authenticate via Google Identity Tokens.
 There are some interesting things to note about the policy definition:
@@ -520,7 +510,7 @@ There are some interesting things to note about the policy definition:
 }
 ```
 
-## 12.2 Enable Account Creation Via the Admin Role
+## 7.2 Enable Account Creation Via the Admin Role
 
 ```json
 {
@@ -543,7 +533,7 @@ There are some interesting things to note about the policy definition:
 }
 ```
 
-## 12.3 Enable Admin Access
+## 7.3 Enable Admin Access
 
 This policy allows our internal admin role to perform any action on any tenant.
 
@@ -560,7 +550,7 @@ This policy allows our internal admin role to perform any action on any tenant.
 }
 ```
 
-## 12.4 Enable Account Creation
+## 7.4 Enable Account Creation
 
 ```json
 {
@@ -579,9 +569,9 @@ This policy allows our internal admin role to perform any action on any tenant.
    "Constraints" : ["$request.Type == 'User'"]
 }
 ```
-# 13. Default User Tenant Policies
+# 8. Default User Tenant Policies
 
-# 13.1 EnableWebUIDelegation
+# 8.1 EnableWebUIDelegation
 
 This policy allows the Web UI to perform any delegated actions on behalf of user tenants that authenticate via Web UI
 Tokens.
@@ -605,7 +595,7 @@ Tokens.
 }
 ```
 
-## 13.2 EnableAdminDelegation
+## 8.2 EnableAdminDelegation
 
 This policy allows the Admin Role to perform any delegated actions on behalf of user tenants that authenticate via Web UI
 Tokens.
@@ -629,7 +619,7 @@ Tokens.
 }
 ```
 
-## 13.3 GenerateWebUIToken
+## 8.3 GenerateWebUIToken
 
 This policy allows the Web UI to generate Web UI tokens for users that authenticate via Google Identity Tokens.
 
@@ -653,7 +643,7 @@ This policy allows the Web UI to generate Web UI tokens for users that authentic
 }
 ```
 
-## 13.4 UserAccess
+## 8.4 UserAccess
 
 This policy allows users to access their own tenant.
 
@@ -670,7 +660,7 @@ This policy allows users to access their own tenant.
 }
 ```
 
-## 13.5 AgentAccess
+## 8.5 AgentAccess
 
 ```json
 {
@@ -689,11 +679,11 @@ This policy allows users to access their own tenant.
     ]
 }
 ```
-# 14. Default Organization Tenant Policies
+# 9. Default Organization Tenant Policies
 
 This section defines the default policies that are created when an organization tenant is created.
 
-## 14.1 EnableWebUIDelegation
+## 9.1 EnableWebUIDelegation
 
 This enables the Web UI to perform delegated actions on an Organization by members of the organization that authenticate via Web UI Tokens.
 
@@ -716,7 +706,7 @@ This enables the Web UI to perform delegated actions on an Organization by membe
 }
 ```
 
-## 14.2 OwnerAccess
+## 9.2 OwnerAccess
 
 This policy allows owners of an organization to perform any action on the organization.
 
@@ -735,7 +725,7 @@ This policy allows owners of an organization to perform any action on the organi
 }
 ```
 
-## 14.3 MemberAccess
+## 9.3 MemberAccess
 
 This policy allows members of an organization to perform non-admin actions on the organization.
 
@@ -758,7 +748,7 @@ This policy allows members of an organization to perform non-admin actions on th
 }
 ```
 
-## 14.4 TaskAccess
+## 9.4 TaskAccess
 
 ```json
 {
@@ -778,11 +768,11 @@ This policy allows members of an organization to perform non-admin actions on th
 }
 ```
 
-# 15. Default Enterprise Tenant Policies
+# 10. Default Enterprise Tenant Policies
 
 This section defines the default policies that are created when an enterprise tenant is created.
 
-## 15.1 EnableWebUIDelegation
+## 10.1 EnableWebUIDelegation
 
 This enables the Web UI to perform delegated actions on an enterprise by members of the enterprise that authenticate via Web UI Tokens.
 
@@ -805,7 +795,7 @@ This enables the Web UI to perform delegated actions on an enterprise by members
 }
 ```
 
-## 15.2 OwnerAccess
+## 10.2 OwnerAccess
 
 This policy allows owners of an enterprise to perform any action on the enterprise.
 
@@ -823,7 +813,7 @@ This policy allows owners of an enterprise to perform any action on the enterpri
 }
 ```
 
-## 15.3 MemberAccess
+## 10.3 MemberAccess
 
 This policy allows members of an enterprise to perform non-admin actions on the enterprise.
 
@@ -844,7 +834,7 @@ This policy allows members of an enterprise to perform non-admin actions on the 
 }
 ```
 
-## 15.4 AgentAccess
+## 10.4 AgentAccess
 
 ```json
 {
@@ -864,11 +854,11 @@ This policy allows members of an enterprise to perform non-admin actions on the 
 }
 ```
 
-# 16. ListPolicies
+# 11. ListPolicies
 
 The ListPolicies API is used to list all policies for a tenant. 
 
-# 16.1 Request
+# 11.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/policies?maxResults={maxResults}&token={token} HTTP/1.1
@@ -887,7 +877,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                         |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                            |
 
-# 16.2 Response
+# 11.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
