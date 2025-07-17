@@ -84,6 +84,19 @@ func (o *GetTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
 	return printJSON(t)
 }
 
+type GetCurrentUserOptions struct{}
+
+func (o *GetCurrentUserOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetCurrentUserRequest{}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	t, err := s.Client.GetCurrentUser(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(t)
+}
+
 type ListPoliciesOptions struct {
 	TenantID string `help:"The ID of the tenant to list policies for" short:"i"`
 }
@@ -135,8 +148,9 @@ func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 type Options struct {
 	SharedOptions
 	Tenant struct {
-		CreateUser CreateUserOptions `cmd:"create-user"`
-		Get        GetTenantOptions  `cmd:"get"`
+		CreateUser  CreateUserOptions     `cmd:"create-user"`
+		CurrentUser GetCurrentUserOptions `cmd:"current-user"`
+		Get         GetTenantOptions      `cmd:"get"`
 	} `cmd:""`
 	Policies struct {
 		List ListPoliciesOptions `cmd:"list"`
@@ -160,6 +174,8 @@ func main() {
 	switch kongctx.Command() {
 	case "tenant create-user":
 		err = options.Tenant.CreateUser.Run(options.Ctx, &options.SharedOptions)
+	case "tenant current-user":
+		err = options.Tenant.CurrentUser.Run(options.Ctx, &options.SharedOptions)
 	case "tenant get":
 		err = options.Tenant.Get.Run(options.Ctx, &options.SharedOptions)
 	case "policies list":
