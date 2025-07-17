@@ -325,7 +325,7 @@ GenerateWebUIToken creates and signs a new WebUI token for the calling user.
 ## 5.1 Request
 
 ```http request
-PUT /v1/tenants/{tenant_id}/ui-token/{token_id} HTTP/1.1
+PUT /v1/tenants/{tenant_id}/ui-tokens/{token_id} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
