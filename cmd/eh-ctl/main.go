@@ -88,6 +88,24 @@ type ListPoliciesOptions struct {
 	TenantID string `help:"The ID of the tenant to list policies for" short:"i"`
 }
 
+type GenerateUITokenOptions struct {
+	TenantID string `help:"The ID of the tenant to generate the Web UI token for" short:"i"`
+}
+
+func (o *GenerateUITokenOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GenerateWebUITokenRequest{
+		TenantID: o.TenantID,
+		TokenID:  uuid.NewString(),
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	resp, err := s.Client.GenerateWebUIToken(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(resp)
+}
+
 func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var token *string
 	for {
@@ -123,6 +141,9 @@ type Options struct {
 	Policies struct {
 		List ListPoliciesOptions `cmd:"list"`
 	} `cmd:""`
+	UIToken struct {
+		Generate GenerateUITokenOptions `cmd:"generate"`
+	} `cmd:"ui-token"`
 	Ctx context.Context `kong:"-"`
 }
 
@@ -143,6 +164,8 @@ func main() {
 		err = options.Tenant.Get.Run(options.Ctx, &options.SharedOptions)
 	case "policies list":
 		err = options.Policies.List.Run(options.Ctx, &options.SharedOptions)
+	case "ui-token generate":
+		err = options.UIToken.Generate.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
