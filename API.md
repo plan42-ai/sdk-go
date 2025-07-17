@@ -320,6 +320,45 @@ Content-Type: application/json; charset=utf-8
 
 # 5. GenerateWebUIToken
 
+GenerateWebUIToken creates and signs a new WebUI token for the calling user.
+
+## 5.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/ui-token/{token_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type   | Description                                                         |
+|------------------------------------------|----------|--------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string | The ID of the tenant to create the Web UI token for.                |
+| token_id                                 | path     | string | The ID of the Web UI token to create. This must be a v4 UUID.       |
+| Authorization                            | header   | string | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | string | The signed headers for the request, when authenticating with Sigv4. |
+
+NOTE: We use PUT and supply the token_id, so that retries are idempotent. If the token already exists, we will return a 409 CONFLICT
+error. The response body's `Current` field will contain the existing token object.
+
+## 5.2 Response
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+    "JWT": "string"
+}
+```
+
+| Field | Type   | Description               |
+|-------|--------|---------------------------|
+| JWT   | string | The signed Web UI token.  |
+
 # 6. Authorization
 
 The API implements authorization using a policy-based model. For the MVP, the set of policies used is fixed, and
@@ -362,10 +401,10 @@ Policies are defined using JSON.
 | Effect             | [EffectType](#62-effecttype)      | The effect of the policy. This can be "Allow" or "Deny".                                                                                                                                                                                                                   |
 | Tenant             | *string                           | The TennantID that the policy applies to. If this is null, the policy applies to contexts that do not specify a tenant (such as CreateTenant). If this is "*", the policy applies to all tenants. If this is a specific tenant ID, the policy applies only to that tenant. |
 | Principal          | [Principal](#63-policyprincipal)  | The principal that the policy applies to.                                                                                                                                                                                                                                  |
-| Actions            | [][Action](#65-action)           | The actions the policy allows or denies.                                                                                                                                                                                                                                   |
-| DelegatedActions   | [][Action](#65-action)           | Only valid when action is `PerformDelegatedAction`. It identifies the section of actions that can be delegated.                                                                                                                                                            |
+| Actions            | [][Action](#65-action)            | The actions the policy allows or denies.                                                                                                                                                                                                                                   |
+| DelegatedActions   | [][Action](#65-action)            | Only valid when action is `PerformDelegatedAction`. It identifies the section of actions that can be delegated.                                                                                                                                                            |
 | DelegatedPrincipal | [*Principal](#63-policyprincipal) | Only valid when action is `PerformDelegatedAction`. It identifies the principal for which delegation is enabled                                                                                                                                                            |
-| Constraints        | [][Expression](#66-expressions)  | A list of constraints expressions that must be satisfied for the policy to apply. They are dynamic and are evaluated at policy evaluation time.                                                                                                                            |
+| Constraints        | [][Expression](#66-expressions)   | A list of constraints expressions that must be satisfied for the policy to apply. They are dynamic and are evaluated at policy evaluation time.                                                                                                                            |
 | CreatedAt          | string                            | The timestamp when the policy was created, in ISO 8601 format.                                                                                                                                                                                                             |
 | UpdatedAt          | string                            | The timestamp when the policy was last updated, in ISO 8601 format.                                                                                                                                                                                                        |
 
