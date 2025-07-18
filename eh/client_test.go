@@ -63,15 +63,9 @@ func TestCreateTenant(t *testing.T) {
 
 func TestCreateTenantError(t *testing.T) {
 	t.Parallel()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
-	})
-
-	srv := httptest.NewServer(handler)
+	srv, client := serveBadRequest()
 	defer srv.Close()
 
-	client := eh.NewClient(srv.URL)
 	_, err := client.CreateTenant(context.Background(), &eh.CreateTenantRequest{TenantID: "abc", Type: eh.TenantTypeUser})
 	var clientErr *eh.Error
 	require.ErrorAs(t, err, &clientErr)
@@ -344,15 +338,9 @@ func TestListPolicies(t *testing.T) {
 
 func TestListPoliciesError(t *testing.T) {
 	t.Parallel()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
-	})
-
-	srv := httptest.NewServer(handler)
+	srv, client := serveBadRequest()
 	defer srv.Close()
 
-	client := eh.NewClient(srv.URL)
 	_, err := client.ListPolicies(context.Background(), &eh.ListPoliciesRequest{TenantID: "abc"})
 	require.Error(t, err)
 }
@@ -403,15 +391,8 @@ func TestGenerateWebUIToken(t *testing.T) {
 
 func TestGenerateWebUITokenError(t *testing.T) {
 	t.Parallel()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
-	})
-
-	srv := httptest.NewServer(handler)
+	srv, client := serveBadRequest()
 	defer srv.Close()
-
-	client := eh.NewClient(srv.URL)
 	_, err := client.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{TenantID: "abc", TokenID: "tok"})
 	require.Error(t, err)
 }
@@ -466,15 +447,9 @@ func TestCreateEnvironment(t *testing.T) {
 
 func TestCreateEnvironmentError(t *testing.T) {
 	t.Parallel()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
-	})
-
-	srv := httptest.NewServer(handler)
+	srv, client := serveBadRequest()
 	defer srv.Close()
 
-	client := eh.NewClient(srv.URL)
 	_, err := client.CreateEnvironment(context.Background(), &eh.CreateEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Name: "env"})
 	var clientErr *eh.Error
 	require.ErrorAs(t, err, &clientErr)
@@ -483,8 +458,7 @@ func TestCreateEnvironmentError(t *testing.T) {
 	require.Equal(t, "BadRequest", clientErr.ErrorType)
 }
 
-func TestCreateEnvironmentConflictError(t *testing.T) {
-	t.Parallel()
+func serveEnvironmentConflict() (*httptest.Server, *eh.Client) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 		_ = json.NewEncoder(w).Encode(eh.ConflictError{
@@ -496,10 +470,33 @@ func TestCreateEnvironmentConflictError(t *testing.T) {
 	})
 
 	srv := httptest.NewServer(handler)
-	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
+	return srv, client
+}
+
+func serveBadRequest() (*httptest.Server, *eh.Client) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
+	})
+
+	srv := httptest.NewServer(handler)
+	client := eh.NewClient(srv.URL)
+
+	return srv, client
+}
+
+func TestCreateEnvironmentConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveEnvironmentConflict()
+	defer srv.Close()
+
 	_, err := client.CreateEnvironment(context.Background(), &eh.CreateEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Name: "env"})
+	verifyEnvironmentConflict(t, err)
+}
+
+func verifyEnvironmentConflict(t *testing.T, err error) {
 	var clientErr *eh.ConflictError
 	require.ErrorAs(t, err, &clientErr)
 	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
@@ -646,15 +643,8 @@ func TestListEnvironments(t *testing.T) {
 
 func TestListEnvironmentsError(t *testing.T) {
 	t.Parallel()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
-	})
-
-	srv := httptest.NewServer(handler)
+	srv, client := serveBadRequest()
 	defer srv.Close()
-
-	client := eh.NewClient(srv.URL)
 	_, err := client.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{TenantID: "abc"})
 	require.Error(t, err)
 }
@@ -677,5 +667,78 @@ func TestListEnvironmentsPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{TenantID: tenantIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
+func TestUpdateEnvironment(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/environments/env", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateEnvironmentRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.Name)
+		require.Equal(t, "env2", *reqBody.Name)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Environment{TenantID: "abc", EnvironmentID: "env"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	name := "env2"
+	env, err := client.UpdateEnvironment(context.Background(), &eh.UpdateEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Version: 1, Name: &name})
+	require.NoError(t, err)
+	require.Equal(t, "env", env.EnvironmentID)
+}
+
+func TestUpdateEnvironmentError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+	_, err := client.UpdateEnvironment(context.Background(), &eh.UpdateEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestUpdateEnvironmentConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveEnvironmentConflict()
+	defer srv.Close()
+	_, err := client.UpdateEnvironment(context.Background(), &eh.UpdateEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Version: 1})
+	verifyEnvironmentConflict(t, err)
+}
+
+func TestUpdateEnvironmentPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedEnvironmentID, parts[5], "EnvironmentID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Environment{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	name := "env"
+	_, err := client.UpdateEnvironment(context.Background(), &eh.UpdateEnvironmentRequest{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping, Version: 1, Name: &name})
 	require.NoError(t, err)
 }

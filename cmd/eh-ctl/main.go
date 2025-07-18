@@ -120,16 +120,16 @@ func (o *GenerateUITokenOptions) Run(ctx context.Context, s *SharedOptions) erro
 }
 
 type CreateEnvironmentOptions struct {
-	TenantID    string `help:"The tenant ID to create the environment for" short:"i"`
-	Environment string `help:"The JSON file to load the environment definition from" short:"e" default:"-"`
+	TenantID string `help:"The tenant ID to create the environment for" short:"i"`
+	JSON     string `help:"The JSON file to load the environment definition from" short:"j" default:"-"`
 }
 
 func (o *CreateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var reader *os.File
-	if o.Environment == "-" {
+	if o.JSON == "-" {
 		reader = os.Stdin
 	} else {
-		f, err := os.Open(o.Environment)
+		f, err := os.Open(o.JSON)
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func (o *CreateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 }
 
 type GetEnvironmentOptions struct {
-	TenantID      string `help:"The tennant ID that owns the environment being fetched." name:"tenantid" short:"i"`
+	TenantID      string `help:"The tennant ID that owns the environment being fetched." short:"i"`
 	EnvironmentID string `help:"The environment ID to fetch" name:"environment-id" short:"e"`
 }
 
