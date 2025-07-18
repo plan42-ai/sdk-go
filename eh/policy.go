@@ -116,7 +116,7 @@ func (p *PolicyPrincipal) GetField(name string) (any, bool) {
 	switch name {
 	case "Type":
 		return p.Type, true
-	case "Name":
+	case "Name": //nolint:goconst
 		return evalNullable(p.Name)
 	case "RoleArn":
 		return evalNullable(p.RoleArn)

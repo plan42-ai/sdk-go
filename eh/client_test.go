@@ -29,8 +29,10 @@ const (
 	tenantIDThatNeedsEscaping = "foo/../../bar"
 	escapedTenantID           = "foo%2F..%2F..%2Fbar"
 
-	tokenIDThatNeedsEscaping = "tok/../../id"       // #nosec G101: This is not a credential.
-	escapedTokenID           = "tok%2F..%2F..%2Fid" // #nosec G101: This is not a credential.
+	tokenIDThatNeedsEscaping       = "tok/../../id"       // #nosec G101: This is not a credential.
+	escapedTokenID                 = "tok%2F..%2F..%2Fid" // #nosec G101: This is not a credential.
+	environmentIDThatNeedsEscaping = "env/../../id"
+	escapedEnvironmentID           = "env%2F..%2F..%2Fid"
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -433,5 +435,102 @@ func TestGenerateWebUITokenPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{TenantID: tenantIDThatNeedsEscaping, TokenID: tokenIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
+func TestCreateEnvironment(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/environments/env", r.URL.Path)
+
+		var reqBody eh.CreateEnvironmentRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, "env", reqBody.Name)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.Environment{TenantID: "abc", EnvironmentID: "env"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	env, err := client.CreateEnvironment(context.Background(), &eh.CreateEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Name: "env"})
+	require.NoError(t, err)
+	require.Equal(t, "env", env.EnvironmentID)
+}
+
+func TestCreateEnvironmentError(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.CreateEnvironment(context.Background(), &eh.CreateEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Name: "env"})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestCreateEnvironmentConflictError(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.Environment{EnvironmentID: "env"},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.CreateEnvironment(context.Background(), &eh.CreateEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Name: "env"})
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.Equal(t, "exists", clientErr.Message)
+	require.Equal(t, "Conflict", clientErr.ErrorType)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, eh.ObjectTypeEnvironment, clientErr.Current.ObjectType())
+	env, ok := clientErr.Current.(*eh.Environment)
+	require.True(t, ok, "Expected Current to be of type *eh.Environment")
+	require.Equal(t, eh.Environment{EnvironmentID: "env"}, *env)
+}
+
+func TestCreateEnvironmentPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedEnvironmentID, parts[5], "EnvironmentID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.Environment{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.CreateEnvironment(context.Background(), &eh.CreateEnvironmentRequest{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping, Name: "env"})
 	require.NoError(t, err)
 }
