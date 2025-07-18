@@ -616,3 +616,66 @@ func TestGetEnvironmentPathEscaping(t *testing.T) {
 	_, err := client.GetEnvironment(context.Background(), &eh.GetEnvironmentRequest{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping})
 	require.NoError(t, err)
 }
+
+func TestListEnvironments(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/environments", r.URL.Path)
+		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
+		require.Equal(t, "tok", r.URL.Query().Get("token"))
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListEnvironmentsResponse{Environments: []eh.Environment{{EnvironmentID: "env"}}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	maxResults := 123
+	tok := "tok"
+	includeDeleted := true
+	resp, err := client.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{TenantID: "abc", MaxResults: &maxResults, Token: &tok, IncludeDeleted: &includeDeleted})
+	require.NoError(t, err)
+	require.Len(t, resp.Environments, 1)
+	require.Equal(t, "env", resp.Environments[0].EnvironmentID)
+}
+
+func TestListEnvironmentsError(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{TenantID: "abc"})
+	require.Error(t, err)
+}
+
+func TestListEnvironmentsPathEscaping(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListEnvironmentsResponse{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{TenantID: tenantIDThatNeedsEscaping})
+	require.NoError(t, err)
+}

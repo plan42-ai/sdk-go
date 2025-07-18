@@ -742,3 +742,76 @@ func (c *Client) GetEnvironment(ctx context.Context, req *GetEnvironmentRequest)
 	}
 	return &out, nil
 }
+
+// ListEnvironmentsRequest is the request for ListEnvironments.
+type ListEnvironmentsRequest struct {
+	DelegatedAuthInfo
+	TenantID       string
+	MaxResults     *int
+	Token          *string
+	IncludeDeleted *bool
+}
+
+// GetField retrieves the value of a field by name.
+func (r *ListEnvironmentsRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "MaxResults":
+		return evalNullable(r.MaxResults)
+	case "Token":
+		return evalNullable(r.Token)
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
+// ListEnvironmentsResponse is the response from ListEnvironments.
+type ListEnvironmentsResponse struct {
+	Environments []Environment `json:"Environments"`
+	NextToken    *string       `json:"NextToken"`
+}
+
+// ListEnvironments retrieves the environments for a tenant.
+func (c *Client) ListEnvironments(ctx context.Context, req *ListEnvironmentsRequest) (*ListEnvironmentsResponse, error) {
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "environments")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out ListEnvironmentsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
