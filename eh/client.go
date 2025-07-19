@@ -174,6 +174,15 @@ type GetTenantRequest struct {
 	TenantID string
 }
 
+// GetCurrentUserRequest is the request for GetCurrentUser.
+type GetCurrentUserRequest struct {
+	DelegatedAuthInfo
+}
+
+func (r *GetCurrentUserRequest) GetField(_ string) (any, bool) {
+	return nil, false
+}
+
 func (r *GetTenantRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -395,6 +404,36 @@ func (c *Client) GetTenant(ctx context.Context, req *GetTenantRequest) (*Tenant,
 	}
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var tenant Tenant
+	if err := json.NewDecoder(resp.Body).Decode(&tenant); err != nil {
+		return nil, err
+	}
+	return &tenant, nil
+}
+
+// GetCurrentUser retrieves the tenant information for the current user.
+func (c *Client) GetCurrentUser(ctx context.Context, req *GetCurrentUserRequest) (*Tenant, error) {
+	u := c.BaseURL.JoinPath("v1", "current-user")
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err

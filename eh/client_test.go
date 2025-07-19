@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	expectedSigCreateTenant = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnQtaG9yaXpvbi1yZXF1ZXN0LWhhc2gsIFNpZ25hdHVyZT1lZmI1MGZlODE4NzRjOWFkMjI2ODJiNjAzYjI2OTkxNDQ4ZTRjNTIzODJmMTM4ZWM2NzQ1YmIzOTE0YzNiM2E1DQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZA0KWC1BbXotRGF0ZTogMjAyNTAxMDFUMDAwMDAwWg0KWC1BbXotU2VjdXJpdHktVG9rZW46IFRPS0VODQpYLUV2ZW50LUhvcml6b24tUmVxdWVzdC1IYXNoOiAyOTdmNzRkYmRkY2RmZGU3NjY4OTYyZGYwM2YxMGMwZjVmYzYwNzA3YmExNGM2ZjJhNDgwMzE0ZDAxMzg5ZjZmDQoNCjJkDQpBY3Rpb249R2V0Q2FsbGVySWRlbnRpdHkmVmVyc2lvbj0yMDExLTA2LTE1DQoNCjANCg0K"
-	expectedSigGetTenant    = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnQtaG9yaXpvbi1yZXF1ZXN0LWhhc2gsIFNpZ25hdHVyZT02OGU5ZWZhZTJkNjc0ZTc3NTViZWRiMDViNTYyOWNkZGJiY2QwMGZjYWQzMzE2Mjg5OWQ3ZGM2NzZhZWMxMDg3DQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZA0KWC1BbXotRGF0ZTogMjAyNTAxMDFUMDAwMDAwWg0KWC1BbXotU2VjdXJpdHktVG9rZW46IFRPS0VODQpYLUV2ZW50LUhvcml6b24tUmVxdWVzdC1IYXNoOiBiYzhmOWZlNDM3ZjEwZmMwZWQ0YmExOWRkZjYyNmEzN2Y4NmI0Y2Y3Mzg4MTZkOGI1YTQ3ZmRmNmNjNWFiMTFlDQoNCjJkDQpBY3Rpb249R2V0Q2FsbGVySWRlbnRpdHkmVmVyc2lvbj0yMDExLTA2LTE1DQoNCjANCg0K"
+	expectedSigCreateTenant   = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnQtaG9yaXpvbi1yZXF1ZXN0LWhhc2gsIFNpZ25hdHVyZT1lZmI1MGZlODE4NzRjOWFkMjI2ODJiNjAzYjI2OTkxNDQ4ZTRjNTIzODJmMTM4ZWM2NzQ1YmIzOTE0YzNiM2E1DQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZA0KWC1BbXotRGF0ZTogMjAyNTAxMDFUMDAwMDAwWg0KWC1BbXotU2VjdXJpdHktVG9rZW46IFRPS0VODQpYLUV2ZW50LUhvcml6b24tUmVxdWVzdC1IYXNoOiAyOTdmNzRkYmRkY2RmZGU3NjY4OTYyZGYwM2YxMGMwZjVmYzYwNzA3YmExNGM2ZjJhNDgwMzE0ZDAxMzg5ZjZmDQoNCjJkDQpBY3Rpb249R2V0Q2FsbGVySWRlbnRpdHkmVmVyc2lvbj0yMDExLTA2LTE1DQoNCjANCg0K"
+	expectedSigGetTenant      = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnQtaG9yaXpvbi1yZXF1ZXN0LWhhc2gsIFNpZ25hdHVyZT02OGU5ZWZhZTJkNjc0ZTc3NTViZWRiMDViNTYyOWNkZGJiY2QwMGZjYWQzMzE2Mjg5OWQ3ZGM2NzZhZWMxMDg3DQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZA0KWC1BbXotRGF0ZTogMjAyNTAxMDFUMDAwMDAwWg0KWC1BbXotU2VjdXJpdHktVG9rZW46IFRPS0VODQpYLUV2ZW50LUhvcml6b24tUmVxdWVzdC1IYXNoOiBiYzhmOWZlNDM3ZjEwZmMwZWQ0YmExOWRkZjYyNmEzN2Y4NmI0Y2Y3Mzg4MTZkOGI1YTQ3ZmRmNmNjNWFiMTFlDQoNCjJkDQpBY3Rpb249R2V0Q2FsbGVySWRlbnRpdHkmVmVyc2lvbj0yMDExLTA2LTE1DQoNCjANCg0K"
+	expectedSigGetCurrentUser = "UE9TVCAvIEhUVFAvMS4xDQpIb3N0OiBzdHMudXMtd2VzdC0yLmFtYXpvbmF3cy5jb20NClVzZXItQWdlbnQ6IEdvLWh0dHAtY2xpZW50LzEuMQ0KVHJhbnNmZXItRW5jb2Rpbmc6IGNodW5rZWQNCkFjY2VwdDogYXBwbGljYXRpb24vanNvbg0KQWNjZXB0LUVuY29kaW5nOiBpZGVudGl0eQ0KQXV0aG9yaXphdGlvbjogQVdTNC1ITUFDLVNIQTI1NiBDcmVkZW50aWFsPUFLSUQvMjAyNTAxMDEvdXMtd2VzdC0yL3N0cy9hd3M0X3JlcXVlc3QsIFNpZ25lZEhlYWRlcnM9YWNjZXB0O2FjY2VwdC1lbmNvZGluZztjb250ZW50LXR5cGU7aG9zdDt4LWFtei1kYXRlO3gtYW16LXNlY3VyaXR5LXRva2VuO3gtZXZlbnQtaG9yaXpvbi1yZXF1ZXN0LWhhc2gsIFNpZ25hdHVyZT0yMmEwYmVhMjg1ZTU4NTE3NjExMGJjYjY1NzEwNjM3YzdmYTYwNzVjOTA2MGFhNWIxYTZjZjc2Y2UxMGNmZjM5DQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZA0KWC1BbXotRGF0ZTogMjAyNTAxMDFUMDAwMDAwWg0KWC1BbXotU2VjdXJpdHktVG9rZW46IFRPS0VODQpYLUV2ZW50LUhvcml6b24tUmVxdWVzdC1IYXNoOiBjMGRkNGY0ODFhM2I2OTVlMTM2MThkZWZmZjEyMDA0OWNlNWZhM2YxM2UwYTEzZmQ4ZTcwYmI4YWU1MjhmMWJhDQoNCjJkDQpBY3Rpb249R2V0Q2FsbGVySWRlbnRpdHkmVmVyc2lvbj0yMDExLTA2LTE1DQoNCjANCg0K"
 
 	tenantIDThatNeedsEscaping = "foo/../../bar"
 	escapedTenantID           = "foo%2F..%2F..%2Fbar"
@@ -141,6 +142,41 @@ func TestGetTenantError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestGetCurrentUser(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/current-user", r.URL.Path)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Tenant{TenantID: "abc", Type: eh.TenantTypeUser, Version: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	tenant, err := client.GetCurrentUser(context.Background(), &eh.GetCurrentUserRequest{})
+	require.NoError(t, err)
+	require.Equal(t, "abc", tenant.TenantID)
+}
+
+func TestGetCurrentUserError(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusForbidden, Message: "nope", ErrorType: "Forbidden"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetCurrentUser(context.Background(), &eh.GetCurrentUserRequest{})
+	require.Error(t, err)
+}
+
 func TestCreateTenantPathEscaping(t *testing.T) {
 	t.Parallel()
 
@@ -252,6 +288,13 @@ func TestSigv4Auth(t *testing.T) {
 		resp := eh.Tenant{TenantID: "abc", Type: eh.TenantTypeUser, Version: 1}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
+	mux.HandleFunc("/v1/current-user", func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		verifySigv4(t, r, &cfg, expectedSigGetCurrentUser, clk)
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Tenant{TenantID: "abc", Type: eh.TenantTypeUser, Version: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
 
 	srv := httptest.NewUnstartedServer(mux)
 	defer srv.Close()
@@ -266,6 +309,9 @@ func TestSigv4Auth(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = client.GetTenant(context.Background(), &eh.GetTenantRequest{TenantID: "abc"})
+	require.NoError(t, err)
+
+	_, err = client.GetCurrentUser(context.Background(), &eh.GetCurrentUserRequest{})
 	require.NoError(t, err)
 }
 

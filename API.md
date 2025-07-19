@@ -943,7 +943,7 @@ If the caller is not a user, it returns a 403 Forbidden error.
 ## 12.1 Request
 
 ```http request
-GET /v1/tenants/current-user HTTP/1.1
+GET /v1/current-user HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
