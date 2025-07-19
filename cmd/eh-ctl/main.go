@@ -172,6 +172,49 @@ func (o *GetEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error
 	return printJSON(env)
 }
 
+type UpdateEnvironmentOptions struct {
+	TenantID      string `help:"The tennant ID that owns the environment being fetched." short:"i"`
+	EnvironmentID string `help:"The ID of the environment to update" name:"environment-id" short:"e"`
+	JSON          string `help:"The json file containing the environment updates" short:"j" default:"-"`
+}
+
+func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.UpdateEnvironmentRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	req.TenantID = o.TenantID
+	req.EnvironmentID = o.EnvironmentID
+
+	getReq := &eh.GetEnvironmentRequest{TenantID: o.TenantID, EnvironmentID: o.EnvironmentID}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	env, err := s.Client.GetEnvironment(ctx, getReq)
+	if err != nil {
+		return err
+	}
+	req.Version = env.Version
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateEnvironment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
+}
+
 type ListEnvironmentsOptions struct {
 	TenantID string `help:"The tennant ID that owns the environments being listed." name:"tenantid" short:"i"`
 }
@@ -244,6 +287,7 @@ type Options struct {
 	Environment struct {
 		Create CreateEnvironmentOptions `cmd:"create"`
 		Get    GetEnvironmentOptions    `cmd:"get"`
+		Update UpdateEnvironmentOptions `cmd:"update"`
 		List   ListEnvironmentsOptions  `cmd:"list"`
 	} `cmd:"environment"`
 	Ctx context.Context `kong:"-"`
@@ -274,6 +318,8 @@ func main() {
 		err = options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
 	case "environment get":
 		err = options.Environment.Get.Run(options.Ctx, &options.SharedOptions)
+	case "environment update":
+		err = options.Environment.Update.Run(options.Ctx, &options.SharedOptions)
 	case "environment list":
 		err = options.Environment.List.Run(options.Ctx, &options.SharedOptions)
 	default:
