@@ -621,6 +621,28 @@ type CreateEnvironmentRequest struct {
 	EnvVars       []EnvVar `json:"EnvVars"`
 }
 
+// GetEnvironmentRequest is the request payload for GetEnvironment.
+type GetEnvironmentRequest struct {
+	DelegatedAuthInfo
+	TenantID       string `json:"-"`
+	EnvironmentID  string `json:"-"`
+	IncludeDeleted *bool  `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+func (r *GetEnvironmentRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "EnvironmentID":
+		return r.EnvironmentID, true
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
 // GetField retrieves the value of a field by name.
 func (r *CreateEnvironmentRequest) GetField(name string) (any, bool) {
 	switch name {
@@ -685,6 +707,52 @@ func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRe
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out Environment
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetEnvironment retrieves an environment by ID.
+func (c *Client) GetEnvironment(ctx context.Context, req *GetEnvironmentRequest) (*Environment, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.EnvironmentID == "" {
+		return nil, fmt.Errorf("environment id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "environments", url.PathEscape(req.EnvironmentID))
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
 		return nil, decodeError(resp)
 	}
 

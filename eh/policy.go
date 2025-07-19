@@ -76,6 +76,8 @@ const (
 	ActionGetTurn                Action = "GetTurn"
 	ActionUploadTurnLogs         Action = "UploadTurnLogs"
 	ActionGetCurrentUser         Action = "GetCurrentUser"
+	ActionCreateEnvironment      Action = "CreateEnvironment"
+	ActionGetEnvironment         Action = "GetEnvironment"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -236,6 +238,8 @@ func init() {
 		ActionGetTurn,
 		ActionUploadTurnLogs,
 		ActionGetCurrentUser,
+		ActionCreateEnvironment,
+		ActionGetEnvironment,
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,

@@ -534,3 +534,85 @@ func TestCreateEnvironmentPathEscaping(t *testing.T) {
 	_, err := client.CreateEnvironment(context.Background(), &eh.CreateEnvironmentRequest{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping, Name: "env"})
 	require.NoError(t, err)
 }
+
+func TestGetEnvironment(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/environments/env", r.URL.Path)
+		require.Empty(t, r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Environment{TenantID: "abc", EnvironmentID: "env"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	env, err := client.GetEnvironment(context.Background(), &eh.GetEnvironmentRequest{TenantID: "abc", EnvironmentID: "env"})
+	require.NoError(t, err)
+	require.Equal(t, "env", env.EnvironmentID)
+}
+
+func TestGetEnvironmentIncludeDeleted(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/environments/env", r.URL.Path)
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Environment{TenantID: "abc", EnvironmentID: "env"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	includeDeleted := true
+	_, err := client.GetEnvironment(context.Background(), &eh.GetEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", IncludeDeleted: &includeDeleted})
+	require.NoError(t, err)
+}
+
+func TestGetEnvironmentError(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusNotFound, Message: "nope", ErrorType: "NotFound"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetEnvironment(context.Background(), &eh.GetEnvironmentRequest{TenantID: "abc", EnvironmentID: "env"})
+	require.Error(t, err)
+}
+
+func TestGetEnvironmentPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedEnvironmentID, parts[5], "EnvironmentID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Environment{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetEnvironment(context.Background(), &eh.GetEnvironmentRequest{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
