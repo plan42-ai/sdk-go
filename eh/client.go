@@ -242,8 +242,9 @@ func (e *Error) Unwrap() error {
 type ObjectType string
 
 const (
-	ObjectTypeTenant      ObjectType = "Tenant"
-	ObjectTypeEnvironment ObjectType = "Environment"
+	ObjectTypeTenant               ObjectType = "Tenant"
+	ObjectTypeEnvironment          ObjectType = "Environment"
+	ObjectTypeWebUITokenThumbprint ObjectType = "WebUITokenThumbprint"
 )
 
 type ConflictObj interface {
@@ -293,6 +294,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Tenant{}
 		case ObjectTypeEnvironment:
 			current = &Environment{}
+		case ObjectTypeWebUITokenThumbprint:
+			current = &WebUITokenThumbprint{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
@@ -588,6 +591,19 @@ func (c *Client) GenerateWebUIToken(ctx context.Context, req *GenerateWebUIToken
 		return nil, err
 	}
 	return &out, nil
+}
+
+type WebUITokenThumbprint struct {
+	TenantID            string
+	TokenID             string
+	CreatedAt           time.Time
+	ExpiresAt           time.Time
+	Revoked             bool
+	SignatureHashBase64 []byte
+}
+
+func (t WebUITokenThumbprint) ObjectType() ObjectType {
+	return ObjectTypeWebUITokenThumbprint
 }
 
 // CreateEnvironmentRequest is the request payload for CreateEnvironment.
