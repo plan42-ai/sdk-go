@@ -1029,3 +1029,297 @@ Content-Type: application/json; charset=utf-8
 |-------------------------------------|---------------------------------|
 | [GetTenant](#32-response)           | For details on response fields. |
 
+# 13. CreateEnvironment
+
+The CreateEnvironment API is used to create a new environment for a tenant. An environment describes the cloud 
+environment used to execute tasks.
+
+## 13.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/environments/{environment_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "Name": "string",
+    "Description": "string",
+    "Context": "string",
+    "Repos": [],
+    "SetupScript": "string",
+    "DockerImage": "*string",
+    "AllowedHosts": [],
+    "EnvVars": []
+}
+```
+
+| Parameter                                | Location | Type                    | Description                                                                                                                                                                                                           |
+|------------------------------------------|----------|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                  | The ID of the tenant to create the environment for.                                                                                                                                                                   |
+| environment_id                           | path     | string                  | The ID of the environment to create. This must be a v4 UUID.                                                                                                                                                          |
+| Authorization                            | header   | string                  | The authorization header for the request.                                                                                                                                                                             |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                 | The authorization header for the delegating principal.                                                                                                                                                                |
+| X-Event-Horizon-Signed-Headers           | header   | *string                 | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                   |
+| Name                                     | body     | string                  | The name of the environment.                                                                                                                                                                                          |
+| Description                              | body     | string                  | A description of the environment.                                                                                                                                                                                     |
+| Context                                  | body     | string                  | Context describing the environment to provide to AI agents that use this environment.                                                                                                                                 |
+| Repos                                    | body     | []string                | A list of repositories to use in the environment, of the form org/repo. At most 50 repos can be specified.                                                                                                            |
+| SetupScript                              | body     | string                  | A script to run to set up the environment. Size must be <= 512 KB                                                                                                                                                     |
+| DockerImage                              | body     | *string                 | The Docker image to use for the environment. Optional. Defaults to the latest event horizon agent wrapper image.                                                                                                      |
+| AllowedHosts                             | body     | []string                | A list of outbound hostnames the environment is allowed to connect to. Only TLS connections to hosts with public trusted certs or internal event-horizon oss mirrors are allowed.  At most 50 hosts can be specified. |
+| EnvVars                                  | body     | [][EnvVar](#132-envvar) | A list of environment variables to set in the environment. At most 50 env vars may be specified.                                                                                                                      |
+
+## 13.2 EnvVar
+
+EnvVar is an object that defines an environment variable to set in the environment.
+
+```json
+{
+  "Name": "string",
+  "Value": "string",
+  "IsSecret": bool,
+}
+```
+
+| Field    | Type   | Description                                                                                                                           |
+|----------|--------|---------------------------------------------------------------------------------------------------------------------------------------|
+| Name     | string | The name of the environment variable.                                                                                                 |
+| Value    | string | The value of the environment variable.                                                                                                |
+| IsSecret | bool   | Whether the value is a secret. Secret environment variables are only made available to setup scripts, are not available to the agent. |
+
+## 13.3 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantId": "string",
+  "EnvironmentId": "string",
+  "Name": "string",
+  "Description": "string",
+  "Context": "string",
+  "Repos": [],
+  "SetupScript": "string",
+  "DockerImage": "string",
+  "AllowedHosts": [],
+  "EnvVars": [],
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Deleted": bool,
+  "Version": int
+}
+```
+| Field         | Type                    | Description                                                                                                                                                                       |
+|---------------|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| TenantId      | string                  | The ID of the tenant the environment was created for.                                                                                                                             |
+| EnvironmentId | string                  | The ID of the environment that was created. This is a v4 UUID.                                                                                                                    |
+| Name          | string                  | The name of the environment.                                                                                                                                                      |
+| Description   | string                  | A description of the environment.                                                                                                                                                 |
+| Context       | string                  | Context describing the environment to provide to AI agents that use this environment.                                                                                             |
+| Repos         | []string                | A list of repositories to use in the environment, of the form org/repo.                                                                                                           |
+| SetupScript   | string                  | A script to run to set up the environment.                                                                                                                                        |
+| DockerImage   | string                  | The Docker image to use for the environment.                                                                                                                                      |
+| AllowedHosts  | []string                | A list of outbound hostnames the environment is allowed to connect to. Only TLS connections to hosts with public trusted certs or internal event-horizon oss mirrors are allowed. |
+| EnvVars       | [][EnvVar](#132-envvar) | A list of environment variables set in the environment.                                                                                                                           |
+| CreatedAt     | string                  | The timestamp when the environment was created, in ISO 8601 format.                                                                                                               |
+| UpdatedAt     | string                  | The timestamp when the environment was last updated, in ISO 8601 format.                                                                                                          |
+| Deleted       | bool                    | Whether the environment has been deleted.                                                                                                                                         |
+| Version       | int                     | The version of the environment. This is incremented every time the environment is updated.                                                                                        |
+
+# 14. ListEnvironments
+
+The ListEnvironments API is used to list all environments for a tenant.
+
+## 14.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/environments?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to list environments for.                                                                  |
+| maxResults                               | query    | *int    | The maximum number of environments to return. Optional. Default is 500. Must be >=1 and <= 500.                 |
+| token                                    | query    | *string | A token to retrieve the next page of results. Optional. If not provided, the first page of results is returned. |
+| includeDeleted                           | query    | *bool   | Whether to include deleted environments in the results. Optional. Default is false.                             |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 14.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Environments": [],
+  "NextToken": "*string"
+}
+```
+
+| Field        | Type                              | Description                                                                                    |
+|--------------|-----------------------------------|------------------------------------------------------------------------------------------------|
+| Environments | [][Environment](#131-environment) | A list of environments for the tenant.                                                         |
+| NextToken    | *string                           | A token to retrieve the next page of results. If there are no more results, this will be null. |
+
+# 15. GetEnvironment
+
+The GetEnvironment API is used to get an environment for a tenant.
+
+## 15.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/environments/{environment_id}?includeDeleted={&includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                          |
+|------------------------------------------|----------|---------|--------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to get the environment for.                                     |
+| environment_id                           | path     | string  | The ID of the environment to get.                                                    |
+| includeDeleted                           | query    | *bool   | Whether to include deleted environments in the response. Optional. Default is false. |
+| Authorization                            | header   | string  | The authorization header for the request.                                            |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                               |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                  |
+
+## 15.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantId": "string",
+  "EnvironmentId": "string",
+  "Name": "string",
+  "Description": "string",
+  "Context": "string",
+  "Repos": [],
+  "SetupScript": "string",
+  "DockerImage": "string",
+  "AllowedHosts": [],
+  "EnvVars": [],
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Deleted": bool,
+  "Version": int
+}
+```
+
+See [CreateEnvironment](#133-response) for details on the response fields.
+
+# 16. UpdateEnvironment
+
+The UpdateEnvironment API is used to update an existing environment for a tenant.
+
+## 16.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/environments/{environment_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "Name": "*string",
+    "Description": "*string",
+    "Context": "*string",
+    "Repos": [],
+    "SetupScript": "string",
+    "DockerImage": "string",
+    "AllowedHosts": [],
+    "EnvVars": [],
+    "Deleted": *bool
+}
+```
+
+| Parameter                                | Location | Type      | Description                                                                                                                                                    |
+|------------------------------------------|----------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string    | The ID of the tenant to update the environment for.                                                                                                            |
+| environment_id                           | path     | string    | The ID of the environment to update.                                                                                                                           |
+| Authorization                            | header   | string    | The authorization header for the request.                                                                                                                      |
+| X-Event-Horizon-Delegating-Authorization | header   | *string   | The authorization header for the delegating principal.                                                                                                         |
+| X-Event-Horizon-Signed-Headers           | header   | *string   | The signed headers for the request, when authenticating with Sigv4.                                                                                            |
+| version                                  | header   | string    | The version of the environment to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.    |
+| Name                                     | body     | *string   | If set, update the environment's name                                                                                                                          |
+| Description                              | body     | *string   | If set, update the environment' description.                                                                                                                   |
+| Context                                  | body     | *string   | If set, update the environment's context.                                                                                                                      |
+| Repos                                    | body     | *[]string | If set, update the set of repos associated with the environment. Note that `null` means 'don't update the rpos', where as `[]` means 'set the repos to empty'. |
+| SetupScript                              | body     | *string   | If set, update the setup script used to configure the environment.                                                                                             |
+| DockerImage                              | body     | *string   | If set, update the docker image used by the environment.                                                                                                       |
+| Delete                                   | body     | *bool     | If set to false, undelete the enviornment. May not be set to true. Use DeleteEnvironment instead.                                                              |
+
+## 16.2 Response
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantId": "string",
+  "EnvironmentId": "string",
+  "Name": "string",
+  "Description": "string",
+  "Context": "string",
+  "Repos": [],
+  "SetupScript": "string",
+  "DockerImage": "string",
+  "AllowedHosts": [],
+  "EnvVars": [],
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Deleted": bool,
+  "Version": int
+}
+```
+
+# 17. DeleteEnvironment
+
+The DeleteEnvironment api soft-deletes an environment.
+
+## 17.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/environments/{environment_id}
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type      | Description                                                                                                                                                   |
+|------------------------------------------|----------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string    | The ID of the tenant that owns the environment being deleted.                                                                                                 |
+| environment_id                           | path     | string    | The ID of the environment to delete.                                                                                                                          |
+| Authorization                            | header   | string    | The authorization header for the request.                                                                                                                     |
+| X-Event-Horizon-Delegating-Authorization | header   | *string   | The authorization header for the delegating principal.                                                                                                        |
+| X-Event-Horizon-Signed-Headers           | header   | *string   | The signed headers for the request, when authenticating with Sigv4.                                                                                           |
+| version                                  | header   | string    | The version of the environment to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.   |
+
+## 17.2 Resposne
+
+```http request
+HTTP/1.1 204 NO CONTENT
+```
+
+On success a 204 NO CONTENT is returned with no body.
