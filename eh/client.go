@@ -673,16 +673,6 @@ func (r *CreateEnvironmentRequest) GetField(name string) (any, bool) {
 
 // CreateEnvironment creates a new environment for a tenant.
 func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRequest) (*Environment, error) {
-	if req == nil {
-		return nil, fmt.Errorf("req is nil")
-	}
-	if req.TenantID == "" {
-		return nil, fmt.Errorf("tenant id is required")
-	}
-	if req.EnvironmentID == "" {
-		return nil, fmt.Errorf("environment id is required")
-	}
-
 	bodyBytes, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -719,16 +709,6 @@ func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRe
 
 // GetEnvironment retrieves an environment by ID.
 func (c *Client) GetEnvironment(ctx context.Context, req *GetEnvironmentRequest) (*Environment, error) {
-	if req == nil {
-		return nil, fmt.Errorf("req is nil")
-	}
-	if req.TenantID == "" {
-		return nil, fmt.Errorf("tenant id is required")
-	}
-	if req.EnvironmentID == "" {
-		return nil, fmt.Errorf("environment id is required")
-	}
-
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "environments", url.PathEscape(req.EnvironmentID))
 	q := u.Query()
 	if req.IncludeDeleted != nil {
