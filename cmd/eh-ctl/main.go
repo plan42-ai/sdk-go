@@ -245,6 +245,24 @@ func (o *ListEnvironmentsOptions) Run(ctx context.Context, s *SharedOptions) err
 	return nil
 }
 
+type DeleteEnvironmentOptions struct {
+	TenantID      string `help:"The tennant ID that owns the environment being fetched." short:"i"`
+	EnvironmentID string `help:"The ID of the environment to update" name:"environment-id" short:"e"`
+}
+
+func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetEnvironmentRequest{TenantID: o.TenantID, EnvironmentID: o.EnvironmentID}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	env, err := s.Client.GetEnvironment(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req := &eh.DeleteEnvironmentRequest{TenantID: o.TenantID, EnvironmentID: o.EnvironmentID, Version: env.Version}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+	return s.Client.DeleteEnvironment(ctx, req)
+}
+
 func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var token *string
 	for {
@@ -288,6 +306,7 @@ type Options struct {
 		Create CreateEnvironmentOptions `cmd:"create"`
 		Get    GetEnvironmentOptions    `cmd:"get"`
 		Update UpdateEnvironmentOptions `cmd:"update"`
+		Delete DeleteEnvironmentOptions `cmd:"delete"`
 		List   ListEnvironmentsOptions  `cmd:"list"`
 	} `cmd:"environment"`
 	Ctx context.Context `kong:"-"`
@@ -320,6 +339,8 @@ func main() {
 		err = options.Environment.Get.Run(options.Ctx, &options.SharedOptions)
 	case "environment update":
 		err = options.Environment.Update.Run(options.Ctx, &options.SharedOptions)
+	case "environment delete":
+		err = options.Environment.Delete.Run(options.Ctx, &options.SharedOptions)
 	case "environment list":
 		err = options.Environment.List.Run(options.Ctx, &options.SharedOptions)
 	default:
