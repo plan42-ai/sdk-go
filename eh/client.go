@@ -242,7 +242,8 @@ func (e *Error) Unwrap() error {
 type ObjectType string
 
 const (
-	ObjectTypeTenant ObjectType = "Tenant"
+	ObjectTypeTenant      ObjectType = "Tenant"
+	ObjectTypeEnvironment ObjectType = "Environment"
 )
 
 type ConflictObj interface {
@@ -290,6 +291,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 		switch tmp.CurrentType {
 		case ObjectTypeTenant:
 			current = &Tenant{}
+		case ObjectTypeEnvironment:
+			current = &Environment{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
@@ -581,6 +584,95 @@ func (c *Client) GenerateWebUIToken(ctx context.Context, req *GenerateWebUIToken
 	}
 
 	var out GenerateWebUITokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CreateEnvironmentRequest is the request payload for CreateEnvironment.
+type CreateEnvironmentRequest struct {
+	DelegatedAuthInfo
+	TenantID      string   `json:"-"`
+	EnvironmentID string   `json:"-"`
+	Name          string   `json:"Name"`
+	Description   string   `json:"Description"`
+	Context       string   `json:"Context"`
+	Repos         []string `json:"Repos"`
+	SetupScript   string   `json:"SetupScript"`
+	DockerImage   string   `json:"DockerImage"`
+	AllowedHosts  []string `json:"AllowedHosts"`
+	EnvVars       []EnvVar `json:"EnvVars"`
+}
+
+// GetField retrieves the value of a field by name.
+func (r *CreateEnvironmentRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "EnvironmentID":
+		return r.EnvironmentID, true
+	case "Name": //nolint: goconst
+		return r.Name, true
+	case "Description":
+		return r.Description, true
+	case "Context":
+		return r.Context, true
+	case "Repos":
+		return r.Repos, true
+	case "SetupScript":
+		return r.SetupScript, true
+	case "DockerImage":
+		return r.DockerImage, true
+	case "AllowedHosts":
+		return r.AllowedHosts, true
+	case "EnvVars":
+		return r.EnvVars, true
+	default:
+		return nil, false
+	}
+}
+
+// CreateEnvironment creates a new environment for a tenant.
+func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRequest) (*Environment, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.EnvironmentID == "" {
+		return nil, fmt.Errorf("environment id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "environments", url.PathEscape(req.EnvironmentID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out Environment
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
