@@ -119,6 +119,40 @@ func (o *GenerateUITokenOptions) Run(ctx context.Context, s *SharedOptions) erro
 	return printJSON(resp)
 }
 
+type CreateEnvironmentOptions struct {
+	TenantID    string `help:"The tenant ID to create the environment for" short:"i"`
+	Environment string `help:"The JSON file to load the environment definition from" short:"e" default:"-"`
+}
+
+func (o *CreateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var reader *os.File
+	if o.Environment == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.Environment)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.CreateEnvironmentRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	req.TenantID = o.TenantID
+	req.EnvironmentID = uuid.NewString()
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	env, err := s.Client.CreateEnvironment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(env)
+}
+
 func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var token *string
 	for {
@@ -158,6 +192,9 @@ type Options struct {
 	UIToken struct {
 		Generate GenerateUITokenOptions `cmd:"generate"`
 	} `cmd:"ui-token"`
+	Environment struct {
+		Create CreateEnvironmentOptions `cmd:"create"`
+	} `cmd:"environment"`
 	Ctx context.Context `kong:"-"`
 }
 
@@ -182,6 +219,8 @@ func main() {
 		err = options.Policies.List.Run(options.Ctx, &options.SharedOptions)
 	case "ui-token generate":
 		err = options.UIToken.Generate.Run(options.Ctx, &options.SharedOptions)
+	case "environment create":
+		err = options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
