@@ -23,6 +23,8 @@ type Environment struct {
 	EnvVars       []EnvVar  `json:"EnvVars"`
 	CreatedAt     time.Time `json:"CreatedAt"`
 	UpdatedAt     time.Time `json:"UpdatedAt"`
+	Deleted       bool      `json:"Deleted"`
+	Version       int       `json:"Version"`
 }
 
 // ObjectType returns the object type for ConflictError handling.
