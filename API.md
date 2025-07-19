@@ -610,7 +610,7 @@ This policy allows our internal admin role to perform any action on any tenant.
 ```
 # 8. Default User Tenant Policies
 
-# 8.1 EnableWebUIDelegation
+## 8.1 EnableWebUIDelegation
 
 This policy allows the Web UI to perform any delegated actions on behalf of user tenants that authenticate via Web UI
 Tokens.
@@ -718,6 +718,51 @@ This policy allows users to access their own tenant.
     ]
 }
 ```
+
+## 8.6 GetCurrentUser
+
+```json
+{
+   "Name": "GetCurrentUserFromWebUI",
+    "Effect": "Allow",
+    "Tenant": "tenant_id",
+    "Principal":  {
+      "Type": "Service",
+      "Name": "WebUI"
+    },
+   "Actions": ["PerformDelegatedAction"],
+   "DelegatedActions": ["GetCurrentUser"],
+   "DelegatedPrincipal": {
+      "Type": "User",
+      "Tenant": "$policy.Tenant",
+      "TokenTypes": ["AuthProviderToken"],
+      "Provider": "Google"
+   }
+}
+```
+
+## 8.7 GetCurrentUser
+
+```json
+{
+   "Name": "GetCurrentUserWithAdminRole",
+    "Effect": "Allow",
+    "Tenant": "tenant_id",
+    "Principal":  {
+      "Type": "Service",
+      "Name": "WebUI"
+    },
+   "Actions": ["PerformDelegatedAction"],
+   "DelegatedActions": ["GetCurrentUser"],
+   "DelegatedPrincipal": {
+      "Type": "User",
+      "Tenant": "$policy.Tenant",
+      "TokenTypes": ["AuthProviderToken"],
+      "Provider": "Google"
+   }
+}
+```
+
 # 9. Default Organization Tenant Policies
 
 This section defines the default policies that are created when an organization tenant is created.
