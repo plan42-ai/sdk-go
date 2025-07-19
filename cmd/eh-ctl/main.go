@@ -172,6 +172,36 @@ func (o *GetEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error
 	return printJSON(env)
 }
 
+type ListEnvironmentsOptions struct {
+	TenantID string `help:"The tennant ID that owns the environments being listed." name:"tenantid" short:"i"`
+}
+
+func (o *ListEnvironmentsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var token *string
+	for {
+		req := &eh.ListEnvironmentsRequest{
+			TenantID: o.TenantID,
+			Token:    token,
+		}
+		processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+		resp, err := s.Client.ListEnvironments(ctx, req)
+		if err != nil {
+			return err
+		}
+		for _, env := range resp.Environments {
+			if err := printJSON(env); err != nil {
+				return err
+			}
+		}
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+	return nil
+}
+
 func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var token *string
 	for {
@@ -214,6 +244,7 @@ type Options struct {
 	Environment struct {
 		Create CreateEnvironmentOptions `cmd:"create"`
 		Get    GetEnvironmentOptions    `cmd:"get"`
+		List   ListEnvironmentsOptions  `cmd:"list"`
 	} `cmd:"environment"`
 	Ctx context.Context `kong:"-"`
 }
@@ -243,6 +274,8 @@ func main() {
 		err = options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
 	case "environment get":
 		err = options.Environment.Get.Run(options.Ctx, &options.SharedOptions)
+	case "environment list":
+		err = options.Environment.List.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
