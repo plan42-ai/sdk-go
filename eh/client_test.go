@@ -742,3 +742,63 @@ func TestUpdateEnvironmentPathEscaping(t *testing.T) {
 	_, err := client.UpdateEnvironment(context.Background(), &eh.UpdateEnvironmentRequest{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping, Version: 1, Name: &name})
 	require.NoError(t, err)
 }
+
+func TestDeleteEnvironment(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/tenants/abc/environments/env", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteEnvironment(context.Background(), &eh.DeleteEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Version: 1})
+	require.NoError(t, err)
+}
+
+func TestDeleteEnvironmentError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+	err := client.DeleteEnvironment(context.Background(), &eh.DeleteEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestDeleteEnvironmentConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveEnvironmentConflict()
+	defer srv.Close()
+	err := client.DeleteEnvironment(context.Background(), &eh.DeleteEnvironmentRequest{TenantID: "abc", EnvironmentID: "env", Version: 1})
+	verifyEnvironmentConflict(t, err)
+}
+
+func TestDeleteEnvironmentPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedEnvironmentID, parts[5], "EnvironmentID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteEnvironment(context.Background(), &eh.DeleteEnvironmentRequest{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping, Version: 1})
+	require.NoError(t, err)
+}

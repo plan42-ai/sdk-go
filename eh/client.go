@@ -646,6 +646,14 @@ type UpdateEnvironmentRequest struct {
 	Deleted       *bool     `json:"Deleted,omitempty"`
 }
 
+// DeleteEnvironmentRequest is the request payload for DeleteEnvironment.
+type DeleteEnvironmentRequest struct {
+	DelegatedAuthInfo
+	TenantID      string `json:"-"`
+	EnvironmentID string `json:"-"`
+	Version       int    `json:"-"`
+}
+
 // GetField retrieves the value of a field by name.
 func (r *GetEnvironmentRequest) GetField(name string) (any, bool) {
 	switch name {
@@ -715,6 +723,20 @@ func (r *UpdateEnvironmentRequest) GetField(name string) (any, bool) {
 		return evalNullable(r.EnvVars)
 	case "Deleted":
 		return evalNullable(r.Deleted)
+	default:
+		return nil, false
+	}
+}
+
+// GetField retrieves the value of a field by name.
+func (r *DeleteEnvironmentRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "EnvironmentID":
+		return r.EnvironmentID, true
+	case "Version":
+		return r.Version, true
 	default:
 		return nil, false
 	}
@@ -910,4 +932,30 @@ func (c *Client) ListEnvironments(ctx context.Context, req *ListEnvironmentsRequ
 		return nil, err
 	}
 	return &out, nil
+}
+
+// DeleteEnvironment deletes an environment.
+func (c *Client) DeleteEnvironment(ctx context.Context, req *DeleteEnvironmentRequest) error {
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "environments", url.PathEscape(req.EnvironmentID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+	return nil
 }

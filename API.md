@@ -480,6 +480,7 @@ Action is an enum that defines the actions that a policy can allow or deny.
 | GetEnvironment         |
 | ListEnvironments       |
 | UpdateEnvironment      |
+| DeleteEnvironment      |
 
 ## 6.6 Expressions
 
