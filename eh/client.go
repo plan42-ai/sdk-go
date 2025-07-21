@@ -245,6 +245,7 @@ const (
 	ObjectTypeTenant               ObjectType = "Tenant"
 	ObjectTypeEnvironment          ObjectType = "Environment"
 	ObjectTypeWebUITokenThumbprint ObjectType = "WebUITokenThumbprint"
+	ObjectTypeTask                 ObjectType = "Task"
 )
 
 type ConflictObj interface {
@@ -296,6 +297,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Environment{}
 		case ObjectTypeWebUITokenThumbprint:
 			current = &WebUITokenThumbprint{}
+		case ObjectTypeTask:
+			current = &Task{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
@@ -666,6 +669,23 @@ type DeleteEnvironmentRequest struct {
 	Version       int    `json:"-"`
 }
 
+// CreateTaskRequest is the request payload for CreateTask.
+type CreateTaskRequest struct {
+	DelegatedAuthInfo
+	TenantID           string            `json:"-"`
+	TaskID             string            `json:"-"`
+	WorkstreamID       *string           `json:"WorkstreamId,omitempty"`
+	Title              string            `json:"Title"`
+	EnvironmentID      string            `json:"EnvironmentId"`
+	Prompt             string            `json:"Prompt"`
+	AfterTaskID        *string           `json:"AfterTaskId,omitempty"`
+	Parallel           bool              `json:"Parallel"`
+	Model              *ModelType        `json:"Model,omitempty"`
+	AssignedToTenantID *string           `json:"AssignedToTenantId,omitempty"`
+	AssignedToAI       bool              `json:"AssignedToAI"`
+	Branches           map[string]string `json:"Branches"`
+}
+
 // GetField retrieves the value of a field by name.
 func (r *GetEnvironmentRequest) GetField(name string) (any, bool) {
 	switch name {
@@ -749,6 +769,38 @@ func (r *DeleteEnvironmentRequest) GetField(name string) (any, bool) {
 		return r.EnvironmentID, true
 	case "Version":
 		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// GetField retrieves the value of a field by name.
+func (r *CreateTaskRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "WorkstreamID":
+		return evalNullable(r.WorkstreamID)
+	case "Title":
+		return r.Title, true
+	case "EnvironmentID":
+		return r.EnvironmentID, true
+	case "Prompt":
+		return r.Prompt, true
+	case "AfterTaskID":
+		return evalNullable(r.AfterTaskID)
+	case "Parallel":
+		return r.Parallel, true
+	case "Model":
+		return evalNullable(r.Model)
+	case "AssignedToTenantID":
+		return evalNullable(r.AssignedToTenantID)
+	case "AssignedToAI":
+		return r.AssignedToAI, true
+	case "Branches":
+		return r.Branches, true
 	default:
 		return nil, false
 	}
@@ -997,4 +1049,50 @@ func (c *Client) DeleteEnvironment(ctx context.Context, req *DeleteEnvironmentRe
 		return decodeError(resp)
 	}
 	return nil
+}
+
+// CreateTask creates a new task.
+func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out Task
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }

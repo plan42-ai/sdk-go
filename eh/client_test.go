@@ -33,6 +33,8 @@ const (
 	escapedTokenID                 = "tok%2F..%2F..%2Fid" // #nosec G101: This is not a credential.
 	environmentIDThatNeedsEscaping = "env/../../id"
 	escapedEnvironmentID           = "env%2F..%2F..%2Fid"
+	taskIDThatNeedsEscaping        = "task/../../id"
+	escapedTaskID                  = "task%2F..%2F..%2Fid"
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -509,6 +511,35 @@ func verifyEnvironmentConflict(t *testing.T, err error) {
 	require.Equal(t, eh.Environment{EnvironmentID: "env"}, *env)
 }
 
+func serveTaskConflict() (*httptest.Server, *eh.Client) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.Task{TaskID: "task"},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+	client := eh.NewClient(srv.URL)
+	return srv, client
+}
+
+func verifyTaskConflict(t *testing.T, err error) {
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.Equal(t, "exists", clientErr.Message)
+	require.Equal(t, "Conflict", clientErr.ErrorType)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, eh.ObjectTypeTask, clientErr.Current.ObjectType())
+	task, ok := clientErr.Current.(*eh.Task)
+	require.True(t, ok, "Expected Current to be of type *eh.Task")
+	require.Equal(t, eh.Task{TaskID: "task"}, *task)
+}
+
 func TestCreateEnvironmentPathEscaping(t *testing.T) {
 	t.Parallel()
 
@@ -800,5 +831,114 @@ func TestDeleteEnvironmentPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	err := client.DeleteEnvironment(context.Background(), &eh.DeleteEnvironmentRequest{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping, Version: 1})
+	require.NoError(t, err)
+}
+
+func TestCreateTask(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task", r.URL.Path)
+
+		var reqBody eh.CreateTaskRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, "title", reqBody.Title)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.Task{TenantID: "abc", TaskID: "task"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	model := eh.ModelTypeCodexMini
+	task, err := client.CreateTask(context.Background(), &eh.CreateTaskRequest{
+		TenantID:      "abc",
+		TaskID:        "task",
+		Title:         "title",
+		EnvironmentID: "env",
+		Prompt:        "do",
+		AssignedToAI:  true,
+		Model:         &model,
+		Branches:      map[string]string{},
+	})
+	require.NoError(t, err)
+	require.Equal(t, "task", task.TaskID)
+}
+
+func TestCreateTaskError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+	model := eh.ModelTypeCodexMini
+	_, err := client.CreateTask(context.Background(), &eh.CreateTaskRequest{
+		TenantID:      "abc",
+		TaskID:        "task",
+		Title:         "title",
+		EnvironmentID: "env",
+		Prompt:        "do",
+		AssignedToAI:  true,
+		Model:         &model,
+		Branches:      map[string]string{},
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestCreateTaskConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveTaskConflict()
+	defer srv.Close()
+	model := eh.ModelTypeCodexMini
+	_, err := client.CreateTask(context.Background(), &eh.CreateTaskRequest{
+		TenantID:      "abc",
+		TaskID:        "task",
+		Title:         "title",
+		EnvironmentID: "env",
+		Prompt:        "do",
+		AssignedToAI:  true,
+		Model:         &model,
+		Branches:      map[string]string{},
+	})
+	verifyTaskConflict(t, err)
+}
+
+func TestCreateTaskPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.Task{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	model := eh.ModelTypeCodexMini
+	_, err := client.CreateTask(context.Background(), &eh.CreateTaskRequest{
+		TenantID:      tenantIDThatNeedsEscaping,
+		TaskID:        taskIDThatNeedsEscaping,
+		Title:         "title",
+		EnvironmentID: "env",
+		Prompt:        "do",
+		AssignedToAI:  true,
+		Model:         &model,
+		Branches:      map[string]string{},
+	})
 	require.NoError(t, err)
 }
