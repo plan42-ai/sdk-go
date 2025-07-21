@@ -37,7 +37,8 @@ const (
 	taskIDThatNeedsEscaping        = "task/../../id"
 	escapedTaskID                  = "task%2F..%2F..%2Fid"
 
-	tokenID = "tok"
+	tokenID   = "tok"
+	taskTitle = "new"
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -542,6 +543,7 @@ func verifyTaskConflict(t *testing.T, err error) {
 	require.Equal(t, eh.Task{TaskID: "task"}, *task)
 }
 
+// nolint: dupl
 func TestCreateEnvironmentPathEscaping(t *testing.T) {
 	t.Parallel()
 
@@ -703,6 +705,7 @@ func TestListEnvironmentsPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// nolint: dupl
 func TestUpdateEnvironment(t *testing.T) {
 	t.Parallel()
 
@@ -1085,6 +1088,79 @@ func TestGetTaskPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.GetTask(context.Background(), &eh.GetTaskRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
+// nolint: dupl
+func TestUpdateTask(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateTaskRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.Title)
+		require.Equal(t, taskTitle, *reqBody.Title)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Task{TenantID: "abc", TaskID: "task"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	task, err := client.UpdateTask(context.Background(), &eh.UpdateTaskRequest{TenantID: "abc", TaskID: "task", Version: 1, Title: util.Pointer(taskTitle)})
+	require.NoError(t, err)
+	require.Equal(t, "task", task.TaskID)
+}
+
+func TestUpdateTaskError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+	_, err := client.UpdateTask(context.Background(), &eh.UpdateTaskRequest{TenantID: "abc", TaskID: "task", Version: 1, Title: util.Pointer(taskTitle)})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestUpdateTaskConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveTaskConflict()
+	defer srv.Close()
+	_, err := client.UpdateTask(context.Background(), &eh.UpdateTaskRequest{TenantID: "abc", TaskID: "task", Version: 1, Title: util.Pointer(taskTitle)})
+	verifyTaskConflict(t, err)
+}
+
+// nolint: dupl
+func TestUpdateTaskPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Task{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UpdateTask(context.Background(), &eh.UpdateTaskRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, Version: 1})
 	require.NoError(t, err)
 }
 

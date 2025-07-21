@@ -702,6 +702,23 @@ type CreateTaskRequest struct {
 	Branches           map[string]string `json:"Branches"`
 }
 
+// UpdateTaskRequest is the request payload for UpdateTask.
+type UpdateTaskRequest struct {
+	DelegatedAuthInfo
+	TenantID           string                `json:"-"`
+	TaskID             string                `json:"-"`
+	Version            int                   `json:"-"`
+	Title              *string               `json:"Title,omitempty"`
+	Prompt             *string               `json:"Prompt,omitempty"`
+	AfterTaskID        *string               `json:"AfterTaskId,omitempty"`
+	Parallel           *bool                 `json:"Parallel,omitempty"`
+	Model              *ModelType            `json:"Model,omitempty"`
+	AssignedToTenantID *string               `json:"AssignedToTenantId,omitempty"`
+	AssignedToAI       *bool                 `json:"AssignedToAI,omitempty"`
+	RepoInfo           *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
+	Deleted            *bool                 `json:"Deleted,omitempty"`
+}
+
 // GetTaskRequest is the request payload for GetTask.
 type GetTaskRequest struct {
 	DelegatedAuthInfo
@@ -865,6 +882,38 @@ func (r *GetTaskRequest) GetField(name string) (any, bool) {
 	}
 }
 
+// GetField retrieves the value of a field by name.
+func (r *UpdateTaskRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "Version":
+		return r.Version, true
+	case "Title":
+		return evalNullable(r.Title)
+	case "Prompt":
+		return evalNullable(r.Prompt)
+	case "AfterTaskID":
+		return evalNullable(r.AfterTaskID)
+	case "Parallel":
+		return evalNullable(r.Parallel)
+	case "Model":
+		return evalNullable(r.Model)
+	case "AssignedToTenantID":
+		return evalNullable(r.AssignedToTenantID)
+	case "AssignedToAI":
+		return evalNullable(r.AssignedToAI)
+	case "RepoInfo":
+		return evalNullable(r.RepoInfo)
+	case "Deleted":
+		return evalNullable(r.Deleted)
+	default:
+		return nil, false
+	}
+}
+
 // CreateEnvironment creates a new environment for a tenant.
 func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRequest) (*Environment, error) {
 	if req == nil {
@@ -951,6 +1000,7 @@ func (c *Client) GetEnvironment(ctx context.Context, req *GetEnvironmentRequest)
 }
 
 // UpdateEnvironment updates an existing environment.
+// nolint: dupl
 func (c *Client) UpdateEnvironment(ctx context.Context, req *UpdateEnvironmentRequest) (*Environment, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
@@ -1185,6 +1235,54 @@ func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task,
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out Task
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateTask updates an existing task.
+// nolint: dupl
+func (c *Client) UpdateTask(ctx context.Context, req *UpdateTaskRequest) (*Task, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
 		return nil, decodeError(resp)
 	}
 
