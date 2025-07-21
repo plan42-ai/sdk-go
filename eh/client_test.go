@@ -1042,3 +1042,102 @@ func TestCreateTurnPathEscaping(t *testing.T) {
 	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, TurnIndex: 1, Prompt: "prompt"})
 	require.NoError(t, err)
 }
+
+func TestUploadTurnLogs(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task/turns/0/logs", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		var reqBody eh.UploadTurnLogsRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, 0, reqBody.Index)
+		require.Len(t, reqBody.Logs, 1)
+		require.Equal(t, "msg", reqBody.Logs[0].Message)
+
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(eh.UploadTurnLogsResponse{Version: 2})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	logs := []eh.TurnLog{{Timestamp: time.Unix(0, 0), Message: "msg"}}
+	resp, err := client.UploadTurnLogs(context.Background(), &eh.UploadTurnLogsRequest{
+		TenantID:  "abc",
+		TaskID:    "task",
+		TurnIndex: 0,
+		Version:   1,
+		Index:     0,
+		Logs:      logs,
+	})
+	require.NoError(t, err)
+	require.Equal(t, 2, resp.Version)
+}
+
+func TestUploadTurnLogsError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UploadTurnLogs(context.Background(), &eh.UploadTurnLogsRequest{
+		TenantID:  "abc",
+		TaskID:    "task",
+		TurnIndex: 0,
+		Version:   1,
+		Index:     0,
+	})
+	require.Error(t, err)
+}
+
+func TestUploadTurnLogsConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveTurnConflict()
+	defer srv.Close()
+
+	_, err := client.UploadTurnLogs(context.Background(), &eh.UploadTurnLogsRequest{
+		TenantID:  "abc",
+		TaskID:    "task",
+		TurnIndex: 0,
+		Version:   1,
+		Index:     0,
+	})
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.Equal(t, "exists", clientErr.Message)
+	require.Equal(t, "Conflict", clientErr.ErrorType)
+}
+
+func TestUploadTurnLogsPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 9, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedTaskID, parts[5])
+		require.Equal(t, "0", parts[7])
+
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(eh.UploadTurnLogsResponse{Version: 1})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UploadTurnLogs(context.Background(), &eh.UploadTurnLogsRequest{
+		TenantID:  tenantIDThatNeedsEscaping,
+		TaskID:    taskIDThatNeedsEscaping,
+		TurnIndex: 0,
+		Version:   1,
+		Index:     0,
+	})
+	require.NoError(t, err)
+}
