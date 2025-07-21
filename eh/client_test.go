@@ -1426,3 +1426,72 @@ func TestListTasksPathEscaping(t *testing.T) {
 	_, err := client.ListTasks(context.Background(), &eh.ListTasksRequest{TenantID: tenantIDThatNeedsEscaping})
 	require.NoError(t, err)
 }
+
+func TestListTurns(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task1/turns", r.URL.Path)
+		require.Equal(t, "20", r.URL.Query().Get("maxResults"))
+		require.Equal(t, "tok", r.URL.Query().Get("token"))
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListTurnsResponse{Turns: []eh.Turn{{TurnIndex: 1}}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	maxResults := 20
+	tok := "tok"
+	includeDeleted := true
+	resp, err := client.ListTurns(context.Background(), &eh.ListTurnsRequest{
+		TenantID:       "abc",
+		TaskID:         "task1",
+		MaxResults:     &maxResults,
+		Token:          &tok,
+		IncludeDeleted: &includeDeleted,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Turns, 1)
+	require.Equal(t, 1, resp.Turns[0].TurnIndex)
+}
+
+func TestListTurnsError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListTurns(context.Background(), &eh.ListTurnsRequest{TenantID: "abc", TaskID: "task"})
+	require.Error(t, err)
+}
+
+func TestListTurnsPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 7, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedTaskID, parts[5])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListTurnsResponse{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListTurns(context.Background(), &eh.ListTurnsRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+		TaskID:   taskIDThatNeedsEscaping,
+	})
+	require.NoError(t, err)
+}
