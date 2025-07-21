@@ -245,6 +245,7 @@ const (
 	ObjectTypeTenant               ObjectType = "Tenant"
 	ObjectTypeEnvironment          ObjectType = "Environment"
 	ObjectTypeWebUITokenThumbprint ObjectType = "WebUITokenThumbprint"
+	ObjectTypeTurn                 ObjectType = "Turn"
 	ObjectTypeTask                 ObjectType = "Task"
 )
 
@@ -297,6 +298,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Environment{}
 		case ObjectTypeWebUITokenThumbprint:
 			current = &WebUITokenThumbprint{}
+		case ObjectTypeTurn:
+			current = &Turn{}
 		case ObjectTypeTask:
 			current = &Task{}
 		default:
@@ -1091,6 +1094,57 @@ func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task,
 	}
 
 	var out Task
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CreateTurnRequest is the request payload for CreateTurn.
+type CreateTurnRequest struct {
+	DelegatedAuthInfo
+	TenantID           string  `json:"-"`
+	TaskID             string  `json:"-"`
+	TurnIndex          int     `json:"-"`
+	Prompt             string  `json:"Prompt"`
+	PreviousResponseID *string `json:"PreviousResponseID,omitempty"`
+	BaselineCommitHash *string `json:"BaselineCommitHash,omitempty"`
+	LastCommitHash     *string `json:"LastCommitHash,omitempty"`
+}
+
+// CreateTurn creates a new turn for a task.
+func (c *Client) CreateTurn(ctx context.Context, req *CreateTurnRequest) (*Turn, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out Turn
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
