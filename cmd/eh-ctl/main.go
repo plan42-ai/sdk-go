@@ -24,11 +24,11 @@ type SharedOptions struct {
 }
 
 type CreateUserOptions struct {
-	FullName   string  `help:"The user's full name" name:"full-name" short:"n"`
-	FirstName  string  `help:"The user's first name" name:"first-name" short:"f"`
-	LastName   string  `help:"The user's last name" name:"last-name" short:"l"`
-	Email      string  `help:"The user's email address" short:"e"`
-	PictureURL *string `help:"The user's profile picture URL" short:"p"`
+	FullName   string  `help:"The user's full name" name:"full-name" short:"n" required:""`
+	FirstName  string  `help:"The user's first name" name:"first-name" short:"f" required:""`
+	LastName   string  `help:"The user's last name" name:"last-name" short:"l" required:""`
+	Email      string  `help:"The user's email address" short:"e" required:""`
+	PictureURL *string `help:"The user's profile picture URL" short:"p" required:""`
 }
 
 func processDelegatedAuth(shared *SharedOptions, info *eh.DelegatedAuthInfo) {
@@ -68,7 +68,7 @@ func printJSON(resp any) error {
 }
 
 type GetTenantOptions struct {
-	TenantID string `help:"The ID of the tenant to fetch" short:"i"`
+	TenantID string `help:"The ID of the tenant to fetch" short:"i" required:""`
 }
 
 func (o *GetTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -98,11 +98,11 @@ func (o *GetCurrentUserOptions) Run(ctx context.Context, s *SharedOptions) error
 }
 
 type ListPoliciesOptions struct {
-	TenantID string `help:"The ID of the tenant to list policies for" short:"i"`
+	TenantID string `help:"The ID of the tenant to list policies for" short:"i" required:""`
 }
 
 type GenerateUITokenOptions struct {
-	TenantID string `help:"The ID of the tenant to generate the Web UI token for" short:"i"`
+	TenantID string `help:"The ID of the tenant to generate the Web UI token for" short:"i" required:""`
 }
 
 func (o *GenerateUITokenOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -120,7 +120,7 @@ func (o *GenerateUITokenOptions) Run(ctx context.Context, s *SharedOptions) erro
 }
 
 type CreateEnvironmentOptions struct {
-	TenantID string `help:"The tenant ID to create the environment for" short:"i"`
+	TenantID string `help:"The tenant ID to create the environment for" short:"i" required:""`
 	JSON     string `help:"The JSON file to load the environment definition from" short:"j" default:"-"`
 }
 
@@ -154,14 +154,16 @@ func (o *CreateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 }
 
 type GetEnvironmentOptions struct {
-	TenantID      string `help:"The tennant ID that owns the environment being fetched." short:"i"`
-	EnvironmentID string `help:"The environment ID to fetch" name:"environment-id" short:"e"`
+	TenantID       string `help:"The tennant ID that owns the environment being fetched." short:"i" required:""`
+	EnvironmentID  string `help:"The environment ID to fetch" name:"environment-id" short:"e"`
+	IncludeDeleted bool   `help:"Include deleted environments in the list." short:"d" optional:""`
 }
 
 func (o *GetEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &eh.GetEnvironmentRequest{
-		TenantID:      o.TenantID,
-		EnvironmentID: o.EnvironmentID,
+		TenantID:       o.TenantID,
+		EnvironmentID:  o.EnvironmentID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
 	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
@@ -173,9 +175,9 @@ func (o *GetEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error
 }
 
 type UpdateEnvironmentOptions struct {
-	TenantID      string `help:"The tennant ID that owns the environment being fetched." short:"i"`
-	EnvironmentID string `help:"The ID of the environment to update" name:"environment-id" short:"e"`
-	JSON          string `help:"The json file containing the environment updates" short:"j" default:"-"`
+	TenantID      string `help:"The tennant ID that owns the environment being fetched." short:"i" required:""`
+	EnvironmentID string `help:"The ID of the environment to update" name:"environment-id" short:"e" required:""`
+	JSON          string `help:"The json file containing the environment updates" short:"j" default:"-" required:""`
 }
 
 func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -199,7 +201,7 @@ func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	req.TenantID = o.TenantID
 	req.EnvironmentID = o.EnvironmentID
 
-	getReq := &eh.GetEnvironmentRequest{TenantID: o.TenantID, EnvironmentID: o.EnvironmentID}
+	getReq := &eh.GetEnvironmentRequest{TenantID: o.TenantID, EnvironmentID: o.EnvironmentID, IncludeDeleted: pointer(true)}
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	env, err := s.Client.GetEnvironment(ctx, getReq)
 	if err != nil {
@@ -216,15 +218,17 @@ func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 }
 
 type ListEnvironmentsOptions struct {
-	TenantID string `help:"The tennant ID that owns the environments being listed." name:"tenantid" short:"i"`
+	TenantID       string `help:"The tennant ID that owns the environments being listed." name:"tenantid" short:"i"`
+	IncludeDeleted bool   `help:"Include deleted environments in the list." short:"d"`
 }
 
 func (o *ListEnvironmentsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var token *string
 	for {
 		req := &eh.ListEnvironmentsRequest{
-			TenantID: o.TenantID,
-			Token:    token,
+			TenantID:       o.TenantID,
+			Token:          token,
+			IncludeDeleted: pointer(o.IncludeDeleted),
 		}
 		processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
