@@ -289,6 +289,49 @@ func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	return s.Client.DeleteEnvironment(ctx, req)
 }
 
+type CreateTurnOptions struct {
+	TenantID string `help:"The ID of the tenant owning the task we are adding a turn to." short:"i" required:""`
+	TaskID   string `help:"The task to add a turn to." short:"t" required:""`
+	JSON     string `help:"The json file containing the turn definition." short:"j" default:"-"`
+}
+
+func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.CreateTurnRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	getReq := &eh.GetLastTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	last, err := s.Client.GetLastTurn(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req.TenantID = o.TenantID
+	req.TaskID = o.TaskID
+	req.TurnIndex = last.TurnIndex + 1
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	turn, err := s.Client.CreateTurn(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(turn)
+}
+
 type ListTasksOptions struct {
 	TenantID       string  `help:"The ID of the tenant to list tasks for." short:"i" required:""`
 	WorkstreamID   *string `help:"Optional workstream ID. When specified tasks in that workstream are returned." short:"w" optional:""`
@@ -476,6 +519,9 @@ type Options struct {
 		List   ListTasksOptions  `cmd:"list"`
 		Get    GetTaskOptions    `cmd:"get"`
 	} `cmd:"task"`
+	Turn struct {
+		Create CreateTurnOptions `cmd:"create"`
+	} `cmd:"turn"`
 	Ctx context.Context `kong:"-"`
 }
 
@@ -520,6 +566,8 @@ func main() {
 		err = options.Task.List.Run(options.Ctx, &options.SharedOptions)
 	case "task get":
 		err = options.Task.Get.Run(options.Ctx, &options.SharedOptions)
+	case "turn create":
+		err = options.Turn.Create.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
