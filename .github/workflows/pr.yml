@@ -22,10 +22,6 @@ jobs:
       run: |
         git config --global url."https://${{ secrets.PRIVATE_REPO_PULL_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
-    - uses: pnpm/action-setup@v4
-      with:
-        version: 10
-
     - name: Build
       run: make build
 
