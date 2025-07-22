@@ -267,6 +267,42 @@ func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	return s.Client.DeleteEnvironment(ctx, req)
 }
 
+type CreateTaskOptions struct {
+	TenantID     string  `help:"The id of the tenant owning the task to create." short:"i" required:""`
+	WorkstreamID *string `help:"Optional id of the workstream to create the task in." name:"workstream-id" short:"w"`
+	JSON         string  `help:"The json file to load the task from" short:"j" default:"-"`
+}
+
+func (o *CreateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.CreateTaskRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	req.TenantID = o.TenantID
+	req.TaskID = uuid.NewString()
+	req.WorkstreamID = o.WorkstreamID
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	task, err := s.Client.CreateTask(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(task)
+}
+
 func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var token *string
 	for {
@@ -313,6 +349,9 @@ type Options struct {
 		Delete DeleteEnvironmentOptions `cmd:"delete"`
 		List   ListEnvironmentsOptions  `cmd:"list"`
 	} `cmd:"environment"`
+	Task struct {
+		Create CreateTaskOptions `cmd:"create"`
+	} `cmd:"task"`
 	Ctx context.Context `kong:"-"`
 }
 
@@ -347,6 +386,8 @@ func main() {
 		err = options.Environment.Delete.Run(options.Ctx, &options.SharedOptions)
 	case "environment list":
 		err = options.Environment.List.Run(options.Ctx, &options.SharedOptions)
+	case "task create":
+		err = options.Task.Create.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
