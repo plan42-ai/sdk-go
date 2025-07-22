@@ -268,6 +268,24 @@ func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	return s.Client.DeleteEnvironment(ctx, req)
 }
 
+type DeleteTaskOptions struct {
+	TenantID string `help:"The ID of the tennant that owns the task to delete." short:"i" required:""`
+	TaskID   string `help:"The ID of the task to delete." short:"t" required:""`
+}
+
+func (o *DeleteTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	task, err := s.Client.GetTask(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req := &eh.DeleteTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID, Version: task.Version}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+	return s.Client.DeleteTask(ctx, req)
+}
+
 type CreateTaskOptions struct {
 	TenantID     string  `help:"The id of the tenant owning the task to create." short:"i" required:""`
 	WorkstreamID *string `help:"Optional id of the workstream to create the task in." name:"workstream-id" short:"w"`
@@ -397,6 +415,7 @@ type Options struct {
 	Task struct {
 		Create CreateTaskOptions `cmd:"create"`
 		Update UpdateTaskOptions `cmd:"update"`
+		Delete DeleteTaskOptions `cmd:"delete"`
 	} `cmd:"task"`
 	Ctx context.Context `kong:"-"`
 }
@@ -436,6 +455,8 @@ func main() {
 		err = options.Task.Create.Run(options.Ctx, &options.SharedOptions)
 	case "task update":
 		err = options.Task.Update.Run(options.Ctx, &options.SharedOptions)
+	case "task delete":
+		err = options.Task.Delete.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
