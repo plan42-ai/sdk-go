@@ -1347,6 +1347,88 @@ func TestGetTurnPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetLastTurn(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task/turns/last", r.URL.Path)
+		require.Empty(t, r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Turn{TenantID: "abc", TaskID: "task", TurnIndex: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	turn, err := client.GetLastTurn(context.Background(), &eh.GetLastTurnRequest{TenantID: "abc", TaskID: "task"})
+	require.NoError(t, err)
+	require.Equal(t, 1, turn.TurnIndex)
+}
+
+func TestGetLastTurnIncludeDeleted(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task/turns/last", r.URL.Path)
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Turn{TenantID: "abc", TaskID: "task", TurnIndex: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	includeDeleted := true
+	_, err := client.GetLastTurn(context.Background(), &eh.GetLastTurnRequest{TenantID: "abc", TaskID: "task", IncludeDeleted: &includeDeleted})
+	require.NoError(t, err)
+}
+
+func TestGetLastTurnError(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusNotFound, Message: "nope", ErrorType: "NotFound"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetLastTurn(context.Background(), &eh.GetLastTurnRequest{TenantID: "abc", TaskID: "task"})
+	require.Error(t, err)
+}
+
+func TestGetLastTurnPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Turn{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, TurnIndex: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetLastTurn(context.Background(), &eh.GetLastTurnRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
 func TestUploadTurnLogs(t *testing.T) {
 	t.Parallel()
 
