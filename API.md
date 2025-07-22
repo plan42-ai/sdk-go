@@ -205,7 +205,7 @@ HTTP/1.1 201 Created
 Content-Type: application/json; charset=utf-8
 
 {
-  "TenantId": "string",
+  "TenantID": "string",
   "Type": "TenantType",
   "Version": int,
   "Deleted": boolean,
@@ -223,7 +223,7 @@ Content-Type: application/json; charset=utf-8
 
 | Field          | Type                         | Description                                                                                                 |
 |----------------|------------------------------|-------------------------------------------------------------------------------------------------------------|
-| TenantId       | string                       | The ID of the tenant that was created. This is a v4 UUID.                                                   |
+| TenantID       | string                       | The ID of the tenant that was created. This is a v4 UUID.                                                   |
 | Type           | [TenantType](#33-tenanttype) | The type of tenant that was created. Valid values are "user", "organization", and "enterprise".             |
 | Version        | int                          | The version of the tenant object. Will be 1 on create. This is incremented each time the tenant is updated. |
 | Deleted        | boolean                      | Whether the tenant is deleted. This is false on create.                                                     |
@@ -298,7 +298,7 @@ HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
 
 {
-  "TenantId": "string",
+  "TenantID": "string",
   "Type": "TenantType",
   "Version": int,
   "Deleted": boolean,
@@ -1016,7 +1016,7 @@ HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
 
 {
-  "TenantId": "string",
+  "TenantID": "string",
   "Type": "TenantType",
   "Version": int,
   "Deleted": boolean,
@@ -1105,8 +1105,8 @@ HTTP/1.1 201 Created
 Content-Type: application/json; charset=utf-8
 
 {
-  "TenantId": "string",
-  "EnvironmentId": "string",
+  "TenantID": "string",
+  "EnvironmentID": "string",
   "Name": "string",
   "Description": "string",
   "Context": "string",
@@ -1123,8 +1123,8 @@ Content-Type: application/json; charset=utf-8
 ```
 | Field         | Type                    | Description                                                                                                                                                                       |
 |---------------|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| TenantId      | string                  | The ID of the tenant the environment was created for.                                                                                                                             |
-| EnvironmentId | string                  | The ID of the environment that was created. This is a v4 UUID.                                                                                                                    |
+| TenantID      | string                  | The ID of the tenant the environment was created for.                                                                                                                             |
+| EnvironmentID | string                  | The ID of the environment that was created. This is a v4 UUID.                                                                                                                    |
 | Name          | string                  | The name of the environment.                                                                                                                                                      |
 | Description   | string                  | A description of the environment.                                                                                                                                                 |
 | Context       | string                  | Context describing the environment to provide to AI agents that use this environment.                                                                                             |
@@ -1212,8 +1212,8 @@ HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
 
 {
-  "TenantId": "string",
-  "EnvironmentId": "string",
+  "TenantID": "string",
+  "EnvironmentID": "string",
   "Name": "string",
   "Description": "string",
   "Context": "string",
@@ -1282,8 +1282,8 @@ HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
 
 {
-  "TenantId": "string",
-  "EnvironmentId": "string",
+  "TenantID": "string",
+  "EnvironmentID": "string",
   "Name": "string",
   "Description": "string",
   "Context": "string",
@@ -1322,10 +1322,657 @@ If-Match: <version>
 | X-Event-Horizon-Signed-Headers           | header   | *string   | The signed headers for the request, when authenticating with Sigv4.                                                                                           |
 | version                                  | header   | string    | The version of the environment to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.   |
 
-## 17.2 Resposne
+## 17.2 Response
 
 ```http request
 HTTP/1.1 204 NO CONTENT
 ```
 
 On success a 204 NO CONTENT is returned with no body.
+
+# 18. CreateTask
+
+CreateTask creates a new task. If the task is executable (assigned to AI and not blocked on another task), a Turn
+will also be created and scheduled for execution.
+
+## 18.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/tasks/{task_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+  "WorkstreamID": "*string",
+  "Title": "string",
+  "EnvironmentID": "string",
+  "Prompt": "string",
+  "AfterTaskID": "string",
+  "Parallel": bool,
+  "Model": "*ModelType",
+  "AssignedToTenantID": "*string",
+  "AssignedToAI" : bool,
+  "Branches" : {}
+}
+```
+
+| Parameter                                | Location | Type                        | Description                                                                                                               |
+|------------------------------------------|----------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                      | The ID of the tenant to create the task for.                                                                              |
+| task_id                                  | path     | string                      | The ID of the task to create. This must be a v4 UUID.                                                                     |
+| Authorization                            | header   | string                      | The authorization header for the request.                                                                                 |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                     | The authorization header for the delegating principal.                                                                    |
+| X-Event-Horizon-Signed-Headers           | header   | *string                     | The signed headers for the request, when authenticating with Sigv4.                                                       |
+| WorkstreamID                             | body     | *string                     | Optional. The ID of the workstream to create the task in.  If not provided, the task is not associated with a workstream. |
+| Title                                    | body     | string                      | The title of the task.                                                                                                    |
+| EnvironmentID                            | body     | string                      | The ID of the environment to execute the task in.                                                                         |
+| Prompt                                   | body     | string                      | The prompt to use for the task.                                                                                           |
+| AfterTaskID                              | body     | *string                     | Optional. Within a workstream identifies the task this one is sequenced after.                                            |
+| Parallel                                 | body     | bool                        | If true, the task can be executed in parallel with other tasks in the same workstream. Defaults to false.                 |
+| Model                                    | body     | [ModelType](#182-modeltype) | The model to use for the task. Required if the task is not assigned to a human.                                           |
+| AssignedToTenantID                       | body     | *string                     | Optional. The ID of the tenant to assign the task to. If not provided, the task is not assigned to a human.               |
+| AssignedToAI                             | body     | bool                        | If true, the task is assigned to an AI agent. If false and AssignedToTenantID is null, the task is unassigned.            |
+| Branches                                 | body     | map[string][string]         | A map of "org/repo" to branch names.                                                                                      |
+
+## 18.2 ModelType
+
+ModelType is an enum that defines the type of model to use for the task. 
+
+| Value           |
+|-----------------|
+| Codex Mini      |
+| O3              |
+| O3 Pro          |
+| Claude 4 Opus   |
+| Claude 4 Sonnet |
+
+## 18.3 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "WorkstreamID": "*string",  
+  "TaskID": "string", 
+  "Title": "string",
+  "EnvironmentID": "string",
+  "Prompt": "string",
+  "AfterTaskID": "string",
+  "Parallel": bool,
+  "Model": "ModelType",
+  "AssignedToTenantID": "*string",
+  "AssignedToAI" : bool,  
+  "RepoInfo: {},
+  "State": "TaskState",
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Deleted": bool,
+  "Version": int
+}
+```
+
+| Field              | Type                                    | Description                                                                                                                                                           |
+|--------------------|-----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| TenantID           | string                                  | The ID of the tenant that owns the task.                                                                                                                              |
+| WorkstreamID       | *string                                 | The ID of the workstream the task is a member. Is null if the task is not associated with a workstream.                                                               |
+| TaskID             | string                                  | The ID of the task.                                                                                                                                                   |
+| Title              | string                                  | The title of the task.                                                                                                                                                |
+| EnvironmentID      | string                                  | The ID of the environment the task is executed in.                                                                                                                    |
+| Prompt             | string                                  | The prompt / description of the task.                                                                                                                                 |
+| AfterTaskID        | *string                                 | The ID of the task this one is sequenced after, if any. Required if the task is part of a workstream, null otherwise.                                                 |
+| Parallel           | bool                                    | If true, the task can be executed in parallel with other tasks in the same workstream. Can only be true if the task is part of a workstream.                          |
+| Model              | [ModelType](#182-modeltype)             | The model to use for the task. Required if the task is not assigned to a human.                                                                                       |
+| AssignedToTenantID | *string                                 | The ID of the human user the task is assigned to. Only valid if the task is part of a workstream.                                                                     |
+| AssignedToAI       | bool                                    | If true, the task is assigned to an AI agent. Must be true if the task is not part of a workstream. If false and `AssignedToTenantID` is nul, the task is unassigned. |
+| RepoInfo           | map[string][[*RepoInfo](#184-repoinfo)] | A map of "org/repo" to repository info. This tracks branch names and PR links for each repo used in the environment.                                                  |
+| State              | [TaskState](#185-taskstate)             | The current state of the task.                                                                                                                                        |
+| CreatedAt          | string                                  | The timestamp when the task was created, in ISO 8601 format.                                                                                                          |
+| UpdatedAt          | string                                  | The timestamp when the task was last updated, in ISO 8601 format.                                                                                                     |
+| Deleted            | bool                                    | Whether the task has been deleted.                                                                                                                                    |
+| Version            | int                                     | The version of the task. This is incremented every time the task is updated.                                                                                          |
+
+## 18.5 RepoInfo
+
+RepoInfo is an object that contains information about a repository used in a task's environment.
+
+
+```json
+{
+   "PRLink": "*string",
+   "PRID": "*string",
+   "PRNumber": *int,
+   "FeatureBranch": "string",
+   "TargetBranch": "string"
+}
+```
+
+| Field         | Type    | Description                                                                                                     |
+|---------------|---------|-----------------------------------------------------------------------------------------------------------------|
+| PRLink        | *string | The link to the pull request for the feature branch. Will be null if no pr has been generated.                  |
+| PRID          | *string | The ID of the pull request for the feature branch. Will be null if no pr has been generated.                    |
+| PRNumber      | *int    | The number of the pull request for the feature branch. Will be null if no pr has been generated.                |
+| FeatureBranch | string  | The name of the feature branch created for the task. This is the branch where the task's code changes are made. |
+| TargetBranch  | string  | The name of the target branch for the pull request. This is the branch the feature branch will be merged into.  |
+
+
+## 18.5 TaskState
+
+TaskState is an enum that defines the current state of a task.
+
+| Value                |
+|----------------------|
+| Pending              |
+| Executing            |
+| Awaiting Code Review |
+| Completed            |
+
+# 19. ListTasks
+
+The ListTasks API is used to list all tasks for a tenant, optionally filtered by workstream.
+
+## 19.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/tasks?workstreamID={workstreamID}&maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                       |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to list tasks for.                                                                                           |
+| workstreamID                             | query    | *string | Optional. The ID of the workstream to filter tasks by. If not provided, only tasks not associated with a workstream are returned. |
+| maxResults                               | query    | *int    | Optional. The maximum number of tasks to return. Default is 500. Must be >=1 and <= 500.                                          |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned.                   |
+| includeDeleted                           | query    | *bool   | Optional. Whether to include deleted tasks in the results. Default is false.                                                      |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                         |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                            |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                               |
+
+## 19.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Tasks": [],
+  "NextToken": "*string"
+}
+```
+| Field     | Type                    | Description                                                                                    |
+|-----------|-------------------------|------------------------------------------------------------------------------------------------|
+| Tasks     | [][Task](#182-response) | A list of tasks for the tenant, filtered by workstream if provided.                            |
+| NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
+
+# 20. GetTask
+
+The GetTask API is used to get a specific task for a tenant.
+
+## 20.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/tasks/{task_id}?includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to get the task for.                           |
+| task_id                                  | path     | string  | The ID of the task to get.                                          |
+| includeDeleted                           | query    | *bool   | Optional. Whether to return a deleted tasks. Default is false.      |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 20.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "WorkstreamID": "*string",  
+  "TaskID": "string", 
+  "Title": "string",
+  "EnvironmentID": "string",
+  "Prompt": "string",
+  "AfterTaskID": "string",
+  "Parallel": bool,
+  "Model": "ModelType",
+  "AssignedToTenantID": "*string",
+  "AssignedToAI" : bool,  
+  "RepoInfo: {},
+  "State": "TaskState",
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Deleted": bool,
+  "Version": int
+}
+```
+
+See [CreateTask](#182-response) for details on the response fields.
+
+# 21. UpdateTask
+
+The UpdateTask API is used to update an existing task for a tenant.
+
+## 21.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/tasks/{task_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "Title": "*string",
+    "Prompt": "*string",
+    "AfterTaskID": "*string",
+    "Parallel": *bool,
+    "Model": "*ModelType",
+    "AssignedToTenantID": "*string",
+    "AssignedToAI" : *bool,
+    "RepoInfo" : {},
+    "Deleted": *bool
+}
+```
+
+| Parameter                                | Location | Type                   | Description                                                                                                                                          |
+|------------------------------------------|----------|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                 | The ID of the tenant to update the task for.                                                                                                         |
+| task_id                                  | path     | string                 | The ID of the task to update.                                                                                                                        |
+| Authorization                            | header   | string                 | The authorization header for the request.                                                                                                            |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                | The authorization header for the delegating principal.                                                                                               |
+| X-Event-Horizon-Signed-Headers           | header   | *string                | The signed headers for the request, when authenticating with Sigv4.                                                                                  |
+| version                                  | header   | string                 | The version of the task to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| Title                                    | body     | *string                | If set, update the task's title.                                                                                                                     |
+| Prompt                                   | body     | *string                | If set, update the task's prompt.                                                                                                                    |
+| AfterTaskID                              | body     | *string                | If set, update the task's AfterTaskID.                                                                                                               |
+| Parallel                                 | body     | *bool                  | If set, update the task's parallel flag.                                                                                                             |
+| Model                                    | body     | *ModelType             | If set, update the task's model type.                                                                                                                |
+| AssignedToTenantID                       | body     | *string                | If set, update the task's assigned tenant ID.                                                                                                        |
+| AssignedToAI                             | body     | *bool                  | If set, update the task's assigned to AI flag.                                                                                                       |
+| RepoInfo                                 | body     | map[string][*RepoInfo] | If set, update the task's repository info. This tracks branch names and PR links for each repo used in the environment.                              |
+| Deleted                                  | body     | *bool                  | If set to false, undelete the task. May not be set to true. Use DeleteTask instead.                                                                  |
+## 21.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "WorkstreamID": "*string",  
+  "TaskID": "string", 
+  "Title": "string",
+  "EnvironmentID": "string",
+  "Prompt": "string",
+  "AfterTaskID": "string",
+  "Parallel": bool,
+  "Model": "ModelType",
+  "AssignedToTenantID": "*string",
+  "AssignedToAI" : bool,  
+  "RepoInfo: {},
+  "State": "TaskState",
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Deleted": bool,
+  "Version": int
+}
+```
+See [CreateTask](#182-response) for details on the response fields.
+
+# 22. DeleteTask
+
+The DeleteTask API soft-deletes a task.
+
+## 22.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/tasks/{task_id} HTTP/1.1
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                          |
+|------------------------------------------|----------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the task being deleted.                                                                                               |
+| task_id                                  | path     | string  | The ID of the task to delete.                                                                                                                        |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                            |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                               |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                  |
+| version                                  | header   | string  | The version of the task to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+
+## 22.2 Response
+
+On success a 204 NO CONTENT is returned with no body.
+
+# 23. CreateTurn
+
+CreateTurn creates a new turn for a task. The first turn for a task is created automatically when the tasks becomes
+ready for execution. Subsequent turns are created by calling CreateTurn. 
+
+If any of the following are true, a 409 Conflict error is returned:
+
+1. The tasks is not yet executable (e.g. it is blocked on another task, or it's workstream is paused).
+2. The task is not assigned to an AI agent.
+3. The task has 0 turns.
+4. The latest turn on the task is not in a terminal state (i.e. it is not "Done" or "Failed").
+5. A turn with the given index already exists.
+6. The provided turn index is not the next index in the sequence (i.e. it is not the latest turn index + 1).
+
+## 23.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "Prompt": "string",    
+    "PreviousResponseID": "*string",
+    "BaselineCommitHash": "*string",
+    "LastCommitHash": "*string",    
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                         |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to create the turn for.                                                                                                        |
+| task_id                                  | path     | string  | The ID of the task to create the turn for.                                                                                                          |
+| turnIndex                                | path     | int     | The index of the turn to create. This must be the next index in the sequence (i.e. latest turn index + 1).                                          |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                 |
+| Prompt                                   | body     | string  | The prompt to use for the turn.                                                                                                                     |
+| PreviousResponseID                       | body     | *string | Optional. The ID of the previous response for the turn. Used to enable AI to resume with the context of the previous turn.                          |
+| BaselineCommitHash                       | body     | *string | Optional. The baseline commit hash of the task. When creating turn n + 1, set to the value for turn n. Will be updated by the agent while it works. |
+| LastCommitHash                           | body     | *string | Optional. The last commit hash of the task. When creating turn n + 1, set to the value for turn n. Will be updated by the agent while it works.     |
+
+## 23.2 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "TaskID": "string",
+  "TurnIndex": int,
+  "Prompt": "string",
+  "PreviousResponseID": "*string",
+  "BaselineCommitHash": "*string",
+  "LastCommitHash": "*string",
+  "Status": "string",
+  "OutputMessage": "*string", 
+  "ErrorMessage": "*string"
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int
+}
+```
+
+| Field              | Type    | Description                                                                                                                                                             |
+|--------------------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| TenantID           | string  | The ID of the tenant that owns the turn.                                                                                                                                |
+| TaskID             | string  | The ID of the task the turn belongs to.                                                                                                                                 |
+| TurnIndex          | int     | The index of the turn. This is the next index in the sequence (i.e. latest turn index + 1).                                                                             |
+| Prompt             | string  | The prompt used for the turn.                                                                                                                                           |
+| PreviousResponseID | *string | The ID of the previous response for the turn. Used to enable AI to resume with the context of the previous turn.                                                        |
+| BaselineCommitHash | *string | The baseline commit hash of the task.                                                                                                                                   |
+| LastCommitHash     | *string | The last commit hash of the task.                                                                                                                                       |
+| Status             | string  | The status of the turn. This may be arbtirary text set by the agent while it runs. The values "Succeeded", and "Failed" are used to idetnify when turns have completed. |
+| OutputMessage      | *string | The output message from the agent. This is the final response from the agent after it has completed its work.                                                           |
+| ErrorMessage       | *string | The error message from the agent, if any. This is set if Status == `Failed`.                                                                                            |
+| CreatedAt          | string  | The timestamp when the turn was created, in ISO 8601 format.                                                                                                            |
+| UpdatedAt          | string  | The timestamp when the turn was last updated, in ISO 8601 format.                                                                                                       |
+| Version            | int     | The version of the turn. This is incremented every time the turn is updated.                                                                                            |
+
+# 24. ListTurns
+The ListTurns API is used to list all turns for a task.
+
+## 24.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to list turns for.                                                                         |
+| task_id                                  | path     | string  | The ID of the task to list turns for.                                                                           |
+| maxResults                               | query    | *int    | Optional. The maximum number of turns to return. Default is 500. Must be >=1 and <= 500.                        |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return turns for a deleted task.                                                       |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 24.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Turns": [],
+  "NextToken": "*string"
+}
+```
+
+| Field     | Type                    | Description                                                                                    |
+|-----------|-------------------------|------------------------------------------------------------------------------------------------|
+| Turns     | [][Turn](#232-response) | A list of turns for the task.                                                                  |
+| NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
+
+# 25. GetTurn
+
+GetTurn retrieves a specific turn for a task.
+
+## 25.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}?includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to get the turn for.                           |
+| task_id                                  | path     | string  | The ID of the task to get the turn for.                             |
+| turnIndex                                | path     | int     | The index of the turn to get.                                       |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return a turn for a deleted task.          |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 25.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "TaskID": "string",
+  "TurnIndex": int,
+  "Prompt": "string",
+  "PreviousResponseID": "*string",
+  "BaselineCommitHash": "*string",
+  "LastCommitHash": "*string",
+  "Status": "string",
+  "OutputMessage": "*string", 
+  "ErrorMessage": "*string"
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int
+}
+```
+
+See [CreateTurn](#232-response) for details on the response fields.
+
+# 26. UpdateTurn
+
+The UpdateTurn API is used to update an existing turn for a task.
+
+## 26.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "PreviousResponseID": "*string",
+    "BaselineCommitHash": "*string",
+    "LastCommitHash": "*string",    
+    "Status": "*string",
+    "OutputMessage": "*string", 
+    "ErrorMessage": "*string"
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                          |
+|------------------------------------------|----------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to update the turn for.                                                                                                         |
+| task_id                                  | path     | string  | The ID of the task to update the turn for.                                                                                                           |
+| turnIndex                                | path     | int     | The index of the turn to update.                                                                                                                     |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                            |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                               |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                  |
+| version                                  | header   | string  | The version of the turn to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| PreviousResponseID                       | body     | *string | If set, update the turn's previous response ID.                                                                                                      |
+| BaselineCommitHash                       | body     | *string | If set, update the turn's baseline commit hash.                                                                                                      |
+| LastCommitHash                           | body     | *string | If set, update the turn's last commit hash.                                                                                                          |
+| Status                                   | body     | *string | If set, update the turn's status.                                                                                                                    |
+| OutputMessage                            | body     | *string | If set, update the turn's output message.                                                                                                            |
+| ErrorMessage                             | body     | *string | If set, update the turn's error message.                                                                                                             |
+
+## 26.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "TaskID": "string",
+  "TurnIndex": int,
+  "Prompt": "string",
+  "PreviousResponseID": "*string",
+  "BaselineCommitHash": "*string",
+  "LastCommitHash": "*string",
+  "Status": "string",
+  "OutputMessage": "*string", 
+  "ErrorMessage": "*string"
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int
+}
+```
+See [CreateTurn](#232-response) for details on the response fields.
+
+# 27. UploadTurnLogs
+
+The UploadTurnLogs API is used to upload a batch logs for a turn.
+
+The requested is limited to a maximum of 10,000 logs and a maximum of 1MB in size. If the request exceeds these limits, 
+a `413 Content Too Large` error is returned.
+
+## 27.1 Request
+
+```http request
+POST /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "Index": int,
+    "Logs": [
+        {
+            "Timestamp": "string",
+            "Message": "string"
+        }
+    ]
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                   |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to upload logs for.                                                                                                                      |
+| task_id                                  | path     | string  | The ID of the task to upload logs for.                                                                                                                        |
+| turnIndex                                | path     | int     | The index of the turn to upload logs for.                                                                                                                     |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                     |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                        |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                           |
+| version                                  | header   | string  | The version of the turn to upload logs for. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| Index                                    | body     | int     | The log index of the first entry in the log batch. This should be the last index + 1 of the previous log batch, or 0 for the first batch.                     |
+| Logs                                     | body     | []Log   | The list of logs to upload. Each log entry should have a timestamp and message.                                                                               |
+
+## 27.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Version": int
+}
+```
+
+| Field   | Type | Description                                                            |
+|---------|------|------------------------------------------------------------------------|
+| Version | int  | The incremented version of the turn after the logs have been uploaded. |
