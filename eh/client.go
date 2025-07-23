@@ -141,9 +141,10 @@ type CreateTenantRequest struct {
 	PictureURL     *string    `json:"PictureUrl,omitempty"`
 }
 
+// nolint: goconst
 func (r *CreateTenantRequest) GetField(name string) (any, bool) {
 	switch name {
-	case "TenantID": //nolint
+	case "TenantID":
 		return r.TenantID, true
 	case "Type":
 		return r.Type, true
@@ -179,10 +180,12 @@ type GetCurrentUserRequest struct {
 	DelegatedAuthInfo
 }
 
+// nolint: goconst
 func (r *GetCurrentUserRequest) GetField(_ string) (any, bool) {
 	return nil, false
 }
 
+// nolint: goconst
 func (r *GetTenantRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -557,6 +560,7 @@ type GenerateWebUITokenRequest struct {
 	TokenID  string
 }
 
+// nolint: goconst
 func (r *GenerateWebUITokenRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -698,6 +702,14 @@ type CreateTaskRequest struct {
 	Branches           map[string]string `json:"Branches"`
 }
 
+// GetTaskRequest is the request payload for GetTask.
+type GetTaskRequest struct {
+	DelegatedAuthInfo
+	TenantID       string `json:"-"`
+	TaskID         string `json:"-"`
+	IncludeDeleted *bool  `json:"-"`
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *GetEnvironmentRequest) GetField(name string) (any, bool) {
@@ -714,6 +726,7 @@ func (r *GetEnvironmentRequest) GetField(name string) (any, bool) {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *CreateEnvironmentRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -742,6 +755,7 @@ func (r *CreateEnvironmentRequest) GetField(name string) (any, bool) {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *UpdateEnvironmentRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -774,6 +788,7 @@ func (r *UpdateEnvironmentRequest) GetField(name string) (any, bool) {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *DeleteEnvironmentRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -803,6 +818,7 @@ func (r *DeleteTaskRequest) GetField(name string) (any, bool) {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -829,6 +845,21 @@ func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 		return r.AssignedToAI, true
 	case "Branches":
 		return r.Branches, true
+	default:
+		return nil, false
+	}
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GetTaskRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -874,6 +905,7 @@ func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRe
 }
 
 // GetEnvironment retrieves an environment by ID.
+// nolint:dupl
 func (c *Client) GetEnvironment(ctx context.Context, req *GetEnvironmentRequest) (*Environment, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
@@ -975,6 +1007,7 @@ type ListEnvironmentsRequest struct {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *ListEnvironmentsRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -1162,6 +1195,53 @@ func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task,
 	return &out, nil
 }
 
+// GetTask retrieves a task by ID.
+// nolint:dupl
+func (c *Client) GetTask(ctx context.Context, req *GetTaskRequest) (*Task, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID))
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out Task
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // CreateTurnRequest is the request payload for CreateTurn.
 type CreateTurnRequest struct {
 	DelegatedAuthInfo
@@ -1231,6 +1311,7 @@ type UploadTurnLogsRequest struct {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *UploadTurnLogsRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -1316,6 +1397,7 @@ type ListTasksRequest struct {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *ListTasksRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":

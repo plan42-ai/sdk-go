@@ -624,6 +624,7 @@ func TestGetEnvironmentError(t *testing.T) {
 	require.Error(t, err)
 }
 
+// nolint: dupl
 func TestGetEnvironmentPathEscaping(t *testing.T) {
 	t.Parallel()
 
@@ -1001,6 +1002,89 @@ func TestDeleteTaskPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	err := client.DeleteTask(context.Background(), &eh.DeleteTaskRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, Version: 1})
+	require.NoError(t, err)
+}
+
+func TestGetTask(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task", r.URL.Path)
+		require.Empty(t, r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Task{TenantID: "abc", TaskID: "task"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	task, err := client.GetTask(context.Background(), &eh.GetTaskRequest{TenantID: "abc", TaskID: "task"})
+	require.NoError(t, err)
+	require.Equal(t, "task", task.TaskID)
+}
+
+func TestGetTaskIncludeDeleted(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task", r.URL.Path)
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Task{TenantID: "abc", TaskID: "task"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	includeDeleted := true
+	_, err := client.GetTask(context.Background(), &eh.GetTaskRequest{TenantID: "abc", TaskID: "task", IncludeDeleted: &includeDeleted})
+	require.NoError(t, err)
+}
+
+func TestGetTaskError(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusNotFound, Message: "nope", ErrorType: "NotFound"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetTask(context.Background(), &eh.GetTaskRequest{TenantID: "abc", TaskID: "task"})
+	require.Error(t, err)
+}
+
+// nolint: dupl
+func TestGetTaskPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Task{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetTask(context.Background(), &eh.GetTaskRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping})
 	require.NoError(t, err)
 }
 
