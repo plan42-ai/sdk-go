@@ -37,8 +37,9 @@ const (
 	taskIDThatNeedsEscaping        = "task/../../id"
 	escapedTaskID                  = "task%2F..%2F..%2Fid"
 
-	tokenID   = "tok"
-	taskTitle = "new"
+	tokenID    = "tok"
+	taskTitle  = "new"
+	turnStatus = "Done"
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -1574,6 +1575,105 @@ func TestListTurnsPathEscaping(t *testing.T) {
 	_, err := client.ListTurns(context.Background(), &eh.ListTurnsRequest{
 		TenantID: tenantIDThatNeedsEscaping,
 		TaskID:   taskIDThatNeedsEscaping,
+	})
+	require.NoError(t, err)
+}
+
+func TestUpdateTurn(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task1/turns/1", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateTurnRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.Status)
+		require.Equal(t, turnStatus, *reqBody.Status)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Turn{TenantID: "abc", TaskID: "task1", TurnIndex: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	status := turnStatus
+	turn, err := client.UpdateTurn(context.Background(), &eh.UpdateTurnRequest{
+		TenantID:  "abc",
+		TaskID:    "task1",
+		TurnIndex: 1,
+		Version:   1,
+		Status:    &status,
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, turn.TurnIndex)
+}
+
+func TestUpdateTurnError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UpdateTurn(context.Background(), &eh.UpdateTurnRequest{
+		TenantID:  "abc",
+		TaskID:    "task1",
+		TurnIndex: 1,
+		Version:   1,
+		Status:    util.Pointer(turnStatus),
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestUpdateTurnConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveTurnConflict()
+	defer srv.Close()
+
+	_, err := client.UpdateTurn(context.Background(), &eh.UpdateTurnRequest{
+		TenantID:  "abc",
+		TaskID:    "task1",
+		TurnIndex: 1,
+		Version:   1,
+		Status:    util.Pointer(turnStatus),
+	})
+	verifyTurnConflict(t, err)
+}
+
+func TestUpdateTurnPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedTaskID, parts[5])
+		require.Equal(t, "1", parts[7])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Turn{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, TurnIndex: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UpdateTurn(context.Background(), &eh.UpdateTurnRequest{
+		TenantID:  tenantIDThatNeedsEscaping,
+		TaskID:    taskIDThatNeedsEscaping,
+		TurnIndex: 1,
+		Version:   1,
+		Status:    util.Pointer(turnStatus),
 	})
 	require.NoError(t, err)
 }

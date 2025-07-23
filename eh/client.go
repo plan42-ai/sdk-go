@@ -1362,6 +1362,7 @@ type GetTurnRequest struct {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *GetTurnRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
@@ -1372,6 +1373,49 @@ func (r *GetTurnRequest) GetField(name string) (any, bool) {
 		return r.TurnIndex, true
 	case "IncludeDeleted":
 		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
+// UpdateTurnRequest is the request payload for UpdateTurn.
+type UpdateTurnRequest struct {
+	DelegatedAuthInfo
+	TenantID           string  `json:"-"`
+	TaskID             string  `json:"-"`
+	TurnIndex          int     `json:"-"`
+	Version            int     `json:"-"`
+	PreviousResponseID *string `json:"PreviousResponseID,omitempty"`
+	BaselineCommitHash *string `json:"BaselineCommitHash,omitempty"`
+	LastCommitHash     *string `json:"LastCommitHash,omitempty"`
+	Status             *string `json:"Status,omitempty"`
+	OutputMessage      *string `json:"OutputMessage,omitempty"`
+	ErrorMessage       *string `json:"ErrorMessage,omitempty"`
+}
+
+// GetField retrieves the value of a field by name.
+func (r *UpdateTurnRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "TurnIndex":
+		return r.TurnIndex, true
+	case "Version":
+		return r.Version, true
+	case "PreviousResponseID":
+		return evalNullable(r.PreviousResponseID)
+	case "BaselineCommitHash":
+		return evalNullable(r.BaselineCommitHash)
+	case "LastCommitHash":
+		return evalNullable(r.LastCommitHash)
+	case "Status":
+		return evalNullable(r.Status)
+	case "OutputMessage":
+		return evalNullable(r.OutputMessage)
+	case "ErrorMessage":
+		return evalNullable(r.ErrorMessage)
 	default:
 		return nil, false
 	}
@@ -1442,6 +1486,56 @@ func (c *Client) GetTurn(ctx context.Context, req *GetTurnRequest) (*Turn, error
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out Turn
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateTurn updates an existing turn for a task.
+func (c *Client) UpdateTurn(ctx context.Context, req *UpdateTurnRequest) (*Turn, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+	if req.TurnIndex < 0 {
+		return nil, fmt.Errorf("turn index is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
