@@ -289,6 +289,51 @@ func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	return s.Client.DeleteEnvironment(ctx, req)
 }
 
+type UpdateTurnOptions struct {
+	TenantID  string `help:"The ID of the tennant that owns the task and turn" short:"i" required:""`
+	TaskID    string `help:"The ID of the task that contains the turn" short:"t" required:""`
+	TurnIndex int    `help:"The index of the turn to update" name:"turn-index" short:"n" required:""`
+	JSON      string `help:"The json file containing the updates to make" short:"l" default:"-"`
+}
+
+func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.UpdateTurnRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	req.TenantID = o.TenantID
+	req.TaskID = o.TaskID
+	req.TurnIndex = o.TurnIndex
+
+	getReq := &eh.GetTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex, IncludeDeleted: pointer(true)}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	turn, err := s.Client.GetTurn(ctx, getReq)
+	if err != nil {
+		return err
+	}
+	req.Version = turn.Version
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateTurn(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
+}
+
 type ListTurnsOptions struct {
 	TenantID       string `help:"The ID of the tennant that owns the task we want to list turns for." short:"i" required:""`
 	TaskID         string `help:"The ID of the task we want to list turns for." short:"t" required:""`
@@ -556,6 +601,7 @@ type Options struct {
 	Turn struct {
 		Create CreateTurnOptions `cmd:"create"`
 		List   ListTurnsOptions  `cmd:"list"`
+		Update UpdateTurnOptions `cmd:"update"`
 	} `cmd:"turn"`
 	Ctx context.Context `kong:"-"`
 }
@@ -605,6 +651,8 @@ func main() {
 		err = options.Turn.Create.Run(options.Ctx, &options.SharedOptions)
 	case "turn list":
 		err = options.Turn.List.Run(options.Ctx, &options.SharedOptions)
+	case "turn update":
+		err = options.Turn.Update.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
