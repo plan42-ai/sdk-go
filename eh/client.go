@@ -672,6 +672,14 @@ type DeleteEnvironmentRequest struct {
 	Version       int    `json:"-"`
 }
 
+// DeleteTaskRequest is the request payload for DeleteTask.
+type DeleteTaskRequest struct {
+	DelegatedAuthInfo
+	TenantID string `json:"-"`
+	TaskID   string `json:"-"`
+	Version  int    `json:"-"`
+}
+
 // CreateTaskRequest is the request payload for CreateTask.
 type CreateTaskRequest struct {
 	DelegatedAuthInfo
@@ -770,6 +778,21 @@ func (r *DeleteEnvironmentRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "EnvironmentID":
 		return r.EnvironmentID, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteTaskRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
 	case "Version":
 		return r.Version, true
 	default:
@@ -1020,6 +1043,7 @@ func (c *Client) ListEnvironments(ctx context.Context, req *ListEnvironmentsRequ
 }
 
 // DeleteEnvironment deletes an environment.
+// nolint: dupl
 func (c *Client) DeleteEnvironment(ctx context.Context, req *DeleteEnvironmentRequest) error {
 	if req == nil {
 		return fmt.Errorf("req is nil")
@@ -1031,6 +1055,42 @@ func (c *Client) DeleteEnvironment(ctx context.Context, req *DeleteEnvironmentRe
 		return fmt.Errorf("environment id is required")
 	}
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "environments", url.PathEscape(req.EnvironmentID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+	return nil
+}
+
+// DeleteTask soft-deletes a task.
+// nolint: dupl
+func (c *Client) DeleteTask(ctx context.Context, req *DeleteTaskRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return fmt.Errorf("task id is required")
+	}
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID))
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
 	if err != nil {
 		return err

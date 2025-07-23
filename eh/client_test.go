@@ -943,6 +943,66 @@ func TestCreateTaskPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestDeleteTask(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteTask(context.Background(), &eh.DeleteTaskRequest{TenantID: "abc", TaskID: "task", Version: 1})
+	require.NoError(t, err)
+}
+
+func TestDeleteTaskError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+	err := client.DeleteTask(context.Background(), &eh.DeleteTaskRequest{TenantID: "abc", TaskID: "task", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestDeleteTaskConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveTaskConflict()
+	defer srv.Close()
+	err := client.DeleteTask(context.Background(), &eh.DeleteTaskRequest{TenantID: "abc", TaskID: "task", Version: 1})
+	verifyTaskConflict(t, err)
+}
+
+func TestDeleteTaskPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteTask(context.Background(), &eh.DeleteTaskRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, Version: 1})
+	require.NoError(t, err)
+}
+
 func TestCreateTurn(t *testing.T) {
 	t.Parallel()
 
