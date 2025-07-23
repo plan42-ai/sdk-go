@@ -73,6 +73,7 @@ const (
 	ActionUpdateTurn             Action = "UpdateTurn"
 	ActionUpdateTask             Action = "UpdateTask"
 	ActionGetTask                Action = "GetTask"
+	ActionListTasks              Action = "ListTasks"
 	ActionGetTurn                Action = "GetTurn"
 	ActionUploadTurnLogs         Action = "UploadTurnLogs"
 	ActionGetCurrentUser         Action = "GetCurrentUser"
@@ -238,6 +239,7 @@ func init() {
 		ActionUpdateTurn,
 		ActionUpdateTask,
 		ActionGetTask,
+		ActionListTasks,
 		ActionGetTurn,
 		ActionUploadTurnLogs,
 		ActionGetCurrentUser,

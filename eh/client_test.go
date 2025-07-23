@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/debugging-sucks/clock"
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
+	"github.com/debugging-sucks/event-horizon-sdk-go/internal/util"
 	sigv4auth "github.com/debugging-sucks/sigv4util/server/sigv4auth"
 	"github.com/stretchr/testify/require"
 )
@@ -35,6 +36,8 @@ const (
 	escapedEnvironmentID           = "env%2F..%2F..%2Fid"
 	taskIDThatNeedsEscaping        = "task/../../id"
 	escapedTaskID                  = "task%2F..%2F..%2Fid"
+
+	tokenID = "tok"
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -319,7 +322,7 @@ func TestListPolicies(t *testing.T) {
 		require.Equal(t, http.MethodGet, r.Method)
 		require.Equal(t, "/v1/tenants/abc/policies", r.URL.Path)
 		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
-		require.Equal(t, "tok", r.URL.Query().Get("token"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
 
 		w.WriteHeader(http.StatusOK)
 		resp := eh.ListPoliciesResponse{Policies: []eh.Policy{{Name: "p"}}}
@@ -331,8 +334,7 @@ func TestListPolicies(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	maxResults := 123
-	tok := "tok"
-	resp, err := client.ListPolicies(context.Background(), &eh.ListPoliciesRequest{TenantID: "abc", MaxResults: &maxResults, Token: &tok})
+	resp, err := client.ListPolicies(context.Background(), &eh.ListPoliciesRequest{TenantID: "abc", MaxResults: &maxResults, Token: util.Pointer(tokenID)})
 	require.NoError(t, err)
 	require.Len(t, resp.Policies, 1)
 	require.Equal(t, "p", resp.Policies[0].Name)
@@ -386,7 +388,7 @@ func TestGenerateWebUIToken(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	resp, err := client.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{TenantID: "abc", TokenID: "tok"})
+	resp, err := client.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{TenantID: "abc", TokenID: tokenID})
 	require.NoError(t, err)
 	require.Equal(t, "jwt", resp.JWT)
 }
@@ -395,7 +397,7 @@ func TestGenerateWebUITokenError(t *testing.T) {
 	t.Parallel()
 	srv, client := serveBadRequest()
 	defer srv.Close()
-	_, err := client.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{TenantID: "abc", TokenID: "tok"})
+	_, err := client.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{TenantID: "abc", TokenID: tokenID})
 	require.Error(t, err)
 }
 
@@ -651,7 +653,7 @@ func TestListEnvironments(t *testing.T) {
 		require.Equal(t, http.MethodGet, r.Method)
 		require.Equal(t, "/v1/tenants/abc/environments", r.URL.Path)
 		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
-		require.Equal(t, "tok", r.URL.Query().Get("token"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
 		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
 
 		w.WriteHeader(http.StatusOK)
@@ -664,9 +666,8 @@ func TestListEnvironments(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	maxResults := 123
-	tok := "tok"
 	includeDeleted := true
-	resp, err := client.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{TenantID: "abc", MaxResults: &maxResults, Token: &tok, IncludeDeleted: &includeDeleted})
+	resp, err := client.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{TenantID: "abc", MaxResults: &maxResults, Token: util.Pointer(tokenID), IncludeDeleted: &includeDeleted})
 	require.NoError(t, err)
 	require.Len(t, resp.Environments, 1)
 	require.Equal(t, "env", resp.Environments[0].EnvironmentID)
@@ -1199,5 +1200,69 @@ func TestUploadTurnLogsPathEscaping(t *testing.T) {
 		Version:   1,
 		Index:     0,
 	})
+	require.NoError(t, err)
+}
+
+func TestListTasks(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks", r.URL.Path)
+		require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
+		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListTasksResponse{Tasks: []eh.Task{{TaskID: "task"}}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	maxResults := 123
+	includeDeleted := true
+	ws := "ws"
+	resp, err := client.ListTasks(context.Background(), &eh.ListTasksRequest{
+		TenantID:       "abc",
+		WorkstreamID:   &ws,
+		MaxResults:     &maxResults,
+		Token:          util.Pointer(tokenID),
+		IncludeDeleted: &includeDeleted,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Tasks, 1)
+	require.Equal(t, "task", resp.Tasks[0].TaskID)
+}
+
+func TestListTasksError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListTasks(context.Background(), &eh.ListTasksRequest{TenantID: "abc"})
+	require.Error(t, err)
+}
+
+func TestListTasksPathEscaping(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListTasksResponse{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListTasks(context.Background(), &eh.ListTasksRequest{TenantID: tenantIDThatNeedsEscaping})
 	require.NoError(t, err)
 }
