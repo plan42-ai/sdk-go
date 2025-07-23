@@ -289,6 +289,29 @@ func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	return s.Client.DeleteEnvironment(ctx, req)
 }
 
+type GetTurnOptions struct {
+	TenantID       string `help:"The ID of the tennant that owns the task" name:"tenant-id" short:"i" required:""`
+	TaskID         string `help:"The ID of the task containing the turn" name:"task-id" short:"t" required:""`
+	TurnIndex      int    `help:"The index of the turn to fetch" name:"turn-index" short:"n" required:""`
+	IncludeDeleted bool   `help:"Include the turn even if defined on a deleted task" short:"d"`
+}
+
+func (o *GetTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetTurnRequest{
+		TenantID:       o.TenantID,
+		TaskID:         o.TaskID,
+		TurnIndex:      o.TurnIndex,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	turn, err := s.Client.GetTurn(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(turn)
+}
+
 type UpdateTurnOptions struct {
 	TenantID  string `help:"The ID of the tennant that owns the task and turn" short:"i" required:""`
 	TaskID    string `help:"The ID of the task that contains the turn" short:"t" required:""`
@@ -602,6 +625,7 @@ type Options struct {
 		Create CreateTurnOptions `cmd:"create"`
 		List   ListTurnsOptions  `cmd:"list"`
 		Update UpdateTurnOptions `cmd:"update"`
+		Get    GetTurnOptions    `cmd:"get"`
 	} `cmd:"turn"`
 	Ctx context.Context `kong:"-"`
 }
@@ -653,6 +677,8 @@ func main() {
 		err = options.Turn.List.Run(options.Ctx, &options.SharedOptions)
 	case "turn update":
 		err = options.Turn.Update.Run(options.Ctx, &options.SharedOptions)
+	case "turn get":
+		err = options.Turn.Get.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
