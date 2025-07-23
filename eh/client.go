@@ -1361,6 +1361,14 @@ type GetTurnRequest struct {
 	IncludeDeleted *bool  `json:"-"`
 }
 
+// GetLastTurnRequest is the request payload for GetLastTurn.
+type GetLastTurnRequest struct {
+	DelegatedAuthInfo
+	TenantID       string `json:"-"`
+	TaskID         string `json:"-"`
+	IncludeDeleted *bool  `json:"-"`
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *GetTurnRequest) GetField(name string) (any, bool) {
@@ -1371,6 +1379,21 @@ func (r *GetTurnRequest) GetField(name string) (any, bool) {
 		return r.TaskID, true
 	case "TurnIndex":
 		return r.TurnIndex, true
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GetLastTurnRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
 	case "IncludeDeleted":
 		return evalNullable(r.IncludeDeleted)
 	default:
@@ -1475,6 +1498,52 @@ func (c *Client) GetTurn(ctx context.Context, req *GetTurnRequest) (*Turn, error
 		return nil, fmt.Errorf("turn index is required")
 	}
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex))
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out Turn
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetLastTurn retrieves the last turn for a task.
+func (c *Client) GetLastTurn(ctx context.Context, req *GetLastTurnRequest) (*Turn, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", "last")
 	q := u.Query()
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
