@@ -180,6 +180,7 @@ type UpdateEnvironmentOptions struct {
 	JSON          string `help:"The json file containing the environment updates" short:"j" default:"-" required:""`
 }
 
+// nolint: dupl
 func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var reader *os.File
 	if o.JSON == "-" {
@@ -303,6 +304,50 @@ func (o *CreateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	return printJSON(task)
 }
 
+type UpdateTaskOptions struct {
+	TenantID string `help:"The ID of the tenant that owns the task to update." short:"i" required:""`
+	TaskID   string `help:"The ID of the task to update." name:"task-id" short:"t" required:""`
+	JSON     string `help:"The json file containing the updates." short:"j" default:"-"`
+}
+
+// nolint: dupl
+func (o *UpdateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.UpdateTaskRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	req.TenantID = o.TenantID
+	req.TaskID = o.TaskID
+
+	getReq := &eh.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID, IncludeDeleted: pointer(true)}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	task, err := s.Client.GetTask(ctx, getReq)
+	if err != nil {
+		return err
+	}
+	req.Version = task.Version
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateTask(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
+}
+
 func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var token *string
 	for {
@@ -351,6 +396,7 @@ type Options struct {
 	} `cmd:"environment"`
 	Task struct {
 		Create CreateTaskOptions `cmd:"create"`
+		Update UpdateTaskOptions `cmd:"update"`
 	} `cmd:"task"`
 	Ctx context.Context `kong:"-"`
 }
@@ -388,6 +434,8 @@ func main() {
 		err = options.Environment.List.Run(options.Ctx, &options.SharedOptions)
 	case "task create":
 		err = options.Task.Create.Run(options.Ctx, &options.SharedOptions)
+	case "task update":
+		err = options.Task.Update.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
