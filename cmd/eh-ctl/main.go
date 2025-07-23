@@ -255,6 +255,27 @@ type DeleteEnvironmentOptions struct {
 	EnvironmentID string `help:"The ID of the environment to update" name:"environment-id" short:"e"`
 }
 
+type GetTaskOptions struct {
+	TenantID       string `help:"The ID of the tenant to list tasks for" short:"i" required:""`
+	TaskID         string `help:"The ID of the task to get" short:"t" required:""`
+	IncludeDeleted bool   `help:"Include deleted tasks" short:"d" optional:""`
+}
+
+func (o *GetTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetTaskRequest{
+		TenantID:       o.TenantID,
+		TaskID:         o.TaskID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	task, err := s.Client.GetTask(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(task)
+}
+
 func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
 	getReq := &eh.GetEnvironmentRequest{TenantID: o.TenantID, EnvironmentID: o.EnvironmentID}
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
@@ -453,6 +474,7 @@ type Options struct {
 		Update UpdateTaskOptions `cmd:"update"`
 		Delete DeleteTaskOptions `cmd:"delete"`
 		List   ListTasksOptions  `cmd:"list"`
+		Get    GetTaskOptions    `cmd:"get"`
 	} `cmd:"task"`
 	Ctx context.Context `kong:"-"`
 }
@@ -496,6 +518,8 @@ func main() {
 		err = options.Task.Delete.Run(options.Ctx, &options.SharedOptions)
 	case "task list":
 		err = options.Task.List.Run(options.Ctx, &options.SharedOptions)
+	case "task get":
+		err = options.Task.Get.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
