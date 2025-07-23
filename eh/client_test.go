@@ -942,3 +942,103 @@ func TestCreateTaskPathEscaping(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestCreateTurn(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task1/turns/1", r.URL.Path)
+
+		var reqBody eh.CreateTurnRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, "prompt", reqBody.Prompt)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.Turn{TenantID: "abc", TaskID: "task1", TurnIndex: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	turn, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 1, Prompt: "prompt"})
+	require.NoError(t, err)
+	require.Equal(t, 1, turn.TurnIndex)
+}
+
+func TestCreateTurnError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 1, Prompt: "prompt"})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func serveTurnConflict() (*httptest.Server, *eh.Client) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.Turn{TurnIndex: 1, TaskID: "task1"},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+
+	client := eh.NewClient(srv.URL)
+	return srv, client
+}
+
+func verifyTurnConflict(t *testing.T, err error) {
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.Equal(t, "exists", clientErr.Message)
+	require.Equal(t, "Conflict", clientErr.ErrorType)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, eh.ObjectTypeTurn, clientErr.Current.ObjectType())
+	turn, ok := clientErr.Current.(*eh.Turn)
+	require.True(t, ok, "Expected Current to be of type *eh.Turn")
+	require.Equal(t, eh.Turn{TurnIndex: 1, TaskID: "task1"}, *turn)
+}
+
+func TestCreateTurnConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveTurnConflict()
+	defer srv.Close()
+
+	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 1, Prompt: "prompt"})
+	verifyTurnConflict(t, err)
+}
+
+func TestCreateTurnPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.Turn{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, TurnIndex: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, TurnIndex: 1, Prompt: "prompt"})
+	require.NoError(t, err)
+}
