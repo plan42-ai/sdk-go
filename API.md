@@ -2027,3 +2027,66 @@ Content-Type: application/json; charset=utf-8
 | Field   | Type | Description                                                            |
 |---------|------|------------------------------------------------------------------------|
 | Version | int  | The incremented version of the turn after the logs have been uploaded. |
+
+# 28. StreamTurnLogs
+
+StreamTurns logs streams for a turn using Server-Sent Events (SSE). 
+
+## 28.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs HTTP/1.1
+Last-Event-ID: <last-event-id>
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+Accept: text/event-streamS
+```
+
+| Parameter                                | Location | Type    | Description                                                                                       |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to stream logs for.                                                          |
+| task_id                                  | path     | string  | The ID of the task to stream logs for.                                                            |
+| turnIndex                                | path     | int     | The index of the turn to stream logs for.                                                         |
+| Last-Event-ID                            | header   | *string | Optional. The last event ID received by the client. Used to resume streaming from the last event. |
+| Authorization                            | header   | string  | The authorization header for the request.                                                         |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                               |
+
+## 28.2 Response
+
+If there are no more logs to stream, a 204 NO CONTENT is returned with no body. Otherwise, on success a 200 OK is returned.
+The response is formatted as an SSE stream.
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: text/event-stream; charset=utf-8
+
+event: log
+data : {}
+id: 1
+retry: 1000
+
+event: log
+data : {}
+id: 2
+retry: 1000
+
+...
+```
+
+| Field | Type   | Description                                 |
+|-------|--------|---------------------------------------------|
+| event | string | The event type. This is always "log".       |
+| data  | string | Json data encoding a [Log entry](#283-log). |
+| id    | int    | The event ID.                               |
+| retry | *int   | The retry interval in milliseconds.         |
+
+## 28.3 Log
+
+```json
+{
+  "Timestamp": "string", 
+  "Message": "string"
+}
+```
