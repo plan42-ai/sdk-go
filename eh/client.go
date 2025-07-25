@@ -1346,6 +1346,7 @@ type CreateTurnRequest struct {
 	TenantID           string  `json:"-"`
 	TaskID             string  `json:"-"`
 	TurnIndex          int     `json:"-"`
+	TaskVersion        int     `json:"-"`
 	Prompt             string  `json:"Prompt"`
 	PreviousResponseID *string `json:"PreviousResponseID,omitempty"`
 	BaselineCommitHash *string `json:"BaselineCommitHash,omitempty"`
@@ -1449,6 +1450,15 @@ func (c *Client) CreateTurn(ctx context.Context, req *CreateTurnRequest) (*Turn,
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+	if req.TurnIndex <= 1 {
+		return nil, fmt.Errorf("turn index is required")
+	}
 	bodyBytes, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -1461,6 +1471,9 @@ func (c *Client) CreateTurn(ctx context.Context, req *CreateTurnRequest) (*Turn,
 	}
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
+	if req.TaskVersion != 0 {
+		httpReq.Header.Set("If-Match", strconv.Itoa(req.TaskVersion))
+	}
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err

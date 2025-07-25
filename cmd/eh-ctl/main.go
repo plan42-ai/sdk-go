@@ -436,6 +436,13 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 
+	getTaskReq := &eh.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID}
+	processDelegatedAuth(s, &getTaskReq.DelegatedAuthInfo)
+	task, err := s.Client.GetTask(ctx, getTaskReq)
+	if err != nil {
+		return err
+	}
+
 	getReq := &eh.GetLastTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID}
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	last, err := s.Client.GetLastTurn(ctx, getReq)
@@ -446,6 +453,7 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req.TenantID = o.TenantID
 	req.TaskID = o.TaskID
 	req.TurnIndex = last.TurnIndex + 1
+	req.TaskVersion = task.Version
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	turn, err := s.Client.CreateTurn(ctx, &req)
