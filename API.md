@@ -2090,3 +2090,47 @@ retry: 1000
   "Message": "string"
 }
 ```
+
+# 29. GetLastTurnLog
+
+GetLastTurnLog retrieves the last log entry for a turn. 
+
+## 29.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs/last HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                       |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to get the last log for.                                                     |
+| task_id                                  | path     | string  | The ID of the task to get the last log for.                                                       |
+| turnIndex                                | path     | int     | The index of the turn to get the last log for.                                                    |
+| Authorization                            | header   | string  | The authorization header for the request.                                                         |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                               |
+
+## 29.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Index": int,
+  "Timestamp": "string",
+  "Message": "string"
+}
+```
+
+| Field     | Type   | Description                                              |
+|-----------|--------|----------------------------------------------------------|
+| Index     | int    | The index of the last log entry.                         |
+| Timestamp | string | The timestamp of the last log entry, in ISO 8601 format. |
+| Message   | string | The message of the last log entry.                       |
