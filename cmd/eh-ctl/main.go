@@ -28,7 +28,7 @@ type CreateUserOptions struct {
 	FirstName  string  `help:"The user's first name" name:"first-name" short:"f" required:""`
 	LastName   string  `help:"The user's last name" name:"last-name" short:"l" required:""`
 	Email      string  `help:"The user's email address" short:"e" required:""`
-	PictureURL *string `help:"The user's profile picture URL" short:"p" required:""`
+	PictureURL *string `help:"The user's profile picture URL" short:"p" optional:""`
 }
 
 func processDelegatedAuth(shared *SharedOptions, info *eh.DelegatedAuthInfo) {
@@ -306,6 +306,27 @@ func (o *GetTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	turn, err := s.Client.GetTurn(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(turn)
+}
+
+type GetLastTurnOptions struct {
+	TenantID       string `help:"The ID of the tennant that owns the task" name:"tenant-id" short:"i" required:""`
+	TaskID         string `help:"The ID of the task to fetch the last turn for" name:"task-id" short:"t" required:""`
+	IncludeDeleted bool   `help:"Set to return a turn on a deleted task" short:"d"`
+}
+
+func (o *GetLastTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetLastTurnRequest{
+		TenantID:       o.TenantID,
+		TaskID:         o.TaskID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	turn, err := s.Client.GetLastTurn(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -622,10 +643,11 @@ type Options struct {
 		Get    GetTaskOptions    `cmd:"get"`
 	} `cmd:"task"`
 	Turn struct {
-		Create CreateTurnOptions `cmd:"create"`
-		List   ListTurnsOptions  `cmd:"list"`
-		Update UpdateTurnOptions `cmd:"update"`
-		Get    GetTurnOptions    `cmd:"get"`
+		Create  CreateTurnOptions  `cmd:"create"`
+		List    ListTurnsOptions   `cmd:"list"`
+		Update  UpdateTurnOptions  `cmd:"update"`
+		Get     GetTurnOptions     `cmd:"get"`
+		GetLast GetLastTurnOptions `cmd:"get-last"`
 	} `cmd:"turn"`
 	Ctx context.Context `kong:"-"`
 }
@@ -679,6 +701,8 @@ func main() {
 		err = options.Turn.Update.Run(options.Ctx, &options.SharedOptions)
 	case "turn get":
 		err = options.Turn.Get.Run(options.Ctx, &options.SharedOptions)
+	case "turn get-last":
+		err = options.Turn.GetLast.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
