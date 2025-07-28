@@ -1979,6 +1979,9 @@ The UploadTurnLogs API is used to upload a batch logs for a turn.
 The requested is limited to a maximum of 10,000 logs and a maximum of 1MB in size. If the request exceeds these limits, 
 a `413 Content Too Large` error is returned.
 
+NOTE: Logs cannot be uploaded to a turn that is in a terminal state (i.e. "Done" or "Failed"). In that case a 409
+conflict will be returned.
+
 ## 27.1 Request
 
 ```http request
