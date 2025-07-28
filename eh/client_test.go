@@ -1170,7 +1170,8 @@ func TestCreateTurn(t *testing.T) {
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPut, r.Method)
-		require.Equal(t, "/v1/tenants/abc/tasks/task1/turns/1", r.URL.Path)
+		require.Equal(t, "/v1/tenants/abc/tasks/task1/turns/2", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
 
 		var reqBody eh.CreateTurnRequest
 		err := json.NewDecoder(r.Body).Decode(&reqBody)
@@ -1186,7 +1187,7 @@ func TestCreateTurn(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	turn, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 1, Prompt: "prompt"})
+	turn, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, Prompt: "prompt", TaskVersion: 1})
 	require.NoError(t, err)
 	require.Equal(t, 1, turn.TurnIndex)
 }
@@ -1195,7 +1196,7 @@ func TestCreateTurnError(t *testing.T) {
 	t.Parallel()
 	srv, client := serveBadRequest()
 	defer srv.Close()
-	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 1, Prompt: "prompt"})
+	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, Prompt: "prompt", TaskVersion: 1})
 	var clientErr *eh.Error
 	require.ErrorAs(t, err, &clientErr)
 	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
@@ -1238,7 +1239,7 @@ func TestCreateTurnConflictError(t *testing.T) {
 	srv, client := serveTurnConflict()
 	defer srv.Close()
 
-	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 1, Prompt: "prompt"})
+	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, Prompt: "prompt", TaskVersion: 1})
 	verifyTurnConflict(t, err)
 }
 
@@ -1261,7 +1262,7 @@ func TestCreateTurnPathEscaping(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, TurnIndex: 1, Prompt: "prompt"})
+	_, err := client.CreateTurn(context.Background(), &eh.CreateTurnRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping, TurnIndex: 2, Prompt: "prompt", TaskVersion: 1})
 	require.NoError(t, err)
 }
 
