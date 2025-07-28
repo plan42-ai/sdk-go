@@ -1695,6 +1695,7 @@ Content-Type: application/json; charset=utf-8
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <taskVersion>
 
 {
     "Prompt": "string",    
@@ -1704,18 +1705,19 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 }
 ```
 
-| Parameter                                | Location | Type    | Description                                                                                                                                         |
-|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to create the turn for.                                                                                                        |
-| task_id                                  | path     | string  | The ID of the task to create the turn for.                                                                                                          |
-| turnIndex                                | path     | int     | The index of the turn to create. This must be the next index in the sequence (i.e. latest turn index + 1).                                          |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                                                           |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                              |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                 |
-| Prompt                                   | body     | string  | The prompt to use for the turn.                                                                                                                     |
-| PreviousResponseID                       | body     | *string | Optional. The ID of the previous response for the turn. Used to enable AI to resume with the context of the previous turn.                          |
-| BaselineCommitHash                       | body     | *string | Optional. The baseline commit hash of the task. When creating turn n + 1, set to the value for turn n. Will be updated by the agent while it works. |
-| LastCommitHash                           | body     | *string | Optional. The last commit hash of the task. When creating turn n + 1, set to the value for turn n. Will be updated by the agent while it works.     |
+| Parameter                                | Location | Type    | Description                                                                                                                                                                                                                   |
+|------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to create the turn for.                                                                                                                                                                                  |
+| task_id                                  | path     | string  | The ID of the task to create the turn for.                                                                                                                                                                                    |
+| turnIndex                                | path     | int     | The index of the turn to create. This must be the next index in the sequence (i.e. latest turn index + 1).                                                                                                                    |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                                                                                     |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                                                        |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                           |
+| taskVersion                              | header   | string  | The version of the task to create the turn for. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. Adding a turn to a task will increment it's version number. |
+| Prompt                                   | body     | string  | The prompt to use for the turn.                                                                                                                                                                                               |
+| PreviousResponseID                       | body     | *string | Optional. The ID of the previous response for the turn. Used to enable the AI to resume with the context of the previous turn.                                                                                                |
+| BaselineCommitHash                       | body     | *string | Optional. The baseline commit hash of the task. When creating turn n + 1, set to the value for turn n. Will be updated by the agent while it works.                                                                           |
+| LastCommitHash                           | body     | *string | Optional. The last commit hash of the task. When creating turn n + 1, set to the value for turn n. Will be updated by the agent while it works.                                                                               |
 
 ## 23.2 Response
 
