@@ -26,6 +26,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.34.0 // indirect
 	github.com/aws/smithy-go v1.22.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/debugging-sucks/concurrency v1.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/scottwis/persistent v1.0.8 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
