@@ -1872,3 +1872,72 @@ func TestStreamTurnLogsPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 	_ = body.Close()
 }
+
+func TestGetLastTurnLog(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task/turns/0/logs/last", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.LastTurnLog{Index: 1, Timestamp: time.Unix(0, 0).UTC(), Message: "msg"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	logEntry, err := client.GetLastTurnLog(context.Background(), &eh.GetLastTurnLogRequest{
+		TenantID:  "abc",
+		TaskID:    "task",
+		TurnIndex: 0,
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, logEntry.Index)
+	require.Equal(t, "msg", logEntry.Message)
+	require.True(t, logEntry.Timestamp.Equal(time.Unix(0, 0).UTC()))
+}
+
+func TestGetLastTurnLogError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.GetLastTurnLog(context.Background(), &eh.GetLastTurnLogRequest{
+		TenantID:  "abc",
+		TaskID:    "task",
+		TurnIndex: 0,
+	})
+	require.Error(t, err)
+}
+
+func TestGetLastTurnLogPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 10, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedTaskID, parts[5])
+		require.Equal(t, "0", parts[7])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.LastTurnLog{Index: 1, Timestamp: time.Unix(0, 0).UTC(), Message: "msg"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetLastTurnLog(context.Background(), &eh.GetLastTurnLogRequest{
+		TenantID:  tenantIDThatNeedsEscaping,
+		TaskID:    taskIDThatNeedsEscaping,
+		TurnIndex: 0,
+	})
+	require.NoError(t, err)
+}
