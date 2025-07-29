@@ -465,14 +465,15 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type StreamLogsOptions struct {
-	TenantID  string `help:"The id of the tenant that owns the task / turn to stream logs for." name:"tenant-id" short:"i" required:""`
-	TaskID    string `help:"The id of the task to stream logs for." name:"task-id" short:"t" required:""`
-	TurnIndex int    `help:"The turn to stream logs for." name:"turn-index" short:"n" required:""`
+	TenantID       string `help:"The id of the tenant that owns the task / turn to stream logs for." name:"tenant-id" short:"i" required:""`
+	TaskID         string `help:"The id of the task to stream logs for." name:"task-id" short:"t" required:""`
+	TurnIndex      int    `help:"The turn to stream logs for." name:"turn-index" short:"n" required:""`
+	IncludeDeleted bool   `help:"Include logs for turns on deleted tasks" short:"d"`
 }
 
 func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
 	// TODO: Modify this to that NewLogStream uses the passed in context.
-	ls := eh.NewLogStream(s.Client, o.TenantID, o.TaskID, o.TurnIndex, 1000)
+	ls := eh.NewLogStream(s.Client, o.TenantID, o.TaskID, o.TurnIndex, 1000, pointer(o.IncludeDeleted))
 	defer ls.Close()
 
 	enc := json.NewEncoder(os.Stdout)

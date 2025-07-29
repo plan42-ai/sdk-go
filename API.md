@@ -2040,7 +2040,7 @@ StreamTurns logs streams for a turn using Server-Sent Events (SSE).
 ## 28.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs?includeDeleted={includeDeleted} HTTP/1.1
 Last-Event-ID: <last-event-id>
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -2053,6 +2053,7 @@ Accept: text/event-streamS
 | tenant_id                                | path     | string  | The ID of the tenant to stream logs for.                                                          |
 | task_id                                  | path     | string  | The ID of the task to stream logs for.                                                            |
 | turnIndex                                | path     | int     | The index of the turn to stream logs for.                                                         |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return logs for turns on deleted tasks. |
 | Last-Event-ID                            | header   | *string | Optional. The last event ID received by the client. Used to resume streaming from the last event. |
 | Authorization                            | header   | string  | The authorization header for the request.                                                         |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
@@ -2103,7 +2104,7 @@ GetLastTurnLog retrieves the last log entry for a turn.
 ## 29.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs/last HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs/last?includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -2115,10 +2116,10 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | tenant_id                                | path     | string  | The ID of the tenant to get the last log for.                                                     |
 | task_id                                  | path     | string  | The ID of the task to get the last log for.                                                       |
 | turnIndex                                | path     | int     | The index of the turn to get the last log for.                                                    |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return logs for turns on deleted tasks. |
 | Authorization                            | header   | string  | The authorization header for the request.                                                         |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                               |
-
 ## 29.2 Response
 
 On success a 200 OK is returned with the following JSON body:

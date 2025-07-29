@@ -1647,6 +1647,13 @@ type TurnLog struct {
 	Message   string    `json:"Message"`
 }
 
+// LastTurnLog represents the last log entry for a turn.
+type LastTurnLog struct {
+	Index     int       `json:"Index"`
+	Timestamp time.Time `json:"Timestamp"`
+	Message   string    `json:"Message"`
+}
+
 // UploadTurnLogsRequest is the request payload for UploadTurnLogs.
 type UploadTurnLogsRequest struct {
 	DelegatedAuthInfo
@@ -1656,6 +1663,31 @@ type UploadTurnLogsRequest struct {
 	Version   int       `json:"-"`
 	Index     int       `json:"Index"`
 	Logs      []TurnLog `json:"Logs"`
+}
+
+// GetLastTurnLogRequest is the request payload for GetLastTurnLog.
+type GetLastTurnLogRequest struct {
+	DelegatedAuthInfo
+	TenantID       string `json:"-"`
+	TaskID         string `json:"-"`
+	TurnIndex      int    `json:"-"`
+	IncludeDeleted *bool  `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+func (r *GetLastTurnLogRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "TurnIndex":
+		return r.TurnIndex, true
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
 }
 
 // GetField retrieves the value of a field by name.
@@ -1737,10 +1769,11 @@ func (c *Client) UploadTurnLogs(ctx context.Context, req *UploadTurnLogsRequest)
 // StreamTurnLogsRequest is the request payload for StreamTurnLogs.
 type StreamTurnLogsRequest struct {
 	DelegatedAuthInfo
-	TenantID    string `json:"-"`
-	TaskID      string `json:"-"`
-	TurnIndex   int    `json:"-"`
-	LastEventID *int   `json:"-"`
+	TenantID       string `json:"-"`
+	TaskID         string `json:"-"`
+	TurnIndex      int    `json:"-"`
+	LastEventID    *int   `json:"-"`
+	IncludeDeleted *bool  `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -1754,6 +1787,8 @@ func (r *StreamTurnLogsRequest) GetField(name string) (any, bool) {
 		return r.TurnIndex, true
 	case "LastEventID":
 		return evalNullable(r.LastEventID)
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -1775,6 +1810,12 @@ func (c *Client) StreamTurnLogs(ctx context.Context, req *StreamTurnLogsRequest)
 	}
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex), "logs")
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
@@ -1806,35 +1847,6 @@ func (c *Client) StreamTurnLogs(ctx context.Context, req *StreamTurnLogsRequest)
 	return resp.Body, nil
 }
 
-// GetLastTurnLogRequest is the request payload for GetLastTurnLog.
-type GetLastTurnLogRequest struct {
-	DelegatedAuthInfo
-	TenantID  string `json:"-"`
-	TaskID    string `json:"-"`
-	TurnIndex int    `json:"-"`
-}
-
-// GetField retrieves the value of a field by name.
-func (r *GetLastTurnLogRequest) GetField(name string) (any, bool) {
-	switch name {
-	case "TenantID":
-		return r.TenantID, true
-	case "TaskID":
-		return r.TaskID, true
-	case "TurnIndex":
-		return r.TurnIndex, true
-	default:
-		return nil, false
-	}
-}
-
-// LastTurnLog is the response from GetLastTurnLog.
-type LastTurnLog struct {
-	Index     int       `json:"Index"`
-	Timestamp time.Time `json:"Timestamp"`
-	Message   string    `json:"Message"`
-}
-
 // GetLastTurnLog retrieves the last log entry for a turn.
 func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest) (*LastTurnLog, error) {
 	if req == nil {
@@ -1851,6 +1863,12 @@ func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest)
 	}
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex), "logs", "last")
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err

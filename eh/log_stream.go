@@ -17,11 +17,12 @@ import (
 
 // LogStream streams logs for a turn using Server-Sent Events.
 type LogStream struct {
-	cg        *concurrency.ContextGroup
-	client    *Client
-	tenantID  string
-	taskID    string
-	turnIndex int
+	cg             *concurrency.ContextGroup
+	client         *Client
+	tenantID       string
+	taskID         string
+	turnIndex      int
+	includeDeleted *bool
 
 	logs chan TurnLog
 
@@ -32,15 +33,16 @@ type LogStream struct {
 }
 
 // NewLogStream creates and starts a LogStream.
-func NewLogStream(client *Client, tenantID, taskID string, turnIndex int, buffer int) *LogStream {
+func NewLogStream(client *Client, tenantID, taskID string, turnIndex int, buffer int, includeDeleted *bool) *LogStream {
 	ls := &LogStream{
-		cg:        concurrency.NewContextGroup(),
-		client:    client,
-		tenantID:  tenantID,
-		taskID:    taskID,
-		turnIndex: turnIndex,
-		logs:      make(chan TurnLog, buffer),
-		backoff:   util.NewBackoff(100*time.Millisecond, 2*time.Second),
+		cg:             concurrency.NewContextGroup(),
+		client:         client,
+		tenantID:       tenantID,
+		taskID:         taskID,
+		turnIndex:      turnIndex,
+		includeDeleted: includeDeleted,
+		logs:           make(chan TurnLog, buffer),
+		backoff:        util.NewBackoff(100*time.Millisecond, 2*time.Second),
 	}
 	ls.cg.Add(1)
 	ls.cg.Init()
@@ -89,9 +91,10 @@ func (l *LogStream) run() {
 
 func (l *LogStream) connectAndStream(ctx context.Context) error {
 	req := &StreamTurnLogsRequest{
-		TenantID:  l.tenantID,
-		TaskID:    l.taskID,
-		TurnIndex: l.turnIndex,
+		TenantID:       l.tenantID,
+		TaskID:         l.taskID,
+		TurnIndex:      l.turnIndex,
+		IncludeDeleted: l.includeDeleted,
 	}
 	if l.lastID != 0 {
 		req.LastEventID = &l.lastID
