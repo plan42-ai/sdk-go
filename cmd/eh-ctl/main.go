@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -463,6 +464,28 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	return printJSON(turn)
 }
 
+type StreamLogsOptions struct {
+	TenantID  string `help:"The id of the tenant that owns the task / turn to stream logs for." name:"tenant-id" short:"i" required:""`
+	TaskID    string `help:"The id of the task to stream logs for." name:"task-id" short:"t" required:""`
+	TurnIndex int    `help:"The turn to stream logs for." name:"turn-index" short:"n" required:""`
+}
+
+func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
+	// TODO: Modify this to that NewLogStream uses the passed in context.
+	ls := eh.NewLogStream(s.Client, o.TenantID, o.TaskID, o.TurnIndex, 1000)
+	defer ls.Close()
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	for log := range ls.Logs() {
+		if err := enc.Encode(log); err != nil {
+			return err
+		}
+	}
+
+	return ls.ShutdownTimeout(2 * time.Second)
+}
+
 type ListTasksOptions struct {
 	TenantID       string  `help:"The ID of the tenant to list tasks for." short:"i" required:""`
 	WorkstreamID   *string `help:"Optional workstream ID. When specified tasks in that workstream are returned." short:"w" optional:""`
@@ -657,6 +680,9 @@ type Options struct {
 		Get     GetTurnOptions     `cmd:"get"`
 		GetLast GetLastTurnOptions `cmd:"get-last"`
 	} `cmd:"turn"`
+	Logs struct {
+		Stream StreamLogsOptions `cmd:"stream"`
+	} `cmd:"logs"`
 	Ctx context.Context `kong:"-"`
 }
 
@@ -711,6 +737,8 @@ func main() {
 		err = options.Turn.Get.Run(options.Ctx, &options.SharedOptions)
 	case "turn get-last":
 		err = options.Turn.GetLast.Run(options.Ctx, &options.SharedOptions)
+	case "logs stream":
+		err = options.Logs.Stream.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
