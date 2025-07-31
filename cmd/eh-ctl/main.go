@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"time"
 
@@ -518,8 +519,11 @@ func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	lastReq := &eh.GetLastTurnLogRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex}
 	processDelegatedAuth(s, &lastReq.DelegatedAuthInfo)
 	last, err := s.Client.GetLastTurnLog(ctx, lastReq)
-	if err != nil {
+	if err != nil && !is404(err) {
 		return err
+	}
+	if last == nil {
+		last = &eh.LastTurnLog{}
 	}
 
 	logsCh := make(chan eh.TurnLog, 1000)
@@ -547,6 +551,14 @@ func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 	close(logsCh)
 	return lu.ShutdownTimeout(10 * time.Second)
+}
+
+func is404(err error) bool {
+	var apiErr *eh.Error
+	if errors.As(err, &apiErr) {
+		return apiErr.ResponseCode == http.StatusNotFound
+	}
+	return false
 }
 
 type ListTasksOptions struct {
