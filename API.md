@@ -481,6 +481,11 @@ Action is an enum that defines the actions that a policy can allow or deny.
 | ListEnvironments       |
 | UpdateEnvironment      |
 | DeleteEnvironment      |
+| GetLastTurn            |
+| CreateTask             |
+| GetLastTurnLog         |
+| StreamLogs             | 
+| ListTurns              |
 
 ## 6.6 Expressions
 
