@@ -1760,3 +1760,115 @@ func TestUpdateTurnPathEscaping(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestStreamTurnLogs(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task/turns/0/logs", r.URL.Path)
+		require.Equal(t, "text/event-stream", r.Header.Get("Accept"))
+		require.Empty(t, r.Header.Get("Last-Event-ID"))
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("data: {}\n\n"))
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	body, err := client.StreamTurnLogs(context.Background(), &eh.StreamTurnLogsRequest{
+		TenantID:  "abc",
+		TaskID:    "task",
+		TurnIndex: 0,
+	})
+	require.NoError(t, err)
+	data, err := io.ReadAll(body)
+	require.NoError(t, err)
+	require.Equal(t, "data: {}\n\n", string(data))
+	_ = body.Close()
+}
+
+func TestStreamTurnLogsLastEventID(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "5", r.Header.Get("Last-Event-ID"))
+		w.WriteHeader(http.StatusOK)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	id := 5
+	body, err := client.StreamTurnLogs(context.Background(), &eh.StreamTurnLogsRequest{
+		TenantID:    "abc",
+		TaskID:      "task",
+		TurnIndex:   0,
+		LastEventID: &id,
+	})
+	require.NoError(t, err)
+	_ = body.Close()
+}
+
+func TestStreamTurnLogsNoContent(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	body, err := client.StreamTurnLogs(context.Background(), &eh.StreamTurnLogsRequest{
+		TenantID:  "abc",
+		TaskID:    "task",
+		TurnIndex: 0,
+	})
+	require.NoError(t, err)
+	require.Nil(t, body)
+}
+
+func TestStreamTurnLogsError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.StreamTurnLogs(context.Background(), &eh.StreamTurnLogsRequest{
+		TenantID:  "abc",
+		TaskID:    "task",
+		TurnIndex: 0,
+	})
+	require.Error(t, err)
+}
+
+func TestStreamTurnLogsPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 9, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedTaskID, parts[5])
+		require.Equal(t, "0", parts[7])
+
+		w.WriteHeader(http.StatusOK)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	body, err := client.StreamTurnLogs(context.Background(), &eh.StreamTurnLogsRequest{
+		TenantID:  tenantIDThatNeedsEscaping,
+		TaskID:    taskIDThatNeedsEscaping,
+		TurnIndex: 0,
+	})
+	require.NoError(t, err)
+	_ = body.Close()
+}

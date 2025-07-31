@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -1731,6 +1732,78 @@ func (c *Client) UploadTurnLogs(ctx context.Context, req *UploadTurnLogsRequest)
 		return nil, err
 	}
 	return &out, nil
+}
+
+// StreamTurnLogsRequest is the request payload for StreamTurnLogs.
+type StreamTurnLogsRequest struct {
+	DelegatedAuthInfo
+	TenantID    string `json:"-"`
+	TaskID      string `json:"-"`
+	TurnIndex   int    `json:"-"`
+	LastEventID *int   `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+func (r *StreamTurnLogsRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "TurnIndex":
+		return r.TurnIndex, true
+	case "LastEventID":
+		return evalNullable(r.LastEventID)
+	default:
+		return nil, false
+	}
+}
+
+// StreamTurnLogs streams logs for a turn. The caller is responsible for closing the returned reader.
+func (c *Client) StreamTurnLogs(ctx context.Context, req *StreamTurnLogsRequest) (io.ReadCloser, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+	if req.TurnIndex < 0 {
+		return nil, fmt.Errorf("turn index is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex), "logs")
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "text/event-stream")
+	if req.LastEventID != nil {
+		httpReq.Header.Set("Last-Event-ID", strconv.Itoa(*req.LastEventID))
+	}
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusNoContent {
+		resp.Body.Close()
+		return nil, nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		return nil, decodeError(resp)
+	}
+
+	return resp.Body, nil
 }
 
 // ListTasksRequest is the request for ListTasks.
