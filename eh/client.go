@@ -1806,6 +1806,78 @@ func (c *Client) StreamTurnLogs(ctx context.Context, req *StreamTurnLogsRequest)
 	return resp.Body, nil
 }
 
+// GetLastTurnLogRequest is the request payload for GetLastTurnLog.
+type GetLastTurnLogRequest struct {
+	DelegatedAuthInfo
+	TenantID  string `json:"-"`
+	TaskID    string `json:"-"`
+	TurnIndex int    `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+func (r *GetLastTurnLogRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "TurnIndex":
+		return r.TurnIndex, true
+	default:
+		return nil, false
+	}
+}
+
+// LastTurnLog is the response from GetLastTurnLog.
+type LastTurnLog struct {
+	Index     int       `json:"Index"`
+	Timestamp time.Time `json:"Timestamp"`
+	Message   string    `json:"Message"`
+}
+
+// GetLastTurnLog retrieves the last log entry for a turn.
+func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest) (*LastTurnLog, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+	if req.TurnIndex < 0 {
+		return nil, fmt.Errorf("turn index is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex), "logs", "last")
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out LastTurnLog
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // ListTasksRequest is the request for ListTasks.
 type ListTasksRequest struct {
 	DelegatedAuthInfo
