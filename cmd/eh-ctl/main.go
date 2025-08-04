@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -487,6 +488,67 @@ func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
 	return ls.ShutdownTimeout(2 * time.Second)
 }
 
+type UploadLogsOptions struct {
+	TenantID  string `help:"The id of the tenant that owns the task / turn to upload logs for." name:"tenant-id" short:"i" required:""`
+	TaskID    string `help:"The id of the task to upload logs for." name:"task-id" short:"t" required:""`
+	TurnIndex int    `help:"The turn to upload logs for." name:"turn-index" short:"n" required:""`
+	JSON      string `help:"The file containing the logs to upload." short:"j" default:"-"`
+}
+
+func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	getTurnReq := &eh.GetTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex}
+	processDelegatedAuth(s, &getTurnReq.DelegatedAuthInfo)
+	turn, err := s.Client.GetTurn(ctx, getTurnReq)
+	if err != nil {
+		return err
+	}
+
+	lastReq := &eh.GetLastTurnLogRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex}
+	processDelegatedAuth(s, &lastReq.DelegatedAuthInfo)
+	last, err := s.Client.GetLastTurnLog(ctx, lastReq)
+	if err != nil {
+		return err
+	}
+
+	logsCh := make(chan eh.TurnLog, 1000)
+	lu := eh.NewLogUploader(&eh.LogUploaderConfig{
+		Client:     s.Client,
+		TenantID:   o.TenantID,
+		TaskID:     o.TaskID,
+		TurnIndex:  o.TurnIndex,
+		Version:    turn.Version,
+		StartIndex: last.Index + 1,
+		Logs:       logsCh,
+	})
+
+	dec := json.NewDecoder(reader)
+	for {
+		var entry eh.TurnLog
+		if err := dec.Decode(&entry); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			_ = lu.Close()
+			return err
+		}
+		logsCh <- entry
+	}
+	close(logsCh)
+	return lu.ShutdownTimeout(10 * time.Second)
+}
+
 type ListTasksOptions struct {
 	TenantID       string  `help:"The ID of the tenant to list tasks for." short:"i" required:""`
 	WorkstreamID   *string `help:"Optional workstream ID. When specified tasks in that workstream are returned." short:"w" optional:""`
@@ -683,6 +745,7 @@ type Options struct {
 	} `cmd:"turn"`
 	Logs struct {
 		Stream StreamLogsOptions `cmd:"stream"`
+		Upload UploadLogsOptions `cmd:"upload"`
 	} `cmd:"logs"`
 	Ctx context.Context `kong:"-"`
 }
@@ -740,6 +803,8 @@ func main() {
 		err = options.Turn.GetLast.Run(options.Ctx, &options.SharedOptions)
 	case "logs stream":
 		err = options.Logs.Stream.Run(options.Ctx, &options.SharedOptions)
+	case "logs upload":
+		err = options.Logs.Upload.Run(options.Ctx, &options.SharedOptions)
 	default:
 		err = errors.New("unknown command")
 	}
