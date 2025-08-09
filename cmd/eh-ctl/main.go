@@ -20,6 +20,7 @@ import (
 type SharedOptions struct {
 	Endpoint          string     `help:"Set to override the api endpoint." optional:""`
 	Insecure          bool       `help:"Don't validate the api cert." optional:""`
+	Dev               bool       `help:"Point at the dev api endpoint (api.dev.x2n.ai) by default." optional:""`
 	Local             bool       `help:"Short for --endpoint localhost:7443 --insecure"`
 	DelegatedAuthType *string    `help:"The delegated auth type to use." optional:""`
 	DelegatedToken    *string    `help:"The delegated JWT token to use." optional:""`
@@ -832,12 +833,20 @@ func main() {
 }
 
 func postProcessOptions(o *Options) error {
+	if o.Dev && o.Local {
+		return errors.New("cannot use both --dev and --local options together")
+	}
+
 	if o.Local && o.Endpoint == "" {
 		o.Endpoint = "https://localhost:7443"
 	}
 
+	if o.Dev && o.Endpoint == "" {
+		o.Endpoint = "https://api.dev.x2n.ai"
+	}
+
 	if o.Endpoint == "" {
-		o.Endpoint = "https://api.xpnt.ai"
+		o.Endpoint = "https://api.x2n.ai"
 	}
 
 	if o.Local {
