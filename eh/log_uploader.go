@@ -12,7 +12,7 @@ import (
 
 // LogUploaderConfig holds configuration for LogUploader.
 type LogUploaderConfig struct {
-	Client     logUploaderClient
+	Client     LogUploaderClient
 	TenantID   string
 	TaskID     string
 	TurnIndex  int
@@ -25,8 +25,8 @@ type LogUploaderConfig struct {
 	MaxBatchBytes int
 }
 
-// logUploaderClient abstracts the Client method used by LogUploader.
-type logUploaderClient interface {
+// LogUploaderClient abstracts the Client method used by LogUploader.
+type LogUploaderClient interface {
 	UploadTurnLogs(ctx context.Context, req *UploadTurnLogsRequest) (*UploadTurnLogsResponse, error)
 }
 
@@ -34,7 +34,7 @@ type logUploaderClient interface {
 type LogUploader struct {
 	cg *concurrency.ContextGroup
 
-	client    logUploaderClient
+	client    LogUploaderClient
 	tenantID  string
 	taskID    string
 	turnIndex int
