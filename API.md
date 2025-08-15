@@ -1360,27 +1360,27 @@ X-Event-Horizon-Signed-Headers: <signed headers>
   "Model": "*ModelType",
   "AssignedToTenantID": "*string",
   "AssignedToAI" : bool,
-  "Branches" : {}
+  "RepoInfo" : {}
 }
 ```
 
-| Parameter                                | Location | Type                        | Description                                                                                                               |
-|------------------------------------------|----------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string                      | The ID of the tenant to create the task for.                                                                              |
-| task_id                                  | path     | string                      | The ID of the task to create. This must be a v4 UUID.                                                                     |
-| Authorization                            | header   | string                      | The authorization header for the request.                                                                                 |
-| X-Event-Horizon-Delegating-Authorization | header   | *string                     | The authorization header for the delegating principal.                                                                    |
-| X-Event-Horizon-Signed-Headers           | header   | *string                     | The signed headers for the request, when authenticating with Sigv4.                                                       |
-| WorkstreamID                             | body     | *string                     | Optional. The ID of the workstream to create the task in.  If not provided, the task is not associated with a workstream. |
-| Title                                    | body     | string                      | The title of the task.                                                                                                    |
-| EnvironmentID                            | body     | string                      | The ID of the environment to execute the task in.                                                                         |
-| Prompt                                   | body     | string                      | The prompt to use for the task.                                                                                           |
-| AfterTaskID                              | body     | *string                     | Optional. Within a workstream identifies the task this one is sequenced after.                                            |
-| Parallel                                 | body     | bool                        | If true, the task can be executed in parallel with other tasks in the same workstream. Defaults to false.                 |
-| Model                                    | body     | [ModelType](#182-modeltype) | The model to use for the task. Required if the task is not assigned to a human.                                           |
-| AssignedToTenantID                       | body     | *string                     | Optional. The ID of the tenant to assign the task to. If not provided, the task is not assigned to a human.               |
-| AssignedToAI                             | body     | bool                        | If true, the task is assigned to an AI agent. If false and AssignedToTenantID is null, the task is unassigned.            |
-| Branches                                 | body     | map[string][string]         | A map of "org/repo" to branch names.                                                                                      |
+| Parameter                                | Location | Type                                  | Description                                                                                                               |
+|------------------------------------------|----------|---------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                                | The ID of the tenant to create the task for.                                                                              |
+| task_id                                  | path     | string                                | The ID of the task to create. This must be a v4 UUID.                                                                     |
+| Authorization                            | header   | string                                | The authorization header for the request.                                                                                 |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                               | The authorization header for the delegating principal.                                                                    |
+| X-Event-Horizon-Signed-Headers           | header   | *string                               | The signed headers for the request, when authenticating with Sigv4.                                                       |
+| WorkstreamID                             | body     | *string                               | Optional. The ID of the workstream to create the task in.  If not provided, the task is not associated with a workstream. |
+| Title                                    | body     | string                                | The title of the task.                                                                                                    |
+| EnvironmentID                            | body     | string                                | The ID of the environment to execute the task in.                                                                         |
+| Prompt                                   | body     | string                                | The prompt to use for the task.                                                                                           |
+| AfterTaskID                              | body     | *string                               | Optional. Within a workstream identifies the task this one is sequenced after.                                            |
+| Parallel                                 | body     | bool                                  | If true, the task can be executed in parallel with other tasks in the same workstream. Defaults to false.                 |
+| Model                                    | body     | [ModelType](#182-modeltype)           | The model to use for the task. Required if the task is not assigned to a human.                                           |
+| AssignedToTenantID                       | body     | *string                               | Optional. The ID of the tenant to assign the task to. If not provided, the task is not assigned to a human.               |
+| AssignedToAI                             | body     | bool                                  | If true, the task is assigned to an AI agent. If false and AssignedToTenantID is null, the task is unassigned.            |
+| RepoInfo                                 | body     | map[string][*RepoInfo](#185-repoinfo) | A map of "org/repo" to repo info.                                                                                         |
 
 ## 18.2 ModelType
 
@@ -1436,8 +1436,8 @@ Content-Type: application/json; charset=utf-8
 | Model              | [ModelType](#182-modeltype)             | The model to use for the task. Required if the task is not assigned to a human.                                                                                       |
 | AssignedToTenantID | *string                                 | The ID of the human user the task is assigned to. Only valid if the task is part of a workstream.                                                                     |
 | AssignedToAI       | bool                                    | If true, the task is assigned to an AI agent. Must be true if the task is not part of a workstream. If false and `AssignedToTenantID` is nul, the task is unassigned. |
-| RepoInfo           | map[string][[*RepoInfo](#184-repoinfo)] | A map of "org/repo" to repository info. This tracks branch names and PR links for each repo used in the environment.                                                  |
-| State              | [TaskState](#185-taskstate)             | The current state of the task.                                                                                                                                        |
+| RepoInfo           | map[string][[*RepoInfo](#185-repoinfo)] | A map of "org/repo" to repository info. This tracks branch names and PR links for each repo used in the environment.                                                  |
+| State              | [TaskState](#186-taskstate)             | The current state of the task.                                                                                                                                        |
 | CreatedAt          | string                                  | The timestamp when the task was created, in ISO 8601 format.                                                                                                          |
 | UpdatedAt          | string                                  | The timestamp when the task was last updated, in ISO 8601 format.                                                                                                     |
 | Deleted            | bool                                    | Whether the task has been deleted.                                                                                                                                    |
@@ -1467,7 +1467,7 @@ RepoInfo is an object that contains information about a repository used in a tas
 | TargetBranch  | string  | The name of the target branch for the pull request. This is the branch the feature branch will be merged into.  |
 
 
-## 18.5 TaskState
+## 18.6 TaskState
 
 TaskState is an enum that defines the current state of a task.
 
@@ -1573,7 +1573,7 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-See [CreateTask](#182-response) for details on the response fields.
+See [CreateTask](#183-response) for details on the response fields.
 
 # 21. UpdateTask
 
