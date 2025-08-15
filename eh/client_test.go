@@ -870,7 +870,7 @@ func TestCreateTask(t *testing.T) {
 		Prompt:        "do",
 		AssignedToAI:  true,
 		Model:         &model,
-		RepoInfo:      map[string]eh.RepoInfo{},
+		RepoInfo:      map[string]*eh.RepoInfo{},
 	})
 	require.NoError(t, err)
 	require.Equal(t, "task", task.TaskID)
@@ -889,7 +889,7 @@ func TestCreateTaskError(t *testing.T) {
 		Prompt:        "do",
 		AssignedToAI:  true,
 		Model:         &model,
-		RepoInfo:      map[string]eh.RepoInfo{},
+		RepoInfo:      map[string]*eh.RepoInfo{},
 	})
 	var clientErr *eh.Error
 	require.ErrorAs(t, err, &clientErr)
@@ -911,7 +911,7 @@ func TestCreateTaskConflictError(t *testing.T) {
 		Prompt:        "do",
 		AssignedToAI:  true,
 		Model:         &model,
-		RepoInfo:      map[string]eh.RepoInfo{},
+		RepoInfo:      map[string]*eh.RepoInfo{},
 	})
 	verifyTaskConflict(t, err)
 }
@@ -944,7 +944,7 @@ func TestCreateTaskPathEscaping(t *testing.T) {
 		Prompt:        "do",
 		AssignedToAI:  true,
 		Model:         &model,
-		RepoInfo:      map[string]eh.RepoInfo{},
+		RepoInfo:      map[string]*eh.RepoInfo{},
 	})
 	require.NoError(t, err)
 }
