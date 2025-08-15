@@ -689,18 +689,18 @@ type DeleteTaskRequest struct {
 // CreateTaskRequest is the request payload for CreateTask.
 type CreateTaskRequest struct {
 	DelegatedAuthInfo
-	TenantID           string            `json:"-"`
-	TaskID             string            `json:"-"`
-	WorkstreamID       *string           `json:"WorkstreamId,omitempty"`
-	Title              string            `json:"Title"`
-	EnvironmentID      string            `json:"EnvironmentId"`
-	Prompt             string            `json:"Prompt"`
-	AfterTaskID        *string           `json:"AfterTaskId,omitempty"`
-	Parallel           bool              `json:"Parallel"`
-	Model              *ModelType        `json:"Model,omitempty"`
-	AssignedToTenantID *string           `json:"AssignedToTenantId,omitempty"`
-	AssignedToAI       bool              `json:"AssignedToAI"`
-	Branches           map[string]string `json:"Branches"`
+	TenantID           string              `json:"-"`
+	TaskID             string              `json:"-"`
+	WorkstreamID       *string             `json:"WorkstreamId,omitempty"`
+	Title              string              `json:"Title"`
+	EnvironmentID      string              `json:"EnvironmentId"`
+	Prompt             string              `json:"Prompt"`
+	AfterTaskID        *string             `json:"AfterTaskId,omitempty"`
+	Parallel           bool                `json:"Parallel"`
+	Model              *ModelType          `json:"Model,omitempty"`
+	AssignedToTenantID *string             `json:"AssignedToTenantId,omitempty"`
+	AssignedToAI       bool                `json:"AssignedToAI"`
+	RepoInfo           map[string]RepoInfo `json:"RepoInfo"`
 }
 
 // UpdateTaskRequest is the request payload for UpdateTask.
@@ -861,8 +861,8 @@ func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 		return evalNullable(r.AssignedToTenantID)
 	case "AssignedToAI":
 		return r.AssignedToAI, true
-	case "Branches":
-		return r.Branches, true
+	case "RepoInfo":
+		return r.RepoInfo, true
 	default:
 		return nil, false
 	}
