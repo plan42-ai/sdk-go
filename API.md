@@ -2145,3 +2145,529 @@ Content-Type: application/json; charset=utf-8
 | Index     | int    | The index of the last log entry.                         |
 | Timestamp | string | The timestamp of the last log entry, in ISO 8601 format. |
 | Message   | string | The message of the last log entry.                       |
+
+# 30. AddGithubOrg
+
+AddGithubOrg adds a github org and installation id to the service.
+
+## 30.1 Request
+
+```http request
+PUT /v1/github/orgs/{org_id}
+HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "OrgName": "string",
+    "ExternalOrgID": "int",
+    "InstallationID": int,    
+}
+```
+
+| Parameter                      | Location | Type    | Description                                                         |
+|--------------------------------|----------|---------|---------------------------------------------------------------------|
+| org_id                         | path     | string  | The ID of the github org to add. This must be a v4 UUID.            |
+| Authorization                  | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+| OrgName                        | body     | string  | The name of the github org to add.                                  |
+| ExternalOrgID                  | body     | int     | The ID of the github org in Github.                                 |
+| InstallationID                 | body     | int     | The installation ID of the github app for the org.                  |
+
+## 30.2 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "OrgID": "string",
+  "OrgName": "string",
+  "ExternalOrgID": int,
+  "InstallationID": int,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool
+}
+```
+
+| Field          | Type   | Description                                                                |
+|----------------|--------|----------------------------------------------------------------------------|
+| OrgID          | string | The ID of the github org.                                                  |
+| OrgName        | string | The name of the github org.                                                |
+| ExternalOrgID  | int    | The ID of the github org in Github.                                        |
+| InstallationID | int    | The installation ID of the github app for the org.                         |
+| CreatedAt      | string | The timestamp when the org was created, in ISO 8601 format.                |
+| UpdatedAt      | string | The timestamp when the org was last updated, in ISO 8601 format.           |
+| Version        | int    | The version of the org. This is incremented every time the org is updated. |
+| Deleted        | bool   | Whether the org has been deleted.                                          |
+
+# 31. ListGithubOrgs
+
+ListGithubOrgs lists all github orgs in the service.
+
+## 31.1 Request
+
+```http request
+GET /v1/github/orgs?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                     |
+|--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| maxResults                     | query    | *int    | Optional. The maximum number of orgs to return. Default is 500. Must be >=1 and <= 500.                         |
+| token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                 | query    | *bool   | Optional. Set to true to return deleted orgs.                                                                   |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 31.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Orgs": [],
+  "NextToken": "*string"
+}
+```
+
+| Field     | Type                         | Description                                                                                     |
+|-----------|------------------------------|-------------------------------------------------------------------------------------------------|
+| Orgs      | [][GithubOrg](#302-response) | A list of github orgs.                                                                          |
+| NextToken | *string                      | A token to retrieve the next page of results. If there are no more results, this will be null.  |
+
+# 32. GetGithubOrg
+
+GetGithubOrg retrieves a specific github org by ID.
+
+## 32.1 Request
+
+```http request
+GET /v1/github/orgs/{org_id}?includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                         |
+|--------------------------------|----------|---------|---------------------------------------------------------------------|
+| org_id                         | path     | string  | The ID of the github org to get. This must be a v4 UUID.            |
+| includeDeleted                 | query    | *bool   | Optional. Set to true to return a deleted org.                      |
+| Authorization                  | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 32.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "OrgID": "string",
+  "OrgName": "string",
+  "InstallationID": int,
+  "ExternalOrgID": int,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool
+}
+```
+
+| Field          | Type   | Description                                                                |
+|----------------|--------|----------------------------------------------------------------------------|
+| OrgID          | string | The ID of the github org.                                                  |
+| OrgName        | string | The name of the github org.                                                |
+| InstallationID | int    | The installation ID of the github app for the org.                         |
+| CreatedAt      | string | The timestamp when the org was created, in ISO 8601 format.                |
+| UpdatedAt      | string | The timestamp when the org was last updated, in ISO                        |
+| Version        | int    | The version of the org. This is incremented every time the org is updated. |
+| Deleted        | bool   | Whether the org has been deleted.                                          |
+
+# 33. UpdateGithubOrg
+
+The UpdateGithubOrg API is used to update an existing github org.
+
+## 33.1 Request
+
+```http request
+PATCH /v1/github/orgs/{org_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "OrgName": "*string",
+    "InstallationID": "*int",
+    "Deleted":  "*bool"  
+}
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                                                         |
+|--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| org_id                         | path     | string  | The ID of the github org to update.                                                                                                                 |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                                                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                 |
+| version                        | header   | string  | The version of the org to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| OrgName                        | body     | *string | If set, update the org's name.                                                                                                                      |
+| InstallationID                 | body     | *int    | If set, update the org's installation ID.                                                                                                           |
+| Deleted                        | body     | *bool   | If set to false, undelete the org.                                                                                                                  |
+
+# 33.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "OrgID": "string",
+  "OrgName": "string",
+  "InstallationID": int,
+  "ExternalOrgID": int,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool
+}
+```
+
+| Field          | Type   | Description                                                                |
+|----------------|--------|----------------------------------------------------------------------------|
+| OrgID          | string | The ID of the github org.                                                  |
+| OrgName        | string | The name of the github org.                                                |
+| InstallationID | int    | The installation ID of the github app for the org.                         |
+| ExternalOrgID  | int    | The ID of the github org in Github.                                        |
+| CreatedAt      | string | The timestamp when the org was created, in ISO 8601 format.                |
+| UpdatedAt      | string | The timestamp when the org was last updated, in ISO                        |
+| Version        | int    | The version of the org. This is incremented every time the org is updated. |
+| Deleted        | bool   | Whether the org has been deleted.                                          |
+
+# 34. DeleteGithubOrg
+
+DeleteGithubOrg soft deletes a github org from the service.
+
+## 34.1 Request
+
+```http request
+DELETE /v1/github/orgs/{org_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                                                         |
+|--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| org_id                         | path     | string  | The ID of the github org to delete.                                                                                                                 |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                                                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                 |
+| version                        | header   | string  | The version of the org to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+
+## 34.2 Response
+
+On success a 204 NO CONTENT is returned with no body.
+
+# 36. AssociateGithubOrgWithTenant
+
+The AssociateGithubOrgWithTenant API is used to associate a github org with a tenant in the service.
+
+## 36.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/github/orgs/{org_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "GithubUserID": int,
+    "GithubUsername": "string",
+    "OAuthToken": "string",
+    "OAuthRefreshToken" : "string".
+    "ExpiresAt": "string"
+}
+```
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to associate the github org with.              |
+| org_id                                   | path     | string  | The ID of the github org to associate with the user.                |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+| GithubUserID                             | body     | int     | The ID of the github user in Github.                                |
+| GithubUsername                           | body     | string  | The username of the github user in Github.                          |
+| OAuthToken                               | body     | string  | The OAuth token for the github user.                                |
+| OAuthRefreshToken                        | body     | string  | The OAuth refresh token for the github user.                        |
+| ExpiresAt                                | body     | string  | The timestamp when the OAuth token expires, in ISO 8601 format.     |
+
+## 36.2 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "OrgID": "string",
+  "GithubUserID": int,
+  "OAuthToken": "string",
+  "OAuthRefreshToken": "string",
+  "ExpiresAt": "string"
+  "OrgName": "string",
+  "InstallationID": int,
+  "ExternalOrgID": int,  
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool,
+}
+```
+
+| Field             | Type   | Description                                                                                |
+|-------------------|--------|--------------------------------------------------------------------------------------------|
+| TenantID          | string | The ID of the tenant.                                                                      |
+| OrgID             | string | The ID of the github org.                                                                  |
+| GithubUserID      | int    | The ID of the github user in Github.                                                       |
+| OAuthToken        | string | The OAuth token for the github user.                                                       |
+| OAuthRefreshToken | string | The OAuth refresh token for the github user.                                               |
+| ExpiresAt         | string | The timestamp when the OAuth token expires, in ISO 8601 format.                            |
+| OrgName           | string | The name of the github org.                                                                |
+| InstallationID    | int    | The installation ID of the github app for the org.                                         |
+| ExternalOrgID     | int    | The ID of the github org in Github.                                                        |
+| CreatedAt         | string | The timestamp when the association was created, in ISO 8601 format.                        |
+| UpdatedAt         | string | The timestamp when the association was last updated, in ISO 8601 format.                   |
+| Version           | int    | The version of the association. This is incremented every time the association is updated. |
+
+# 37. ListTenantGithubOrgs
+
+ListTenantGithubOrgs lists all github orgs associated with a tenant.
+
+## 37.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/github/orgs?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to list github orgs for.                                                                   |
+| maxResults                               | query    | *int    | Optional. The maximum number of orgs to return. Default is 500. Must be >=1 and <= 500.                         |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return deleted orgs.                                                                   |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 37.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Orgs": [],
+  "NextToken": "*string"
+}
+```
+
+| Field     | Type                               | Description                                                                                     |
+|-----------|------------------------------------|-------------------------------------------------------------------------------------------------|
+| Orgs      | [][TenantGithubOrg](#362-response) | A list of github orgs associated with the tenant.                                               |
+| NextToken | *string                            | A token to retrieve the next page of results. If there are no more results, this will be null.  |
+
+# 38. UpdateTenantGithubOrgAssociation
+
+The UpdateTenantGithubOrgAssociation API is used to update the association between a github org and a tenant.
+
+## 38.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/github/orgs/{org_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "OAuthToken": "*string",
+    "OAuthRefreshToken": "*string",
+    "ExpiresAt": "*string",
+    "Deleted":  "*bool",
+    "GithubUserName": "*string"
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                 |
+|------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to update the github org association for.                                                                                              |
+| org_id                                   | path     | string  | The ID of the github org to update the association for.                                                                                                     |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                   |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                      |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
+| version                                  | header   | string  | The version of the association to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| OAuthToken                               | body     | *string | If set, update the OAuth token for the github user.                                                                                                         |
+| OAuthRefreshToken                        | body     | *string | If set, update the OAuth refresh token for the github user.                                                                                                 |
+| ExpiresAt                                | body     | *string | If set, update the timestamp when the OAuth token expires, in ISO 8601 format.                                                                              |
+| Deleted                                  | body     | *bool   | If set to false, undelete the association.                                                                                                                  |
+| GithubUserName                           | body     | *string | If set, update the github username for the github user.                                                                                                     |
+
+## 38.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "OrgID": "string",
+  "GithubUserID": int,
+  "OAuthToken": "string",
+  "OAuthRefreshToken": "string",
+  "ExpiresAt": "string",
+  "OrgName": "string",
+  "InstallationID": int,
+  "ExternalOrgID": int,  
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool,
+}
+```
+
+| Field             | Type   | Description                                                                                |
+|-------------------|--------|--------------------------------------------------------------------------------------------|
+| TenantID          | string | The ID of the tenant.                                                                      |
+| OrgID             | string | The ID of the github org.                                                                  |
+| GithubUserID      | int    | The ID of the github user in Github.                                                       |
+| OAuthToken        | string | The OAuth token for the github user.                                                       |
+| OAuthRefreshToken | string | The OAuth refresh token for the github user.                                               |
+| ExpiresAt         | string | The timestamp when the OAuth token expires, in ISO 8601 format.                            |
+| OrgName           | string | The name of the github org.                                                                |
+| InstallationID    | int    | The installation ID of the github app for the org.                                         |
+| ExternalOrgID     | int    | The ID of the github org in Github.                                                        |
+| CreatedAt         | string | The timestamp when the association was created, in ISO 8601 format.                        |
+| UpdatedAt         | string | The timestamp when the association was last updated, in ISO 8601 format.                   |
+| Version           | int    | The version of the association. This is incremented every time the association is updated. |
+
+# 38. DeleteTenantGithubOrgAssociation
+
+DeleteTenantGithubOrgAssociation soft deletes the association between a github org and a tenant.
+
+## 38.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/github/orgs/{org_id} HTTP/1.1
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                 |
+|------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to delete the github org association for.                                                                                              |
+| org_id                                   | path     | string  | The ID of the github org to delete the association for.                                                                                                     |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                   |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                      |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
+| version                                  | header   | string  | The version of the association to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+
+## 38.2 Response
+
+On success a 204 NO CONTENT is returned with no body.
+
+# 39. GetTenantGithubOrgAssociation
+
+GetTenantGithubOrgAssociation retrieves the association between a github org and a tenant.
+
+## 39.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/github/orgs/{org_id}?includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to get the github org association for.         |
+| org_id                                   | path     | string  | The ID of the github org to get the association for.                |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return a deleted association.              |
+| Authorization                            | header   | string  |                                                                     | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 39.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "OrgID": "string",
+  "GithubUserID": int,
+  "OAuthToken": "string",
+  "OAuthRefreshToken": "string",
+  "ExpiresAt": "string",
+  "OrgName": "string",
+  "InstallationID": int,
+  "ExternalOrgID": int,  
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool,
+}
+```
+
+| Field             | Type   | Description                                                                                |
+|-------------------|--------|--------------------------------------------------------------------------------------------|
+| TenantID          | string | The ID of the tenant.                                                                      |
+| OrgID             | string | The ID of the github org.                                                                  |
+| GithubUserID      | int    | The ID of the github user in Github.                                                       |
+| OAuthToken        | string | The OAuth token for the github user.                                                       |
+| OAuthRefreshToken | string | The OAuth refresh token for the github user.                                               |
+| ExpiresAt         | string | The timestamp when the OAuth token expires, in ISO 8601 format.                            |
+| OrgName           | string | The name of the github org.                                                                |
+| InstallationID    | int    | The installation ID of the github app for the org.                                         |
+| ExternalOrgID     | int    | The ID of the github org in Github.                                                        |
+| CreatedAt         | string | The timestamp when the association was created, in ISO 8601 format.                        |
+| UpdatedAt         | string | The timestamp when the association was last updated, in ISO 8601 format.                   |
+| Version           | int    | The version of the association. This is incremented every time the association is updated. |
+| Deleted           | bool   | Whether the association has been deleted.                                                  |
