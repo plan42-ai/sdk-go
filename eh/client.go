@@ -825,6 +825,7 @@ type AddGithubOrgRequest struct {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *AddGithubOrgRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "OrgID":
@@ -1014,6 +1015,79 @@ func (c *Client) ListGithubOrgs(ctx context.Context, req *ListGithubOrgsRequest)
 	}
 
 	var out ListGithubOrgsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateGithubOrgRequest is the request payload for UpdateGithubOrg.
+type UpdateGithubOrgRequest struct {
+	DelegatedAuthInfo
+	OrgID          string  `json:"-"`
+	Version        int     `json:"-"`
+	OrgName        *string `json:"OrgName,omitempty"`
+	InstallationID *int    `json:"InstallationID,omitempty"`
+	Deleted        *bool   `json:"Deleted,omitempty"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *UpdateGithubOrgRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "OrgID":
+		return r.OrgID, true
+	case "Version":
+		return r.Version, true
+	case "OrgName":
+		return evalNullable(r.OrgName)
+	case "InstallationID":
+		return evalNullable(r.InstallationID)
+	case "Deleted":
+		return evalNullable(r.Deleted)
+	default:
+		return nil, false
+	}
+}
+
+// UpdateGithubOrg updates a github org in the service.
+func (c *Client) UpdateGithubOrg(ctx context.Context, req *UpdateGithubOrgRequest) (*GithubOrg, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.OrgID == "" {
+		return nil, fmt.Errorf("org id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "github", "orgs", url.PathEscape(req.OrgID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out GithubOrg
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}

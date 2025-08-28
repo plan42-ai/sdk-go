@@ -93,6 +93,7 @@ const (
 	ActionStreamLogs             Action = "StreamLogs"
 	ActionListTurns              Action = "ListTurns"
 	ActionAddGithubOrg           Action = "AddGithubOrg"
+	ActionUpdateGithubOrg        Action = "UpdateGithubOrg"
 	ActionListGithubOrgs         Action = "ListGithubOrgs"
 	ActionGetGithubOrg           Action = "GetGithubOrg"
 )
@@ -267,6 +268,7 @@ func init() {
 		ActionStreamLogs,
 		ActionListTurns,
 		ActionAddGithubOrg,
+		ActionUpdateGithubOrg,
 		ActionListGithubOrgs,
 		ActionGetGithubOrg,
 	})

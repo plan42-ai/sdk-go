@@ -546,6 +546,35 @@ func verifyTaskConflict(t *testing.T, err error) {
 	require.Equal(t, eh.Task{TaskID: "task"}, *task)
 }
 
+func serveGithubOrgConflict() (*httptest.Server, *eh.Client) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.GithubOrg{OrgID: "org"},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+	client := eh.NewClient(srv.URL)
+	return srv, client
+}
+
+func verifyGithubOrgConflict(t *testing.T, err error) {
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.Equal(t, "exists", clientErr.Message)
+	require.Equal(t, "Conflict", clientErr.ErrorType)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, eh.ObjectTypeGithubOrg, clientErr.Current.ObjectType())
+	org, ok := clientErr.Current.(*eh.GithubOrg)
+	require.True(t, ok, "Expected Current to be of type *eh.GithubOrg")
+	require.Equal(t, eh.GithubOrg{OrgID: "org"}, *org)
+}
+
 // nolint: dupl
 func TestCreateEnvironmentPathEscaping(t *testing.T) {
 	t.Parallel()
@@ -2174,5 +2203,84 @@ func TestGetGithubOrgPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.GetGithubOrg(context.Background(), &eh.GetGithubOrgRequest{OrgID: githubOrgIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
+func TestUpdateGithubOrg(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/github/orgs/abc", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateGithubOrgRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.OrgName)
+		require.Equal(t, "MyOrg", *reqBody.OrgName)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GithubOrg{OrgID: "abc", OrgName: "MyOrg", ExternalOrgID: 123, InstallationID: 456, Version: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	name := "MyOrg"
+	org, err := client.UpdateGithubOrg(context.Background(), &eh.UpdateGithubOrgRequest{
+		OrgID:   "abc",
+		Version: 1,
+		OrgName: &name,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "abc", org.OrgID)
+}
+
+func TestUpdateGithubOrgError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UpdateGithubOrg(context.Background(), &eh.UpdateGithubOrgRequest{OrgID: "abc", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func TestUpdateGithubOrgConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveGithubOrgConflict()
+	defer srv.Close()
+
+	_, err := client.UpdateGithubOrg(context.Background(), &eh.UpdateGithubOrgRequest{OrgID: "abc", Version: 1})
+	verifyGithubOrgConflict(t, err)
+}
+
+func TestUpdateGithubOrgPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedGithubOrgID, parts[4])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GithubOrg{OrgID: githubOrgIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UpdateGithubOrg(context.Background(), &eh.UpdateGithubOrgRequest{
+		OrgID:   githubOrgIDThatNeedsEscaping,
+		Version: 1,
+	})
 	require.NoError(t, err)
 }
