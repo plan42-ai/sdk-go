@@ -88,6 +88,7 @@ const (
 	ActionStreamLogs             Action = "StreamLogs"
 	ActionListTurns              Action = "ListTurns"
 	ActionAddGithubOrg           Action = "AddGithubOrg"
+	ActionListGithubOrgs         Action = "ListGithubOrgs"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -260,6 +261,7 @@ func init() {
 		ActionStreamLogs,
 		ActionListTurns,
 		ActionAddGithubOrg,
+		ActionListGithubOrgs,
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
