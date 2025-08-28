@@ -2097,3 +2097,82 @@ func TestListGithubOrgsError(t *testing.T) {
 	_, err := client.ListGithubOrgs(context.Background(), &eh.ListGithubOrgsRequest{})
 	require.Error(t, err)
 }
+
+func TestGetGithubOrg(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/github/orgs/abc", r.URL.Path)
+		require.Empty(t, r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GithubOrg{OrgID: "abc", OrgName: "name", ExternalOrgID: 1, InstallationID: 2}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	org, err := client.GetGithubOrg(context.Background(), &eh.GetGithubOrgRequest{OrgID: "abc"})
+	require.NoError(t, err)
+	require.Equal(t, "abc", org.OrgID)
+}
+
+func TestGetGithubOrgIncludeDeleted(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/github/orgs/abc", r.URL.Path)
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GithubOrg{OrgID: "abc"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	includeDeleted := true
+	_, err := client.GetGithubOrg(context.Background(), &eh.GetGithubOrgRequest{OrgID: "abc", IncludeDeleted: &includeDeleted})
+	require.NoError(t, err)
+}
+
+func TestGetGithubOrgError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.GetGithubOrg(context.Background(), &eh.GetGithubOrgRequest{OrgID: "abc"})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+// nolint: dupl
+func TestGetGithubOrgPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedGithubOrgID, parts[4])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GithubOrg{OrgID: githubOrgIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetGithubOrg(context.Background(), &eh.GetGithubOrgRequest{OrgID: githubOrgIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
