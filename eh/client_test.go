@@ -36,6 +36,8 @@ const (
 	escapedEnvironmentID           = "env%2F..%2F..%2Fid"
 	taskIDThatNeedsEscaping        = "task/../../id"
 	escapedTaskID                  = "task%2F..%2F..%2Fid"
+	githubOrgIDThatNeedsEscaping   = "org/../../id"
+	escapedGithubOrgID             = "org%2F..%2F..%2Fid"
 
 	tokenID    = "tok"
 	taskTitle  = "new"
@@ -1983,4 +1985,80 @@ func TestStreamTurnLogsPathEscaping(t *testing.T) {
 	})
 	require.NoError(t, err)
 	_ = body.Close()
+}
+
+func TestAddGithubOrg(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/github/orgs/abc", r.URL.Path)
+
+		var reqBody eh.AddGithubOrgRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, "MyOrg", reqBody.OrgName)
+		require.Equal(t, 123, reqBody.ExternalOrgID)
+		require.Equal(t, 456, reqBody.InstallationID)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.GithubOrg{OrgID: "abc", OrgName: "MyOrg", ExternalOrgID: 123, InstallationID: 456, Version: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	org, err := client.AddGithubOrg(context.Background(), &eh.AddGithubOrgRequest{
+		OrgID:          "abc",
+		OrgName:        "MyOrg",
+		ExternalOrgID:  123,
+		InstallationID: 456,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "abc", org.OrgID)
+}
+
+func TestAddGithubOrgError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.AddGithubOrg(context.Background(), &eh.AddGithubOrgRequest{
+		OrgID:          "abc",
+		OrgName:        "MyOrg",
+		ExternalOrgID:  123,
+		InstallationID: 456,
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func TestAddGithubOrgPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedGithubOrgID, parts[4])
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.GithubOrg{OrgID: githubOrgIDThatNeedsEscaping, OrgName: "name", ExternalOrgID: 1, InstallationID: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.AddGithubOrg(context.Background(), &eh.AddGithubOrgRequest{
+		OrgID:          githubOrgIDThatNeedsEscaping,
+		OrgName:        "name",
+		ExternalOrgID:  1,
+		InstallationID: 1,
+	})
+	require.NoError(t, err)
 }
