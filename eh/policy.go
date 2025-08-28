@@ -1,7 +1,12 @@
 package eh
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -280,3 +285,77 @@ const (
 	AuthorizationTypeSTSGetCallerIdentity AuthorizationType = "sts:GetCallerIdentity"
 	AuthorizationTypeAgentToken           AuthorizationType = "AgentToken"
 )
+
+// ListPoliciesRequest is the request for ListPolicies.
+type ListPoliciesRequest struct {
+	DelegatedAuthInfo
+	TenantID   string
+	MaxResults *int
+	Token      *string
+}
+
+// nolint: goconst
+func (r *ListPoliciesRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "MaxResults":
+		return evalNullable(r.MaxResults)
+	case "Token":
+		return evalNullable(r.Token)
+	default:
+		return nil, false
+	}
+}
+
+// ListPoliciesResponse is the response from ListPolicies.
+type ListPoliciesResponse struct {
+	Policies  []Policy `json:"Policies"`
+	NextToken *string  `json:"NextToken"`
+}
+
+// ListPolicies retrieves the policies for a tenant.
+func (c *Client) ListPolicies(ctx context.Context, req *ListPoliciesRequest) (*ListPoliciesResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "policies")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out ListPoliciesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
