@@ -2581,11 +2581,11 @@ Content-Type: application/json; charset=utf-8
 | UpdatedAt         | string | The timestamp when the association was last updated, in ISO 8601 format.                   |
 | Version           | int    | The version of the association. This is incremented every time the association is updated. |
 
-# 38. DeleteTenantGithubOrgAssociation
+# 39. DeleteTenantGithubOrgAssociation
 
 DeleteTenantGithubOrgAssociation soft deletes the association between a github org and a tenant.
 
-## 38.1 Request
+## 39.1 Request
 
 ```http request
 DELETE /v1/tenants/{tenant_id}/github/orgs/{org_id} HTTP/1.1
@@ -2604,15 +2604,15 @@ If-Match: <version>
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
 | version                                  | header   | string  | The version of the association to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
 
-## 38.2 Response
+## 39.2 Response
 
 On success a 204 NO CONTENT is returned with no body.
 
-# 39. GetTenantGithubOrgAssociation
+# 40. GetTenantGithubOrgAssociation
 
 GetTenantGithubOrgAssociation retrieves the association between a github org and a tenant.
 
-## 39.1 Request
+## 40.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/github/orgs/{org_id}?includeDeleted={includeDeleted} HTTP/1.1
@@ -2631,7 +2631,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
-## 39.2 Response
+## 40.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
