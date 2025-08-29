@@ -251,6 +251,7 @@ const (
 	ObjectTypeWebUITokenThumbprint ObjectType = "WebUITokenThumbprint"
 	ObjectTypeTurn                 ObjectType = "Turn"
 	ObjectTypeTask                 ObjectType = "Task"
+	ObjectTypeGithubOrg            ObjectType = "GithubOrg"
 )
 
 type ConflictObj interface {
@@ -306,6 +307,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Turn{}
 		case ObjectTypeTask:
 			current = &Task{}
+		case ObjectTypeGithubOrg:
+			current = &GithubOrg{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
@@ -2063,6 +2066,74 @@ func (c *Client) ListTurns(ctx context.Context, req *ListTurnsRequest) (*ListTur
 	}
 
 	var out ListTurnsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// AddGithubOrgRequest is the request payload for AddGithubOrg.
+type AddGithubOrgRequest struct {
+	DelegatedAuthInfo
+	OrgID          string `json:"-"`
+	OrgName        string `json:"OrgName"`
+	ExternalOrgID  int    `json:"ExternalOrgID"`
+	InstallationID int    `json:"InstallationID"`
+}
+
+// GetField retrieves the value of a field by name.
+func (r *AddGithubOrgRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "OrgID":
+		return r.OrgID, true
+	case "OrgName":
+		return r.OrgName, true
+	case "ExternalOrgID":
+		return r.ExternalOrgID, true
+	case "InstallationID":
+		return r.InstallationID, true
+	default:
+		return nil, false
+	}
+}
+
+// AddGithubOrg adds a github org to the service.
+func (c *Client) AddGithubOrg(ctx context.Context, req *AddGithubOrgRequest) (*GithubOrg, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.OrgID == "" {
+		return nil, fmt.Errorf("org id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "github", "orgs", url.PathEscape(req.OrgID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out GithubOrg
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
