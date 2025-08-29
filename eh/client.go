@@ -1455,3 +1455,72 @@ func (c *Client) DeleteTenantGithubOrgAssociation(ctx context.Context, req *Dele
 	}
 	return nil
 }
+
+// GetTenantGithubOrgAssociationRequest is the request for GetTenantGithubOrgAssociation.
+type GetTenantGithubOrgAssociationRequest struct {
+	DelegatedAuthInfo
+	TenantID       string `json:"-"`
+	OrgID          string `json:"-"`
+	IncludeDeleted *bool  `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GetTenantGithubOrgAssociationRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "OrgID":
+		return r.OrgID, true
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
+// GetTenantGithubOrgAssociation retrieves the association between a github org and a tenant.
+func (c *Client) GetTenantGithubOrgAssociation(ctx context.Context, req *GetTenantGithubOrgAssociationRequest) (*TenantGithubOrg, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.OrgID == "" {
+		return nil, fmt.Errorf("org id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github", "orgs", url.PathEscape(req.OrgID))
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out TenantGithubOrg
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
