@@ -1230,3 +1230,83 @@ func (c *Client) AssociateGithubOrgTenant(ctx context.Context, req *AssociateGit
 	}
 	return &out, nil
 }
+
+// ListTenantGithubOrgsRequest is the request for ListTenantGithubOrgs.
+type ListTenantGithubOrgsRequest struct {
+	DelegatedAuthInfo
+	TenantID       string
+	MaxResults     *int
+	Token          *string
+	IncludeDeleted *bool
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *ListTenantGithubOrgsRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "MaxResults":
+		return evalNullable(r.MaxResults)
+	case "Token":
+		return evalNullable(r.Token)
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
+// ListTenantGithubOrgsResponse is the response from ListTenantGithubOrgs.
+type ListTenantGithubOrgsResponse struct {
+	Orgs      []TenantGithubOrg `json:"Orgs"`
+	NextToken *string           `json:"NextToken"`
+}
+
+// ListTenantGithubOrgs lists all github orgs associated with a tenant.
+func (c *Client) ListTenantGithubOrgs(ctx context.Context, req *ListTenantGithubOrgsRequest) (*ListTenantGithubOrgsResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github", "orgs")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out ListTenantGithubOrgsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
