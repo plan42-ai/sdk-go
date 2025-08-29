@@ -70,35 +70,36 @@ const (
 type Action string
 
 const (
-	ActionPerformDelegatedAction   Action = "PerformDelegatedAction"
-	ActionCreateTenant             Action = "CreateTenant"
-	ActionGetTenant                Action = "GetTenant"
-	ActionGenerateWebUIToken       Action = "GenerateWebUIToken"
-	ActionListPolicies             Action = "ListPolicies"
-	ActionUpdateTurn               Action = "UpdateTurn"
-	ActionUpdateTask               Action = "UpdateTask"
-	ActionGetTask                  Action = "GetTask"
-	ActionListTasks                Action = "ListTasks"
-	ActionGetTurn                  Action = "GetTurn"
-	ActionUploadTurnLogs           Action = "UploadTurnLogs"
-	ActionGetCurrentUser           Action = "GetCurrentUser"
-	ActionCreateEnvironment        Action = "CreateEnvironment"
-	ActionGetEnvironment           Action = "GetEnvironment"
-	ActionListEnvironments         Action = "ListEnvironments"
-	ActionUpdateEnvironment        Action = "UpdateEnvironment"
-	ActionDeleteEnvironment        Action = "DeleteEnvironment"
-	ActionGetLastTurn              Action = "GetLastTurn"
-	ActionCreateTask               Action = "CreateTask"
-	ActionGetLastTurnLog           Action = "GetLastTurnLog"
-	ActionStreamLogs               Action = "StreamLogs"
-	ActionListTurns                Action = "ListTurns"
-	ActionAddGithubOrg             Action = "AddGithubOrg"
-	ActionUpdateGithubOrg          Action = "UpdateGithubOrg"
-	ActionDeleteGithubOrg          Action = "DeleteGithubOrg"
-	ActionListGithubOrgs           Action = "ListGithubOrgs"
-	ActionGetGithubOrg             Action = "GetGithubOrg"
-	ActionAssociateGithubOrgTenant Action = "AssociateGithubOrgTenant"
-	ActionListTenantGithubOrgs     Action = "ListTenantGithubOrgs"
+	ActionPerformDelegatedAction           Action = "PerformDelegatedAction"
+	ActionCreateTenant                     Action = "CreateTenant"
+	ActionGetTenant                        Action = "GetTenant"
+	ActionGenerateWebUIToken               Action = "GenerateWebUIToken"
+	ActionListPolicies                     Action = "ListPolicies"
+	ActionUpdateTurn                       Action = "UpdateTurn"
+	ActionUpdateTask                       Action = "UpdateTask"
+	ActionGetTask                          Action = "GetTask"
+	ActionListTasks                        Action = "ListTasks"
+	ActionGetTurn                          Action = "GetTurn"
+	ActionUploadTurnLogs                   Action = "UploadTurnLogs"
+	ActionGetCurrentUser                   Action = "GetCurrentUser"
+	ActionCreateEnvironment                Action = "CreateEnvironment"
+	ActionGetEnvironment                   Action = "GetEnvironment"
+	ActionListEnvironments                 Action = "ListEnvironments"
+	ActionUpdateEnvironment                Action = "UpdateEnvironment"
+	ActionDeleteEnvironment                Action = "DeleteEnvironment"
+	ActionGetLastTurn                      Action = "GetLastTurn"
+	ActionCreateTask                       Action = "CreateTask"
+	ActionGetLastTurnLog                   Action = "GetLastTurnLog"
+	ActionStreamLogs                       Action = "StreamLogs"
+	ActionListTurns                        Action = "ListTurns"
+	ActionAddGithubOrg                     Action = "AddGithubOrg"
+	ActionUpdateGithubOrg                  Action = "UpdateGithubOrg"
+	ActionDeleteGithubOrg                  Action = "DeleteGithubOrg"
+	ActionListGithubOrgs                   Action = "ListGithubOrgs"
+	ActionGetGithubOrg                     Action = "GetGithubOrg"
+	ActionAssociateGithubOrgTenant         Action = "AssociateGithubOrgTenant"
+	ActionListTenantGithubOrgs             Action = "ListTenantGithubOrgs"
+	ActionUpdateTenantGithubOrgAssociation Action = "UpdateTenantGithubOrgAssociation"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -277,6 +278,7 @@ func init() {
 		ActionGetGithubOrg,
 		ActionAssociateGithubOrgTenant,
 		ActionListTenantGithubOrgs,
+		ActionUpdateTenantGithubOrgAssociation,
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
