@@ -1396,3 +1396,62 @@ func (c *Client) UpdateTenantGithubOrgAssociation(ctx context.Context, req *Upda
 	}
 	return &out, nil
 }
+
+// DeleteTenantGithubOrgAssociationRequest is the request payload for DeleteTenantGithubOrgAssociation.
+type DeleteTenantGithubOrgAssociationRequest struct {
+	DelegatedAuthInfo
+	TenantID string `json:"-"`
+	OrgID    string `json:"-"`
+	Version  int    `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteTenantGithubOrgAssociationRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "OrgID":
+		return r.OrgID, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteTenantGithubOrgAssociation soft deletes the association between a github org and a tenant.
+// nolint: dupl
+func (c *Client) DeleteTenantGithubOrgAssociation(ctx context.Context, req *DeleteTenantGithubOrgAssociationRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.OrgID == "" {
+		return fmt.Errorf("org id is required")
+	}
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github", "orgs", url.PathEscape(req.OrgID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+	return nil
+}

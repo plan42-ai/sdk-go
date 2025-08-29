@@ -575,14 +575,14 @@ func verifyGithubOrgConflict(t *testing.T, err error) {
 	require.Equal(t, eh.GithubOrg{OrgID: "org"}, *org)
 }
 
-func serveTenantGithubOrgAssociationConflict() (*httptest.Server, *eh.Client) {
+func serveTenantGithubOrgConflict() (*httptest.Server, *eh.Client) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 		_ = json.NewEncoder(w).Encode(eh.ConflictError{
 			ResponseCode: http.StatusConflict,
 			Message:      "exists",
 			ErrorType:    "Conflict",
-			Current:      &eh.TenantGithubOrg{TenantID: "abc", OrgID: "org"},
+			Current:      &eh.TenantGithubOrg{TenantID: "tenant", OrgID: "org"},
 		})
 	})
 
@@ -591,7 +591,7 @@ func serveTenantGithubOrgAssociationConflict() (*httptest.Server, *eh.Client) {
 	return srv, client
 }
 
-func verifyTenantGithubOrgAssociationConflict(t *testing.T, err error) {
+func verifyTenantGithubOrgConflict(t *testing.T, err error) {
 	var clientErr *eh.ConflictError
 	require.ErrorAs(t, err, &clientErr)
 	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
@@ -601,7 +601,7 @@ func verifyTenantGithubOrgAssociationConflict(t *testing.T, err error) {
 	require.Equal(t, eh.ObjectTypeTenantGithubOrg, clientErr.Current.ObjectType())
 	assoc, ok := clientErr.Current.(*eh.TenantGithubOrg)
 	require.True(t, ok, "Expected Current to be of type *eh.TenantGithubOrg")
-	require.Equal(t, eh.TenantGithubOrg{TenantID: "abc", OrgID: "org"}, *assoc)
+	require.Equal(t, eh.TenantGithubOrg{TenantID: "tenant", OrgID: "org"}, *assoc)
 }
 
 // nolint: dupl
@@ -2270,10 +2270,10 @@ func TestUpdateTenantGithubOrgAssociationError(t *testing.T) {
 
 func TestUpdateTenantGithubOrgAssociationConflictError(t *testing.T) {
 	t.Parallel()
-	srv, client := serveTenantGithubOrgAssociationConflict()
+	srv, client := serveTenantGithubOrgConflict()
 	defer srv.Close()
 	_, err := client.UpdateTenantGithubOrgAssociation(context.Background(), &eh.UpdateTenantGithubOrgAssociationRequest{TenantID: "abc", OrgID: "org", Version: 1})
-	verifyTenantGithubOrgAssociationConflict(t, err)
+	verifyTenantGithubOrgConflict(t, err)
 }
 
 // nolint: dupl
@@ -2609,5 +2609,66 @@ func TestDeleteGithubOrgPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	err := client.DeleteGithubOrg(context.Background(), &eh.DeleteGithubOrgRequest{OrgID: githubOrgIDThatNeedsEscaping, Version: 1})
+	require.NoError(t, err)
+}
+
+func TestDeleteTenantGithubOrgAssociation(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/tenants/abc/github/orgs/org", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteTenantGithubOrgAssociation(context.Background(), &eh.DeleteTenantGithubOrgAssociationRequest{TenantID: "abc", OrgID: "org", Version: 1})
+	require.NoError(t, err)
+}
+
+func TestDeleteTenantGithubOrgAssociationError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.DeleteTenantGithubOrgAssociation(context.Background(), &eh.DeleteTenantGithubOrgAssociationRequest{TenantID: "abc", OrgID: "org", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func TestDeleteTenantGithubOrgAssociationConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveTenantGithubOrgConflict()
+	defer srv.Close()
+
+	err := client.DeleteTenantGithubOrgAssociation(context.Background(), &eh.DeleteTenantGithubOrgAssociationRequest{TenantID: "abc", OrgID: "org", Version: 1})
+	verifyTenantGithubOrgConflict(t, err)
+}
+
+func TestDeleteTenantGithubOrgAssociationPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 7, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedGithubOrgID, parts[6])
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteTenantGithubOrgAssociation(context.Background(), &eh.DeleteTenantGithubOrgAssociationRequest{TenantID: tenantIDThatNeedsEscaping, OrgID: githubOrgIDThatNeedsEscaping, Version: 1})
 	require.NoError(t, err)
 }
