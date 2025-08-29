@@ -2092,6 +2092,94 @@ func TestAddGithubOrgPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestAssociateGithubOrgTenant(t *testing.T) {
+	t.Parallel()
+	expiresAt := time.Date(2023, 1, 2, 3, 4, 5, 0, time.UTC)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/github/orgs/org", r.URL.Path)
+
+		var reqBody eh.AssociateGithubOrgTenantRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, 123, reqBody.GithubUserID)
+		require.Equal(t, "user", reqBody.GithubUsername)
+		require.Equal(t, "tok", reqBody.OAuthToken)
+		require.Equal(t, "ref", reqBody.OAuthRefreshToken)
+		require.True(t, reqBody.ExpiresAt.Equal(expiresAt))
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.TenantGithubOrg{TenantID: "abc", OrgID: "org", GithubUserID: 123, OAuthToken: "tok", OAuthRefreshToken: "ref", ExpiresAt: expiresAt}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	assoc, err := client.AssociateGithubOrgTenant(context.Background(), &eh.AssociateGithubOrgTenantRequest{
+		TenantID:          "abc",
+		OrgID:             "org",
+		GithubUserID:      123,
+		GithubUsername:    "user",
+		OAuthToken:        "tok",
+		OAuthRefreshToken: "ref",
+		ExpiresAt:         expiresAt,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "abc", assoc.TenantID)
+}
+
+func TestAssociateGithubOrgTenantError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.AssociateGithubOrgTenant(context.Background(), &eh.AssociateGithubOrgTenantRequest{
+		TenantID:          "abc",
+		OrgID:             "org",
+		GithubUserID:      1,
+		GithubUsername:    "user",
+		OAuthToken:        "tok",
+		OAuthRefreshToken: "ref",
+		ExpiresAt:         time.Now(),
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func TestAssociateGithubOrgTenantPathEscaping(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 7, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedGithubOrgID, parts[6])
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.TenantGithubOrg{TenantID: tenantIDThatNeedsEscaping, OrgID: githubOrgIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.AssociateGithubOrgTenant(context.Background(), &eh.AssociateGithubOrgTenantRequest{
+		TenantID:          tenantIDThatNeedsEscaping,
+		OrgID:             githubOrgIDThatNeedsEscaping,
+		GithubUserID:      1,
+		GithubUsername:    "user",
+		OAuthToken:        "tok",
+		OAuthRefreshToken: "ref",
+		ExpiresAt:         time.Now(),
+	})
+	require.NoError(t, err)
+}
+
 func TestListGithubOrgs(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

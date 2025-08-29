@@ -252,6 +252,7 @@ const (
 	ObjectTypeTurn                 ObjectType = "Turn"
 	ObjectTypeTask                 ObjectType = "Task"
 	ObjectTypeGithubOrg            ObjectType = "GithubOrg"
+	ObjectTypeTenantGithubOrg      ObjectType = "TenantGithubOrg"
 )
 
 type ConflictObj interface {
@@ -309,6 +310,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Task{}
 		case ObjectTypeGithubOrg:
 			current = &GithubOrg{}
+		case ObjectTypeTenantGithubOrg:
+			current = &TenantGithubOrg{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
@@ -1145,4 +1148,85 @@ func (c *Client) DeleteGithubOrg(ctx context.Context, req *DeleteGithubOrgReques
 		return decodeError(resp)
 	}
 	return nil
+}
+
+// AssociateGithubOrgTenantRequest is the request payload for AssociateGithubOrgTenant.
+type AssociateGithubOrgTenantRequest struct {
+	DelegatedAuthInfo
+	TenantID          string    `json:"-"`
+	OrgID             string    `json:"-"`
+	GithubUserID      int       `json:"GithubUserID"`
+	GithubUsername    string    `json:"GithubUsername"`
+	OAuthToken        string    `json:"OAuthToken"`
+	OAuthRefreshToken string    `json:"OAuthRefreshToken"`
+	ExpiresAt         time.Time `json:"ExpiresAt"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *AssociateGithubOrgTenantRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "OrgID":
+		return r.OrgID, true
+	case "GithubUserID":
+		return r.GithubUserID, true
+	case "GithubUsername":
+		return r.GithubUsername, true
+	case "OAuthToken":
+		return r.OAuthToken, true
+	case "OAuthRefreshToken":
+		return r.OAuthRefreshToken, true
+	case "ExpiresAt":
+		return r.ExpiresAt, true
+	default:
+		return nil, false
+	}
+}
+
+// AssociateGithubOrgTenant associates a github org with a tenant.
+func (c *Client) AssociateGithubOrgTenant(ctx context.Context, req *AssociateGithubOrgTenantRequest) (*TenantGithubOrg, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.OrgID == "" {
+		return nil, fmt.Errorf("org id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github", "orgs", url.PathEscape(req.OrgID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out TenantGithubOrg
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
