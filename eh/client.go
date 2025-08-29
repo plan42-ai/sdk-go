@@ -1093,3 +1093,56 @@ func (c *Client) UpdateGithubOrg(ctx context.Context, req *UpdateGithubOrgReques
 	}
 	return &out, nil
 }
+
+// DeleteGithubOrgRequest is the request payload for DeleteGithubOrg.
+type DeleteGithubOrgRequest struct {
+	DelegatedAuthInfo
+	OrgID   string `json:"-"`
+	Version int    `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteGithubOrgRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "OrgID":
+		return r.OrgID, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteGithubOrg soft deletes a github org from the service.
+// nolint: dupl
+func (c *Client) DeleteGithubOrg(ctx context.Context, req *DeleteGithubOrgRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.OrgID == "" {
+		return fmt.Errorf("org id is required")
+	}
+	u := c.BaseURL.JoinPath("v1", "github", "orgs", url.PathEscape(req.OrgID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+	return nil
+}
