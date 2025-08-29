@@ -94,6 +94,7 @@ const (
 	ActionListTurns              Action = "ListTurns"
 	ActionAddGithubOrg           Action = "AddGithubOrg"
 	ActionUpdateGithubOrg        Action = "UpdateGithubOrg"
+	ActionDeleteGithubOrg        Action = "DeleteGithubOrg"
 	ActionListGithubOrgs         Action = "ListGithubOrgs"
 	ActionGetGithubOrg           Action = "GetGithubOrg"
 )
@@ -269,6 +270,7 @@ func init() {
 		ActionListTurns,
 		ActionAddGithubOrg,
 		ActionUpdateGithubOrg,
+		ActionDeleteGithubOrg,
 		ActionListGithubOrgs,
 		ActionGetGithubOrg,
 	})

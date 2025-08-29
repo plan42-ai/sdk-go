@@ -2284,3 +2284,63 @@ func TestUpdateGithubOrgPathEscaping(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestDeleteGithubOrg(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/github/orgs/abc", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteGithubOrg(context.Background(), &eh.DeleteGithubOrgRequest{OrgID: "abc", Version: 1})
+	require.NoError(t, err)
+}
+
+func TestDeleteGithubOrgError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.DeleteGithubOrg(context.Background(), &eh.DeleteGithubOrgRequest{OrgID: "abc", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func TestDeleteGithubOrgConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveGithubOrgConflict()
+	defer srv.Close()
+
+	err := client.DeleteGithubOrg(context.Background(), &eh.DeleteGithubOrgRequest{OrgID: "abc", Version: 1})
+	verifyGithubOrgConflict(t, err)
+}
+
+func TestDeleteGithubOrgPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedGithubOrgID, parts[4])
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteGithubOrg(context.Background(), &eh.DeleteGithubOrgRequest{OrgID: githubOrgIDThatNeedsEscaping, Version: 1})
+	require.NoError(t, err)
+}
