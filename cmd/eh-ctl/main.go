@@ -564,6 +564,37 @@ func is404(err error) bool {
 	return false
 }
 
+type ListGithubOrgsOptions struct {
+	IncludeDeleted bool `help:"Include deleted github orgs" short:"d"`
+}
+
+func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "github list-orgs")
+	}
+	var token *string
+	for {
+		req := &eh.ListGithubOrgsRequest{
+			Token:          token,
+			IncludeDeleted: pointer(o.IncludeDeleted),
+		}
+		resp, err := s.Client.ListGithubOrgs(ctx, req)
+		if err != nil {
+			return err
+		}
+		for _, org := range resp.Orgs {
+			if err := printJSON(org); err != nil {
+				return err
+			}
+		}
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+	return nil
+}
+
 type ListTasksOptions struct {
 	TenantID       string  `help:"The ID of the tenant to list tasks for." short:"i" required:""`
 	WorkstreamID   *string `help:"Optional workstream ID. When specified tasks in that workstream are returned." short:"w" optional:""`
@@ -760,7 +791,8 @@ type Options struct {
 		List ListPoliciesOptions `cmd:"list"`
 	} `cmd:""`
 	Github struct {
-		AddOrg AddGithubOrgOptions `cmd:"add-org"`
+		AddOrg   AddGithubOrgOptions   `cmd:"add-org"`
+		ListOrgs ListGithubOrgsOptions `cmd:"list-orgs"`
 	} `cmd:"github"`
 	UIToken struct {
 		Generate GenerateUITokenOptions `cmd:"generate"`
@@ -846,6 +878,8 @@ func main() {
 		err = options.Turn.Get.Run(options.Ctx, &options.SharedOptions)
 	case "turn get-last":
 		err = options.Turn.GetLast.Run(options.Ctx, &options.SharedOptions)
+	case "github list-orgs":
+		err = options.Github.ListOrgs.Run(options.Ctx, &options.SharedOptions)
 	case "logs stream":
 		err = options.Logs.Stream.Run(options.Ctx, &options.SharedOptions)
 	case "logs upload":
