@@ -46,15 +46,6 @@ func printJSON(resp any) error {
 	return enc.Encode(resp)
 }
 
-type GetGithubOrgOptions struct {
-	InternalOrgID  string `help:"The internal org id of the org to fetch" name:"internal-org-id" short:"O" required:""`
-	IncludeDeleted bool   `help:"Include deleted orgs" short:"d" optional:""`
-}
-
-type DeleteGithubOrgOptions struct {
-	InternalOrgID string `help:"The internal org id of the github org to delete" name:"internal-org-id" short:"O" required:""`
-}
-
 type GetTaskOptions struct {
 	TenantID       string `help:"The ID of the tenant to list tasks for" short:"i" required:""`
 	TaskID         string `help:"The ID of the task to get" short:"t" required:""`
@@ -345,37 +336,6 @@ func is404(err error) bool {
 	return false
 }
 
-type ListGithubOrgsOptions struct {
-	IncludeDeleted bool `help:"Include deleted github orgs" short:"d"`
-}
-
-func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
-	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
-		return fmt.Errorf(delegatedAuthNotSupported, "github list-orgs")
-	}
-	var token *string
-	for {
-		req := &eh.ListGithubOrgsRequest{
-			Token:          token,
-			IncludeDeleted: pointer(o.IncludeDeleted),
-		}
-		resp, err := s.Client.ListGithubOrgs(ctx, req)
-		if err != nil {
-			return err
-		}
-		for _, org := range resp.Orgs {
-			if err := printJSON(org); err != nil {
-				return err
-			}
-		}
-		if resp.NextToken == nil {
-			break
-		}
-		token = resp.NextToken
-	}
-	return nil
-}
-
 type ListTasksOptions struct {
 	TenantID       string  `help:"The ID of the tenant to list tasks for." short:"i" required:""`
 	WorkstreamID   *string `help:"Optional workstream ID. When specified tasks in that workstream are returned." short:"w" optional:""`
@@ -510,115 +470,11 @@ func (o *UpdateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	return printJSON(updated)
 }
 
-type AddGithubOrgOptions struct {
-	OrgName        string `help:"The name of the Github org to add." name:"org-name" short:"n" required:""`
-	ExternalOrgID  int    `help:"The ID of the org in github." name:"external-org-id" short:"x" required:""`
-	InstallationID int    `help:"The installation ID for the github app install." name:"installation-id" short:"I" required:""`
-}
-
-func (o *AddGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
-	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
-		return fmt.Errorf(delegatedAuthNotSupported, "github add-org")
-	}
-
-	req := &eh.AddGithubOrgRequest{
-		OrgID:          uuid.NewString(),
-		OrgName:        o.OrgName,
-		ExternalOrgID:  o.ExternalOrgID,
-		InstallationID: o.InstallationID,
-	}
-
-	org, err := s.Client.AddGithubOrg(ctx, req)
-	if err != nil {
-		return err
-	}
-	return printJSON(org)
-}
-
-func (o *GetGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
-	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
-		return fmt.Errorf(delegatedAuthNotSupported, "github get-org")
-	}
-
-	req := &eh.GetGithubOrgRequest{
-		OrgID:          o.InternalOrgID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
-	}
-
-	org, err := s.Client.GetGithubOrg(ctx, req)
-	if err != nil {
-		return err
-	}
-	return printJSON(org)
-}
-
-type UpdateGithubOrgOptions struct {
-	InternalOrgID string `help:"The internal org id of the org to update." name:"internal-org-id" short:"O" required:""`
-	JSON          string `help:"The json file containing the updates to apply." short:"j" default:"-"`
-}
-
-func (o *UpdateGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
-	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
-		return fmt.Errorf(delegatedAuthNotSupported, "github update-org")
-	}
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
-	var req eh.UpdateGithubOrgRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
-		return err
-	}
-
-	req.OrgID = o.InternalOrgID
-
-	getReq := &eh.GetGithubOrgRequest{OrgID: o.InternalOrgID, IncludeDeleted: pointer(true)}
-	org, err := s.Client.GetGithubOrg(ctx, getReq)
-	if err != nil {
-		return err
-	}
-	req.Version = org.Version
-
-	updated, err := s.Client.UpdateGithubOrg(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return printJSON(updated)
-}
-
-func (o *DeleteGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
-	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
-		return fmt.Errorf(delegatedAuthNotSupported, "github delete-org")
-	}
-	getReq := &eh.GetGithubOrgRequest{OrgID: o.InternalOrgID}
-	org, err := s.Client.GetGithubOrg(ctx, getReq)
-	if err != nil {
-		return err
-	}
-
-	req := &eh.DeleteGithubOrgRequest{OrgID: o.InternalOrgID, Version: org.Version}
-	return s.Client.DeleteGithubOrg(ctx, req)
-}
-
 type Options struct {
 	SharedOptions
-	Tenant   TenantOptions `cmd:"tenant"`
-	Policies PolicyOptions `cmd:"policies"`
-	Github   struct {
-		AddOrg    AddGithubOrgOptions    `cmd:"add-org"`
-		ListOrgs  ListGithubOrgsOptions  `cmd:"list-orgs"`
-		GetOrg    GetGithubOrgOptions    `cmd:"get-org"`
-		UpdateOrg UpdateGithubOrgOptions `cmd:"update-org"`
-		DeleteOrg DeleteGithubOrgOptions `cmd:"delete-org"`
-	} `cmd:"github"`
+	Tenant      TenantOptions      `cmd:"tenant"`
+	Policies    PolicyOptions      `cmd:"policies"`
+	Github      GithubOptions      `cmd:"github"`
 	UIToken     UITokenOptions     `cmd:"ui-token"`
 	Environment EnvironmentOptions `cmd:"environment"`
 	Task        struct {
