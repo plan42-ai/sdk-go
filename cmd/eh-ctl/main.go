@@ -802,6 +802,48 @@ func (o *GetGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 	return printJSON(org)
 }
 
+type UpdateGithubOrgOptions struct {
+	InternalOrgID string `help:"The internal org id of the org to update." name:"internal-org-id" short:"O" required:""`
+	JSON          string `help:"The json file containing the updates to apply." short:"j" default:"-"`
+}
+
+func (o *UpdateGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "github update-org")
+	}
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.UpdateGithubOrgRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	req.OrgID = o.InternalOrgID
+
+	getReq := &eh.GetGithubOrgRequest{OrgID: o.InternalOrgID, IncludeDeleted: pointer(true)}
+	org, err := s.Client.GetGithubOrg(ctx, getReq)
+	if err != nil {
+		return err
+	}
+	req.Version = org.Version
+
+	updated, err := s.Client.UpdateGithubOrg(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
+}
+
 type Options struct {
 	SharedOptions
 	Tenant struct {
@@ -813,9 +855,10 @@ type Options struct {
 		List ListPoliciesOptions `cmd:"list"`
 	} `cmd:""`
 	Github struct {
-		AddOrg   AddGithubOrgOptions   `cmd:"add-org"`
-		ListOrgs ListGithubOrgsOptions `cmd:"list-orgs"`
-		GetOrg   GetGithubOrgOptions   `cmd:"get-org"`
+		AddOrg    AddGithubOrgOptions    `cmd:"add-org"`
+		ListOrgs  ListGithubOrgsOptions  `cmd:"list-orgs"`
+		GetOrg    GetGithubOrgOptions    `cmd:"get-org"`
+		UpdateOrg UpdateGithubOrgOptions `cmd:"update-org"`
 	} `cmd:"github"`
 	UIToken struct {
 		Generate GenerateUITokenOptions `cmd:"generate"`
@@ -848,6 +891,9 @@ type Options struct {
 	Ctx context.Context `kong:"-"`
 }
 
+// nolint: gocyclo
+//
+//	This is temporary. Will refactor in a follow up pr.
 func main() {
 	var options Options
 	kongctx := kong.Parse(&options)
@@ -875,6 +921,8 @@ func main() {
 		err = options.Github.ListOrgs.Run(options.Ctx, &options.SharedOptions)
 	case "github get-org":
 		err = options.Github.GetOrg.Run(options.Ctx, &options.SharedOptions)
+	case "github update-org":
+		err = options.Github.UpdateOrg.Run(options.Ctx, &options.SharedOptions)
 	case "environment create":
 		err = options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
 	case "environment get":
