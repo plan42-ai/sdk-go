@@ -107,6 +107,11 @@ type ListPoliciesOptions struct {
 	TenantID string `help:"The ID of the tenant to list policies for" short:"i" required:""`
 }
 
+type GetGithubOrgOptions struct {
+	InternalOrgID  string `help:"The internal org id of the org to fetch" name:"internal-org-id" short:"O" required:""`
+	IncludeDeleted bool   `help:"Include deleted orgs" short:"d" optional:""`
+}
+
 type GenerateUITokenOptions struct {
 	TenantID string `help:"The ID of the tenant to generate the Web UI token for" short:"i" required:""`
 }
@@ -780,6 +785,23 @@ func (o *AddGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 	return printJSON(org)
 }
 
+func (o *GetGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "github get-org")
+	}
+
+	req := &eh.GetGithubOrgRequest{
+		OrgID:          o.InternalOrgID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+
+	org, err := s.Client.GetGithubOrg(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(org)
+}
+
 type Options struct {
 	SharedOptions
 	Tenant struct {
@@ -793,6 +815,7 @@ type Options struct {
 	Github struct {
 		AddOrg   AddGithubOrgOptions   `cmd:"add-org"`
 		ListOrgs ListGithubOrgsOptions `cmd:"list-orgs"`
+		GetOrg   GetGithubOrgOptions   `cmd:"get-org"`
 	} `cmd:"github"`
 	UIToken struct {
 		Generate GenerateUITokenOptions `cmd:"generate"`
@@ -844,10 +867,14 @@ func main() {
 		err = options.Tenant.Get.Run(options.Ctx, &options.SharedOptions)
 	case "policies list":
 		err = options.Policies.List.Run(options.Ctx, &options.SharedOptions)
-	case "github add-org":
-		err = options.Github.AddOrg.Run(options.Ctx, &options.SharedOptions)
 	case "ui-token generate":
 		err = options.UIToken.Generate.Run(options.Ctx, &options.SharedOptions)
+	case "github add-org":
+		err = options.Github.AddOrg.Run(options.Ctx, &options.SharedOptions)
+	case "github list-orgs":
+		err = options.Github.ListOrgs.Run(options.Ctx, &options.SharedOptions)
+	case "github get-org":
+		err = options.Github.GetOrg.Run(options.Ctx, &options.SharedOptions)
 	case "environment create":
 		err = options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
 	case "environment get":
@@ -878,8 +905,6 @@ func main() {
 		err = options.Turn.Get.Run(options.Ctx, &options.SharedOptions)
 	case "turn get-last":
 		err = options.Turn.GetLast.Run(options.Ctx, &options.SharedOptions)
-	case "github list-orgs":
-		err = options.Github.ListOrgs.Run(options.Ctx, &options.SharedOptions)
 	case "logs stream":
 		err = options.Logs.Stream.Run(options.Ctx, &options.SharedOptions)
 	case "logs upload":
