@@ -112,6 +112,10 @@ type GetGithubOrgOptions struct {
 	IncludeDeleted bool   `help:"Include deleted orgs" short:"d" optional:""`
 }
 
+type DeleteGithubOrgOptions struct {
+	InternalOrgID string `help:"The internal org id of the github org to delete" name:"internal-org-id" short:"O" required:""`
+}
+
 type GenerateUITokenOptions struct {
 	TenantID string `help:"The ID of the tenant to generate the Web UI token for" short:"i" required:""`
 }
@@ -844,6 +848,20 @@ func (o *UpdateGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 	return printJSON(updated)
 }
 
+func (o *DeleteGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "github delete-org")
+	}
+	getReq := &eh.GetGithubOrgRequest{OrgID: o.InternalOrgID}
+	org, err := s.Client.GetGithubOrg(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req := &eh.DeleteGithubOrgRequest{OrgID: o.InternalOrgID, Version: org.Version}
+	return s.Client.DeleteGithubOrg(ctx, req)
+}
+
 type Options struct {
 	SharedOptions
 	Tenant struct {
@@ -859,6 +877,7 @@ type Options struct {
 		ListOrgs  ListGithubOrgsOptions  `cmd:"list-orgs"`
 		GetOrg    GetGithubOrgOptions    `cmd:"get-org"`
 		UpdateOrg UpdateGithubOrgOptions `cmd:"update-org"`
+		DeleteOrg DeleteGithubOrgOptions `cmd:"delete-org"`
 	} `cmd:"github"`
 	UIToken struct {
 		Generate GenerateUITokenOptions `cmd:"generate"`
@@ -923,6 +942,8 @@ func main() {
 		err = options.Github.GetOrg.Run(options.Ctx, &options.SharedOptions)
 	case "github update-org":
 		err = options.Github.UpdateOrg.Run(options.Ctx, &options.SharedOptions)
+	case "github delete-org":
+		err = options.Github.DeleteOrg.Run(options.Ctx, &options.SharedOptions)
 	case "environment create":
 		err = options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
 	case "environment get":
