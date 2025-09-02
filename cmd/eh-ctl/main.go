@@ -55,24 +55,6 @@ type DeleteGithubOrgOptions struct {
 	InternalOrgID string `help:"The internal org id of the github org to delete" name:"internal-org-id" short:"O" required:""`
 }
 
-type GenerateUITokenOptions struct {
-	TenantID string `help:"The ID of the tenant to generate the Web UI token for" short:"i" required:""`
-}
-
-func (o *GenerateUITokenOptions) Run(ctx context.Context, s *SharedOptions) error {
-	req := &eh.GenerateWebUITokenRequest{
-		TenantID: o.TenantID,
-		TokenID:  uuid.NewString(),
-	}
-	processDelegatedAuth(s, &req.DelegatedAuthInfo)
-
-	resp, err := s.Client.GenerateWebUIToken(ctx, req)
-	if err != nil {
-		return err
-	}
-	return printJSON(resp)
-}
-
 type CreateEnvironmentOptions struct {
 	TenantID string `help:"The tenant ID to create the environment for" short:"i" required:""`
 	JSON     string `help:"The JSON file to load the environment definition from" short:"j" default:"-"`
@@ -786,9 +768,7 @@ type Options struct {
 		UpdateOrg UpdateGithubOrgOptions `cmd:"update-org"`
 		DeleteOrg DeleteGithubOrgOptions `cmd:"delete-org"`
 	} `cmd:"github"`
-	UIToken struct {
-		Generate GenerateUITokenOptions `cmd:"generate"`
-	} `cmd:"ui-token"`
+	UIToken     UITokenOptions `cmd:"ui-token"`
 	Environment struct {
 		Create CreateEnvironmentOptions `cmd:"create"`
 		Get    GetEnvironmentOptions    `cmd:"get"`
