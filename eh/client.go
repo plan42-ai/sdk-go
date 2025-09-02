@@ -820,7 +820,6 @@ func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest)
 
 // AddGithubOrgRequest is the request payload for AddGithubOrg.
 type AddGithubOrgRequest struct {
-	DelegatedAuthInfo
 	OrgID          string `json:"-"`
 	OrgName        string `json:"OrgName"`
 	ExternalOrgID  int    `json:"ExternalOrgID"`
@@ -866,7 +865,7 @@ func (c *Client) AddGithubOrg(ctx context.Context, req *AddGithubOrgRequest) (*G
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+	if err := c.authenticate(DelegatedAuthInfo{}, httpReq); err != nil {
 		return nil, err
 	}
 
@@ -889,7 +888,6 @@ func (c *Client) AddGithubOrg(ctx context.Context, req *AddGithubOrgRequest) (*G
 
 // GetGithubOrgRequest is the request for GetGithubOrg.
 type GetGithubOrgRequest struct {
-	DelegatedAuthInfo
 	OrgID          string `json:"-"`
 	IncludeDeleted *bool  `json:"-"`
 }
@@ -929,7 +927,7 @@ func (c *Client) GetGithubOrg(ctx context.Context, req *GetGithubOrgRequest) (*G
 	}
 	httpReq.Header.Set("Accept", "application/json")
 
-	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+	if err := c.authenticate(DelegatedAuthInfo{}, httpReq); err != nil {
 		return nil, err
 	}
 
@@ -952,7 +950,6 @@ func (c *Client) GetGithubOrg(ctx context.Context, req *GetGithubOrgRequest) (*G
 
 // ListGithubOrgsRequest is the request for ListGithubOrgs.
 type ListGithubOrgsRequest struct {
-	DelegatedAuthInfo
 	MaxResults     *int
 	Token          *string
 	IncludeDeleted *bool
@@ -1003,7 +1000,7 @@ func (c *Client) ListGithubOrgs(ctx context.Context, req *ListGithubOrgsRequest)
 	}
 	httpReq.Header.Set("Accept", "application/json")
 
-	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+	if err := c.authenticate(DelegatedAuthInfo{}, httpReq); err != nil {
 		return nil, err
 	}
 
@@ -1026,7 +1023,6 @@ func (c *Client) ListGithubOrgs(ctx context.Context, req *ListGithubOrgsRequest)
 
 // UpdateGithubOrgRequest is the request payload for UpdateGithubOrg.
 type UpdateGithubOrgRequest struct {
-	DelegatedAuthInfo
 	OrgID          string  `json:"-"`
 	Version        int     `json:"-"`
 	OrgName        *string `json:"OrgName,omitempty"`
@@ -1076,7 +1072,7 @@ func (c *Client) UpdateGithubOrg(ctx context.Context, req *UpdateGithubOrgReques
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
 
-	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+	if err := c.authenticate(DelegatedAuthInfo{}, httpReq); err != nil {
 		return nil, err
 	}
 
@@ -1099,7 +1095,6 @@ func (c *Client) UpdateGithubOrg(ctx context.Context, req *UpdateGithubOrgReques
 
 // DeleteGithubOrgRequest is the request payload for DeleteGithubOrg.
 type DeleteGithubOrgRequest struct {
-	DelegatedAuthInfo
 	OrgID   string `json:"-"`
 	Version int    `json:"-"`
 }
@@ -1134,7 +1129,7 @@ func (c *Client) DeleteGithubOrg(ctx context.Context, req *DeleteGithubOrgReques
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
 
-	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+	if err := c.authenticate(DelegatedAuthInfo{}, httpReq); err != nil {
 		return err
 	}
 

@@ -2158,7 +2158,6 @@ HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Accept: application/json
 Authorization: <authorization>
-X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
 
 {
@@ -2329,7 +2328,7 @@ If-Match: <version>
 | InstallationID                 | body     | *int    | If set, update the org's installation ID.                                                                                                           |
 | Deleted                        | body     | *bool   | If set to false, undelete the org.                                                                                                                  |
 
-# 33.2 Response
+## 33.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 

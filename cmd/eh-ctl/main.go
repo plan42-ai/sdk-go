@@ -341,7 +341,7 @@ type UpdateTurnOptions struct {
 	TenantID  string `help:"The ID of the tennant that owns the task and turn" short:"i" required:""`
 	TaskID    string `help:"The ID of the task that contains the turn" short:"t" required:""`
 	TurnIndex int    `help:"The index of the turn to update" name:"turn-index" short:"n" required:""`
-	JSON      string `help:"The json file containing the updates to make" short:"l" default:"-"`
+	JSON      string `help:"The json file containing the updates to make" short:"j" default:"-"`
 }
 
 func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
