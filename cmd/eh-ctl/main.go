@@ -46,10 +46,6 @@ func printJSON(resp any) error {
 	return enc.Encode(resp)
 }
 
-type ListPoliciesOptions struct {
-	TenantID string `help:"The ID of the tenant to list policies for" short:"i" required:""`
-}
-
 type GetGithubOrgOptions struct {
 	InternalOrgID  string `help:"The internal org id of the org to fetch" name:"internal-org-id" short:"O" required:""`
 	IncludeDeleted bool   `help:"Include deleted orgs" short:"d" optional:""`
@@ -681,32 +677,6 @@ func (o *UpdateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	return printJSON(updated)
 }
 
-func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
-	var token *string
-	for {
-		req := &eh.ListPoliciesRequest{
-			TenantID: o.TenantID,
-			Token:    token,
-		}
-		processDelegatedAuth(s, &req.DelegatedAuthInfo)
-
-		resp, err := s.Client.ListPolicies(ctx, req)
-		if err != nil {
-			return err
-		}
-		for _, pol := range resp.Policies {
-			if err := printJSON(pol); err != nil {
-				return err
-			}
-		}
-		if resp.NextToken == nil {
-			break
-		}
-		token = resp.NextToken
-	}
-	return nil
-}
-
 type AddGithubOrgOptions struct {
 	OrgName        string `help:"The name of the Github org to add." name:"org-name" short:"n" required:""`
 	ExternalOrgID  int    `help:"The ID of the org in github." name:"external-org-id" short:"x" required:""`
@@ -808,10 +778,8 @@ func (o *DeleteGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 type Options struct {
 	SharedOptions
 	Tenant   TenantOptions `cmd:"tenant"`
-	Policies struct {
-		List ListPoliciesOptions `cmd:"list"`
-	} `cmd:"policies"`
-	Github struct {
+	Policies PolicyOptions `cmd:"policies"`
+	Github   struct {
 		AddOrg    AddGithubOrgOptions    `cmd:"add-org"`
 		ListOrgs  ListGithubOrgsOptions  `cmd:"list-orgs"`
 		GetOrg    GetGithubOrgOptions    `cmd:"get-org"`
