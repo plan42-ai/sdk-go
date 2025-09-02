@@ -817,9 +817,6 @@ type Options struct {
 	Ctx context.Context `kong:"-"`
 }
 
-// nolint: gocyclo
-//
-//	This is temporary. Will refactor in a follow up pr.
 func main() {
 	var options Options
 	kongctx := kong.Parse(&options)
@@ -830,65 +827,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	switch kongctx.Command() {
-	case "tenant create-user":
-		err = options.Tenant.CreateUser.Run(options.Ctx, &options.SharedOptions)
-	case "tenant current-user":
-		err = options.Tenant.CurrentUser.Run(options.Ctx, &options.SharedOptions)
-	case "tenant get":
-		err = options.Tenant.Get.Run(options.Ctx, &options.SharedOptions)
-	case "policies list":
-		err = options.Policies.List.Run(options.Ctx, &options.SharedOptions)
-	case "ui-token generate":
-		err = options.UIToken.Generate.Run(options.Ctx, &options.SharedOptions)
-	case "github add-org":
-		err = options.Github.AddOrg.Run(options.Ctx, &options.SharedOptions)
-	case "github list-orgs":
-		err = options.Github.ListOrgs.Run(options.Ctx, &options.SharedOptions)
-	case "github get-org":
-		err = options.Github.GetOrg.Run(options.Ctx, &options.SharedOptions)
-	case "github update-org":
-		err = options.Github.UpdateOrg.Run(options.Ctx, &options.SharedOptions)
-	case "github delete-org":
-		err = options.Github.DeleteOrg.Run(options.Ctx, &options.SharedOptions)
-	case "environment create":
-		err = options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
-	case "environment get":
-		err = options.Environment.Get.Run(options.Ctx, &options.SharedOptions)
-	case "environment update":
-		err = options.Environment.Update.Run(options.Ctx, &options.SharedOptions)
-	case "environment delete":
-		err = options.Environment.Delete.Run(options.Ctx, &options.SharedOptions)
-	case "environment list":
-		err = options.Environment.List.Run(options.Ctx, &options.SharedOptions)
-	case "task create":
-		err = options.Task.Create.Run(options.Ctx, &options.SharedOptions)
-	case "task update":
-		err = options.Task.Update.Run(options.Ctx, &options.SharedOptions)
-	case "task delete":
-		err = options.Task.Delete.Run(options.Ctx, &options.SharedOptions)
-	case "task list":
-		err = options.Task.List.Run(options.Ctx, &options.SharedOptions)
-	case "task get":
-		err = options.Task.Get.Run(options.Ctx, &options.SharedOptions)
-	case "turn create":
-		err = options.Turn.Create.Run(options.Ctx, &options.SharedOptions)
-	case "turn list":
-		err = options.Turn.List.Run(options.Ctx, &options.SharedOptions)
-	case "turn update":
-		err = options.Turn.Update.Run(options.Ctx, &options.SharedOptions)
-	case "turn get":
-		err = options.Turn.Get.Run(options.Ctx, &options.SharedOptions)
-	case "turn get-last":
-		err = options.Turn.GetLast.Run(options.Ctx, &options.SharedOptions)
-	case "logs stream":
-		err = options.Logs.Stream.Run(options.Ctx, &options.SharedOptions)
-	case "logs upload":
-		err = options.Logs.Upload.Run(options.Ctx, &options.SharedOptions)
-	default:
-		err = errors.New("unknown command")
-	}
-
+	err = dispatchCommand(kongctx, &options)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		var conflictError *eh.ConflictError
@@ -896,6 +835,67 @@ func main() {
 			_ = printJSON(conflictError.Current)
 		}
 		os.Exit(2)
+	}
+}
+
+func dispatchCommand(kongctx *kong.Context, options *Options) error {
+	switch kongctx.Command() {
+	case "tenant create-user":
+		return options.Tenant.CreateUser.Run(options.Ctx, &options.SharedOptions)
+	case "tenant current-user":
+		return options.Tenant.CurrentUser.Run(options.Ctx, &options.SharedOptions)
+	case "tenant get":
+		return options.Tenant.Get.Run(options.Ctx, &options.SharedOptions)
+	case "policies list":
+		return options.Policies.List.Run(options.Ctx, &options.SharedOptions)
+	case "ui-token generate":
+		return options.UIToken.Generate.Run(options.Ctx, &options.SharedOptions)
+	case "github add-org":
+		return options.Github.AddOrg.Run(options.Ctx, &options.SharedOptions)
+	case "github list-orgs":
+		return options.Github.ListOrgs.Run(options.Ctx, &options.SharedOptions)
+	case "github get-org":
+		return options.Github.GetOrg.Run(options.Ctx, &options.SharedOptions)
+	case "github update-org":
+		return options.Github.UpdateOrg.Run(options.Ctx, &options.SharedOptions)
+	case "github delete-org":
+		return options.Github.DeleteOrg.Run(options.Ctx, &options.SharedOptions)
+	case "environment create":
+		return options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
+	case "environment get":
+		return options.Environment.Get.Run(options.Ctx, &options.SharedOptions)
+	case "environment update":
+		return options.Environment.Update.Run(options.Ctx, &options.SharedOptions)
+	case "environment delete":
+		return options.Environment.Delete.Run(options.Ctx, &options.SharedOptions)
+	case "environment list":
+		return options.Environment.List.Run(options.Ctx, &options.SharedOptions)
+	case "task create":
+		return options.Task.Create.Run(options.Ctx, &options.SharedOptions)
+	case "task update":
+		return options.Task.Update.Run(options.Ctx, &options.SharedOptions)
+	case "task delete":
+		return options.Task.Delete.Run(options.Ctx, &options.SharedOptions)
+	case "task list":
+		return options.Task.List.Run(options.Ctx, &options.SharedOptions)
+	case "task get":
+		return options.Task.Get.Run(options.Ctx, &options.SharedOptions)
+	case "turn create":
+		return options.Turn.Create.Run(options.Ctx, &options.SharedOptions)
+	case "turn list":
+		return options.Turn.List.Run(options.Ctx, &options.SharedOptions)
+	case "turn update":
+		return options.Turn.Update.Run(options.Ctx, &options.SharedOptions)
+	case "turn get":
+		return options.Turn.Get.Run(options.Ctx, &options.SharedOptions)
+	case "turn get-last":
+		return options.Turn.GetLast.Run(options.Ctx, &options.SharedOptions)
+	case "logs stream":
+		return options.Logs.Stream.Run(options.Ctx, &options.SharedOptions)
+	case "logs upload":
+		return options.Logs.Upload.Run(options.Ctx, &options.SharedOptions)
+	default:
+		return errors.New("unknown command")
 	}
 }
 
