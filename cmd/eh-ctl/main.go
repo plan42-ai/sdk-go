@@ -17,6 +17,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const delegatedAuthNotSupported = "delegated auth is not supported for %s"
+
 type SharedOptions struct {
 	Endpoint          string     `help:"Set to override the api endpoint." optional:""`
 	Insecure          bool       `help:"Don't validate the api cert." optional:""`
@@ -722,6 +724,31 @@ func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 	return nil
 }
 
+type AddGithubOrgOptions struct {
+	OrgName        string `help:"The name of the Github org to add." name:"org-name" short:"n" required:""`
+	ExternalOrgID  int    `help:"The ID of the org in github." name:"external-org-id" short:"x" required:""`
+	InstallationID int    `help:"The installation ID for the github app install." name:"installation-id" short:"I" required:""`
+}
+
+func (o *AddGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "github add-org")
+	}
+
+	req := &eh.AddGithubOrgRequest{
+		OrgID:          uuid.NewString(),
+		OrgName:        o.OrgName,
+		ExternalOrgID:  o.ExternalOrgID,
+		InstallationID: o.InstallationID,
+	}
+
+	org, err := s.Client.AddGithubOrg(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(org)
+}
+
 type Options struct {
 	SharedOptions
 	Tenant struct {
@@ -732,6 +759,9 @@ type Options struct {
 	Policies struct {
 		List ListPoliciesOptions `cmd:"list"`
 	} `cmd:""`
+	Github struct {
+		AddOrg AddGithubOrgOptions `cmd:"add-org"`
+	} `cmd:"github"`
 	UIToken struct {
 		Generate GenerateUITokenOptions `cmd:"generate"`
 	} `cmd:"ui-token"`
@@ -782,6 +812,8 @@ func main() {
 		err = options.Tenant.Get.Run(options.Ctx, &options.SharedOptions)
 	case "policies list":
 		err = options.Policies.List.Run(options.Ctx, &options.SharedOptions)
+	case "github add-org":
+		err = options.Github.AddOrg.Run(options.Ctx, &options.SharedOptions)
 	case "ui-token generate":
 		err = options.UIToken.Generate.Run(options.Ctx, &options.SharedOptions)
 	case "environment create":
