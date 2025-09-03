@@ -97,7 +97,7 @@ const (
 	ActionDeleteGithubOrg                  Action = "DeleteGithubOrg"
 	ActionListGithubOrgs                   Action = "ListGithubOrgs"
 	ActionGetGithubOrg                     Action = "GetGithubOrg"
-	ActionAssociateGithubOrgTenant         Action = "AssociateGithubOrgTenant"
+	ActionAssociateGithubOrgWithTenant     Action = "AssociateGithubOrgWithTenant"
 	ActionListTenantGithubOrgs             Action = "ListTenantGithubOrgs"
 	ActionUpdateTenantGithubOrgAssociation Action = "UpdateTenantGithubOrgAssociation"
 	ActionDeleteTenantGithubOrgAssociation Action = "DeleteTenantGithubOrgAssociation"
@@ -278,7 +278,7 @@ func init() {
 		ActionDeleteGithubOrg,
 		ActionListGithubOrgs,
 		ActionGetGithubOrg,
-		ActionAssociateGithubOrgTenant,
+		ActionAssociateGithubOrgWithTenant,
 		ActionListTenantGithubOrgs,
 		ActionUpdateTenantGithubOrgAssociation,
 		ActionDeleteTenantGithubOrgAssociation,
