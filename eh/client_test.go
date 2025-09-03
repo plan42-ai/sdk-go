@@ -2140,7 +2140,7 @@ func TestAssociateGithubOrgWithTenant(t *testing.T) {
 		require.True(t, reqBody.ExpiresAt.Equal(expiresAt))
 
 		w.WriteHeader(http.StatusCreated)
-		resp := eh.TenantGithubOrg{TenantID: "abc", OrgID: "org", GithubUserID: 123, OAuthToken: "tok", OAuthRefreshToken: "ref", ExpiresAt: expiresAt}
+		resp := eh.TenantGithubOrg{TenantID: "abc", OrgID: "org", GithubUserID: 123, GithubUserName: "user", OAuthToken: "tok", OAuthRefreshToken: "ref", ExpiresAt: expiresAt}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -2159,6 +2159,7 @@ func TestAssociateGithubOrgWithTenant(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "abc", assoc.TenantID)
+	require.Equal(t, "user", assoc.GithubUserName)
 }
 
 func TestAssociateGithubOrgWithTenantError(t *testing.T) {
@@ -2191,7 +2192,7 @@ func TestAssociateGithubOrgWithTenantPathEscaping(t *testing.T) {
 		require.Equal(t, escapedGithubOrgID, parts[6])
 
 		w.WriteHeader(http.StatusCreated)
-		resp := eh.TenantGithubOrg{TenantID: tenantIDThatNeedsEscaping, OrgID: githubOrgIDThatNeedsEscaping}
+		resp := eh.TenantGithubOrg{TenantID: tenantIDThatNeedsEscaping, OrgID: githubOrgIDThatNeedsEscaping, GithubUserName: "user"}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -2315,7 +2316,7 @@ func TestListTenantGithubOrgs(t *testing.T) {
 		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.ListTenantGithubOrgsResponse{Orgs: []eh.TenantGithubOrg{{TenantID: "abc", OrgID: "org"}}}
+		resp := eh.ListTenantGithubOrgsResponse{Orgs: []eh.TenantGithubOrg{{TenantID: "abc", OrgID: "org", GithubUserName: "user"}}}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -2329,6 +2330,7 @@ func TestListTenantGithubOrgs(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.Orgs, 1)
 	require.Equal(t, "org", resp.Orgs[0].OrgID)
+	require.Equal(t, "user", resp.Orgs[0].GithubUserName)
 }
 
 func TestListTenantGithubOrgsError(t *testing.T) {

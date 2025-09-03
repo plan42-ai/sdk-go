@@ -2431,6 +2431,7 @@ Content-Type: application/json; charset=utf-8
   "TenantID": "string",
   "OrgID": "string",
   "GithubUserID": int,
+  "GithubUserName": "string",
   "OAuthToken": "string",
   "OAuthRefreshToken": "string",
   "ExpiresAt": "string"
@@ -2449,6 +2450,7 @@ Content-Type: application/json; charset=utf-8
 | TenantID          | string | The ID of the tenant.                                                                      |
 | OrgID             | string | The ID of the github org.                                                                  |
 | GithubUserID      | int    | The ID of the github user in Github.                                                       |
+| GithubUserName    | string | The username of the github user in Github.                                                 |
 | OAuthToken        | string | The OAuth token for the github user.                                                       |
 | OAuthRefreshToken | string | The OAuth refresh token for the github user.                                               |
 | ExpiresAt         | string | The timestamp when the OAuth token expires, in ISO 8601 format.                            |
