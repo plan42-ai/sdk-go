@@ -1226,7 +1226,7 @@ func (c *Client) AssociateGithubOrgWithTenant(ctx context.Context, req *Associat
 	return &out, nil
 }
 
-// ListTenantGithubOrgsRequest is the request for ListTenantGithubOrgs.
+// ListTenantGithubOrgsRequest is the request for ListTenantOrgs.
 type ListTenantGithubOrgsRequest struct {
 	DelegatedAuthInfo
 	TenantID       string
@@ -1252,7 +1252,7 @@ func (r *ListTenantGithubOrgsRequest) GetField(name string) (any, bool) {
 	}
 }
 
-// ListTenantGithubOrgsResponse is the response from ListTenantGithubOrgs.
+// ListTenantGithubOrgsResponse is the response from ListTenantOrgs.
 type ListTenantGithubOrgsResponse struct {
 	Orgs      []TenantGithubOrg `json:"Orgs"`
 	NextToken *string           `json:"NextToken"`

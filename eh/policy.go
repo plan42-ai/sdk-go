@@ -98,7 +98,7 @@ const (
 	ActionListGithubOrgs                   Action = "ListGithubOrgs"
 	ActionGetGithubOrg                     Action = "GetGithubOrg"
 	ActionAssociateGithubOrgWithTenant     Action = "AssociateGithubOrgWithTenant"
-	ActionListTenantGithubOrgs             Action = "ListTenantGithubOrgs"
+	ActionListTenantGithubOrgs             Action = "ListTenantOrgs"
 	ActionUpdateTenantGithubOrgAssociation Action = "UpdateTenantGithubOrgAssociation"
 	ActionDeleteTenantGithubOrgAssociation Action = "DeleteTenantGithubOrgAssociation"
 	ActionGetTenantGithubOrgAssociation    Action = "GetTenantGithubOrgAssociation"
