@@ -2123,14 +2123,14 @@ func TestAddGithubOrgPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestAssociateGithubOrgTenant(t *testing.T) {
+func TestAssociateGithubOrgWithTenant(t *testing.T) {
 	t.Parallel()
 	expiresAt := time.Date(2023, 1, 2, 3, 4, 5, 0, time.UTC)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPut, r.Method)
 		require.Equal(t, "/v1/tenants/abc/github/orgs/org", r.URL.Path)
 
-		var reqBody eh.AssociateGithubOrgTenantRequest
+		var reqBody eh.AssociateGithubOrgWithTenantRequest
 		err := json.NewDecoder(r.Body).Decode(&reqBody)
 		require.NoError(t, err)
 		require.Equal(t, 123, reqBody.GithubUserID)
@@ -2148,7 +2148,7 @@ func TestAssociateGithubOrgTenant(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	assoc, err := client.AssociateGithubOrgTenant(context.Background(), &eh.AssociateGithubOrgTenantRequest{
+	assoc, err := client.AssociateGithubOrgWithTenant(context.Background(), &eh.AssociateGithubOrgWithTenantRequest{
 		TenantID:          "abc",
 		OrgID:             "org",
 		GithubUserID:      123,
@@ -2161,12 +2161,12 @@ func TestAssociateGithubOrgTenant(t *testing.T) {
 	require.Equal(t, "abc", assoc.TenantID)
 }
 
-func TestAssociateGithubOrgTenantError(t *testing.T) {
+func TestAssociateGithubOrgWithTenantError(t *testing.T) {
 	t.Parallel()
 	srv, client := serveBadRequest()
 	defer srv.Close()
 
-	_, err := client.AssociateGithubOrgTenant(context.Background(), &eh.AssociateGithubOrgTenantRequest{
+	_, err := client.AssociateGithubOrgWithTenant(context.Background(), &eh.AssociateGithubOrgWithTenantRequest{
 		TenantID:          "abc",
 		OrgID:             "org",
 		GithubUserID:      1,
@@ -2181,7 +2181,7 @@ func TestAssociateGithubOrgTenantError(t *testing.T) {
 	require.Equal(t, "bad", clientErr.Message)
 }
 
-func TestAssociateGithubOrgTenantPathEscaping(t *testing.T) {
+func TestAssociateGithubOrgWithTenantPathEscaping(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		escapedPath := r.URL.EscapedPath()
@@ -2199,7 +2199,7 @@ func TestAssociateGithubOrgTenantPathEscaping(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	_, err := client.AssociateGithubOrgTenant(context.Background(), &eh.AssociateGithubOrgTenantRequest{
+	_, err := client.AssociateGithubOrgWithTenant(context.Background(), &eh.AssociateGithubOrgWithTenantRequest{
 		TenantID:          tenantIDThatNeedsEscaping,
 		OrgID:             githubOrgIDThatNeedsEscaping,
 		GithubUserID:      1,

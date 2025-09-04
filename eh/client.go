@@ -1145,8 +1145,8 @@ func (c *Client) DeleteGithubOrg(ctx context.Context, req *DeleteGithubOrgReques
 	return nil
 }
 
-// AssociateGithubOrgTenantRequest is the request payload for AssociateGithubOrgTenant.
-type AssociateGithubOrgTenantRequest struct {
+// AssociateGithubOrgWithTenantRequest is the request payload for AssociateGithubOrgWithTenant.
+type AssociateGithubOrgWithTenantRequest struct {
 	DelegatedAuthInfo
 	TenantID          string    `json:"-"`
 	OrgID             string    `json:"-"`
@@ -1159,7 +1159,7 @@ type AssociateGithubOrgTenantRequest struct {
 
 // GetField retrieves the value of a field by name.
 // nolint: goconst
-func (r *AssociateGithubOrgTenantRequest) GetField(name string) (any, bool) {
+func (r *AssociateGithubOrgWithTenantRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
 		return r.TenantID, true
@@ -1180,8 +1180,8 @@ func (r *AssociateGithubOrgTenantRequest) GetField(name string) (any, bool) {
 	}
 }
 
-// AssociateGithubOrgTenant associates a github org with a tenant.
-func (c *Client) AssociateGithubOrgTenant(ctx context.Context, req *AssociateGithubOrgTenantRequest) (*TenantGithubOrg, error) {
+// AssociateGithubOrgWithTenant associates a github org with a tenant.
+func (c *Client) AssociateGithubOrgWithTenant(ctx context.Context, req *AssociateGithubOrgWithTenantRequest) (*TenantGithubOrg, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
