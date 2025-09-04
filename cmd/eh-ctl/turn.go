@@ -9,11 +9,11 @@ import (
 )
 
 type TurnOptions struct {
-	Create  CreateTurnOptions  `cmd:"create"`
-	List    ListTurnsOptions   `cmd:"list"`
-	Update  UpdateTurnOptions  `cmd:"update"`
-	Get     GetTurnOptions     `cmd:"get"`
-	GetLast GetLastTurnOptions `cmd:"get-last"`
+	Create  CreateTurnOptions  `cmd:""`
+	List    ListTurnsOptions   `cmd:""`
+	Update  UpdateTurnOptions  `cmd:""`
+	Get     GetTurnOptions     `cmd:""`
+	GetLast GetLastTurnOptions `cmd:""`
 }
 
 type CreateTurnOptions struct {

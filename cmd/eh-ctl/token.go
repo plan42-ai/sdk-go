@@ -8,7 +8,7 @@ import (
 )
 
 type UITokenOptions struct {
-	Generate GenerateUITokenOptions `cmd:"generate"`
+	Generate GenerateUITokenOptions `cmd:""`
 }
 
 type GenerateUITokenOptions struct {

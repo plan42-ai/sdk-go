@@ -10,11 +10,11 @@ import (
 )
 
 type EnvironmentOptions struct {
-	Create CreateEnvironmentOptions `cmd:"create"`
-	Get    GetEnvironmentOptions    `cmd:"get"`
-	Update UpdateEnvironmentOptions `cmd:"update"`
-	Delete DeleteEnvironmentOptions `cmd:"delete"`
-	List   ListEnvironmentsOptions  `cmd:"list"`
+	Create CreateEnvironmentOptions `cmd:""`
+	Get    GetEnvironmentOptions    `cmd:""`
+	Update UpdateEnvironmentOptions `cmd:""`
+	Delete DeleteEnvironmentOptions `cmd:""`
+	List   ListEnvironmentsOptions  `cmd:""`
 }
 
 type CreateEnvironmentOptions struct {

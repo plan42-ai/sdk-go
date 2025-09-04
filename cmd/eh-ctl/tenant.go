@@ -8,9 +8,9 @@ import (
 )
 
 type TenantOptions struct {
-	CreateUser  CreateUserOptions     `cmd:"create-user"`
-	CurrentUser GetCurrentUserOptions `cmd:"current-user"`
-	Get         GetTenantOptions      `cmd:"get"`
+	CreateUser  CreateUserOptions     `cmd:""`
+	CurrentUser GetCurrentUserOptions `cmd:""`
+	Get         GetTenantOptions      `cmd:""`
 }
 
 type CreateUserOptions struct {

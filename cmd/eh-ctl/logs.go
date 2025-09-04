@@ -12,8 +12,8 @@ import (
 )
 
 type LogsOptions struct {
-	Stream StreamLogsOptions `cmd:"stream"`
-	Upload UploadLogsOptions `cmd:"upload"`
+	Stream StreamLogsOptions `cmd:""`
+	Upload UploadLogsOptions `cmd:""`
 }
 
 type StreamLogsOptions struct {
