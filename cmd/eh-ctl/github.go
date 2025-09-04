@@ -20,6 +20,7 @@ type GithubOptions struct {
 	GetTenantOrg    GetTenantOrgOptions          `cmd:""`
 	ListTenantOrgs  ListTenantOrgsOptions        `cmd:""`
 	UpdateTenantOrg UpdateTenantOrgOptions       `cmd:""`
+	DeleteTenantOrg DeleteTenantOrgOptions       `cmd:""`
 }
 
 type AddGithubOrgOptions struct {
@@ -216,15 +217,17 @@ func (o *GetTenantOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type ListTenantOrgsOptions struct {
-	TenantID string `help:"The tenant ID to list github orgs for" name:"tenant-id" short:"i" required:""`
+	TenantID       string `help:"The tenant ID to list github orgs for" name:"tenant-id" short:"i" required:""`
+	IncludeDeleted bool   `help:"Include deleted org associations" short:"d"`
 }
 
 func (o *ListTenantOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var token *string
 	for {
 		req := &eh.ListTenantGithubOrgsRequest{
-			TenantID: o.TenantID,
-			Token:    token,
+			TenantID:       o.TenantID,
+			Token:          token,
+			IncludeDeleted: pointer(o.IncludeDeleted),
 		}
 		processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
@@ -290,4 +293,27 @@ func (o *UpdateTenantOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 		return err
 	}
 	return printJSON(updated)
+}
+
+type DeleteTenantOrgOptions struct {
+	TenantID      string `help:"The tenant ID to delete the association for." name:"tenant-id" short:"i" required:""`
+	InternalOrgID string `help:"The internal org id of the github org to delete." name:"internal-org-id" short:"O" required:""`
+}
+
+func (o *DeleteTenantOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetTenantGithubOrgAssociationRequest{TenantID: o.TenantID, OrgID: o.InternalOrgID}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	assoc, err := s.Client.GetTenantGithubOrgAssociation(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req := &eh.DeleteTenantGithubOrgAssociationRequest{
+		TenantID: o.TenantID,
+		OrgID:    o.InternalOrgID,
+		Version:  assoc.Version,
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	return s.Client.DeleteTenantGithubOrgAssociation(ctx, req)
 }
