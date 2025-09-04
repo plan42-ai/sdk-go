@@ -22,6 +22,7 @@ type TenantGithubOrg struct {
 	TenantID          string    `json:"TenantID"`
 	OrgID             string    `json:"OrgID"`
 	GithubUserID      int       `json:"GithubUserID"`
+	GithubUserName    string    `json:"GithubUserName"`
 	OAuthToken        string    `json:"OAuthToken"`
 	OAuthRefreshToken string    `json:"OAuthRefreshToken"`
 	ExpiresAt         time.Time `json:"ExpiresAt"`
