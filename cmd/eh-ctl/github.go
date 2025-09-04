@@ -18,6 +18,7 @@ type GithubOptions struct {
 	DeleteOrg       DeleteGithubOrgOptions       `cmd:"delete-org"`
 	AssociateTenant AssociateGithubTenantOptions `cmd:"associate-tenant"`
 	ListTenantOrgs  ListTenantOrgsOptions        `cmd:"list-tenant-orgs"`
+	UpdateTenantOrg UpdateTenantOrgOptions       `cmd:"update-tenant-orgs"`
 }
 
 type AddGithubOrgOptions struct {
@@ -220,4 +221,51 @@ func (o *ListTenantOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 		token = resp.NextToken
 	}
 	return nil
+}
+
+type UpdateTenantOrgOptions struct {
+	TenantID      string `help:"The tenant ID to edit the org association for" name:"tenant-id" short:"i" required:""`
+	InternalOrgID string `help:"The internal org id of the github org to update" name:"internal-org-id" short:"O" required:""`
+	JSON          string `help:"The json file to load the updated association metadata from" short:"j" default:"-"`
+}
+
+func (o *UpdateTenantOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.UpdateTenantGithubOrgAssociationRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	req.TenantID = o.TenantID
+	req.OrgID = o.InternalOrgID
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	getReq := &eh.GetTenantGithubOrgAssociationRequest{
+		TenantID:       o.TenantID,
+		OrgID:          o.InternalOrgID,
+		IncludeDeleted: pointer(true),
+	}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	assoc, err := s.Client.GetTenantGithubOrgAssociation(ctx, getReq)
+	if err != nil {
+		return err
+	}
+	req.Version = assoc.Version
+
+	updated, err := s.Client.UpdateTenantGithubOrgAssociation(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
 }
