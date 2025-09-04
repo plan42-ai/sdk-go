@@ -11,11 +11,12 @@ import (
 )
 
 type GithubOptions struct {
-	AddOrg    AddGithubOrgOptions    `cmd:"add-org"`
-	ListOrgs  ListGithubOrgsOptions  `cmd:"list-orgs"`
-	GetOrg    GetGithubOrgOptions    `cmd:"get-org"`
-	UpdateOrg UpdateGithubOrgOptions `cmd:"update-org"`
-	DeleteOrg DeleteGithubOrgOptions `cmd:"delete-org"`
+	AddOrg          AddGithubOrgOptions          `cmd:"add-org"`
+	ListOrgs        ListGithubOrgsOptions        `cmd:"list-orgs"`
+	GetOrg          GetGithubOrgOptions          `cmd:"get-org"`
+	UpdateOrg       UpdateGithubOrgOptions       `cmd:"update-org"`
+	DeleteOrg       DeleteGithubOrgOptions       `cmd:"delete-org"`
+	AssociateTenant AssociateGithubTenantOptions `cmd:"associate-tenant"`
 }
 
 type AddGithubOrgOptions struct {
@@ -154,4 +155,38 @@ func (o *DeleteGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 
 	req := &eh.DeleteGithubOrgRequest{OrgID: o.InternalOrgID, Version: org.Version}
 	return s.Client.DeleteGithubOrg(ctx, req)
+}
+
+type AssociateGithubTenantOptions struct {
+	TenantID      string `help:"The tenant ID to associate the github org with" name:"tenant-id" short:"i" required:""`
+	InternalOrgID string `help:"The internal org id of the github org to associate with the tenant" name:"internal-org-id" short:"O" required:""`
+	JSON          string `help:"The json file to load the tenant association data from" short:"j" default:"-"`
+}
+
+func (o *AssociateGithubTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.AssociateGithubOrgWithTenantRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+	req.TenantID = o.TenantID
+	req.OrgID = o.InternalOrgID
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	assoc, err := s.Client.AssociateGithubOrgWithTenant(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(assoc)
 }
