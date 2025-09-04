@@ -17,6 +17,7 @@ type GithubOptions struct {
 	UpdateOrg       UpdateGithubOrgOptions       `cmd:"update-org"`
 	DeleteOrg       DeleteGithubOrgOptions       `cmd:"delete-org"`
 	AssociateTenant AssociateGithubTenantOptions `cmd:"associate-tenant"`
+	ListTenantOrgs  ListTenantOrgsOptions        `cmd:"list-tenant-orgs"`
 }
 
 type AddGithubOrgOptions struct {
@@ -189,4 +190,34 @@ func (o *AssociateGithubTenantOptions) Run(ctx context.Context, s *SharedOptions
 		return err
 	}
 	return printJSON(assoc)
+}
+
+type ListTenantOrgsOptions struct {
+	TenantID string `help:"The tenant ID to list github orgs for" name:"tenant-id" short:"i" required:""`
+}
+
+func (o *ListTenantOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var token *string
+	for {
+		req := &eh.ListTenantGithubOrgsRequest{
+			TenantID: o.TenantID,
+			Token:    token,
+		}
+		processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+		resp, err := s.Client.ListTenantGithubOrgs(ctx, req)
+		if err != nil {
+			return err
+		}
+		for _, org := range resp.Orgs {
+			if err := printJSON(org); err != nil {
+				return err
+			}
+		}
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+	return nil
 }
