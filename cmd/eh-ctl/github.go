@@ -17,6 +17,7 @@ type GithubOptions struct {
 	UpdateOrg       UpdateGithubOrgOptions       `cmd:"update-org"`
 	DeleteOrg       DeleteGithubOrgOptions       `cmd:"delete-org"`
 	AssociateTenant AssociateGithubTenantOptions `cmd:"associate-tenant"`
+	GetTenantOrg    GetTenantOrgOptions          `cmd:"get-tenant-org"`
 	ListTenantOrgs  ListTenantOrgsOptions        `cmd:"list-tenant-orgs"`
 	UpdateTenantOrg UpdateTenantOrgOptions       `cmd:"update-tenant-orgs"`
 }
@@ -187,6 +188,27 @@ func (o *AssociateGithubTenantOptions) Run(ctx context.Context, s *SharedOptions
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	assoc, err := s.Client.AssociateGithubOrgWithTenant(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(assoc)
+}
+
+type GetTenantOrgOptions struct {
+	TenantID       string `help:"The tenant ID to fetch the association for." name:"tenant-id" short:"i" required:""`
+	InternalOrgID  string `help:"The internal org id of the associated github org." name:"internal-org-id" short:"O" required:""`
+	IncludeDeleted bool   `help:"Include deleted org associations" short:"d"`
+}
+
+func (o *GetTenantOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetTenantGithubOrgAssociationRequest{
+		TenantID:       o.TenantID,
+		OrgID:          o.InternalOrgID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	assoc, err := s.Client.GetTenantGithubOrgAssociation(ctx, req)
 	if err != nil {
 		return err
 	}
