@@ -10,11 +10,11 @@ import (
 )
 
 type TaskOptions struct {
-	Create CreateTaskOptions `cmd:"create"`
-	Update UpdateTaskOptions `cmd:"update"`
-	Delete DeleteTaskOptions `cmd:"delete"`
-	List   ListTasksOptions  `cmd:"list"`
-	Get    GetTaskOptions    `cmd:"get"`
+	Create CreateTaskOptions `cmd:""`
+	Update UpdateTaskOptions `cmd:""`
+	Delete DeleteTaskOptions `cmd:""`
+	List   ListTasksOptions  `cmd:""`
+	Get    GetTaskOptions    `cmd:""`
 }
 
 type CreateTaskOptions struct {

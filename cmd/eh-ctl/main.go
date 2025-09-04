@@ -53,14 +53,14 @@ func is404(err error) bool {
 
 type Options struct {
 	SharedOptions
-	Tenant      TenantOptions      `cmd:"tenant"`
-	Policies    PolicyOptions      `cmd:"policies"`
-	Github      GithubOptions      `cmd:"github"`
-	UIToken     UITokenOptions     `cmd:"ui-token"`
-	Environment EnvironmentOptions `cmd:"environment"`
-	Task        TaskOptions        `cmd:"task"`
-	Turn        TurnOptions        `cmd:"turn"`
-	Logs        LogsOptions        `cmd:"logs"`
+	Tenant      TenantOptions      `cmd:""`
+	Policies    PolicyOptions      `cmd:""`
+	Github      GithubOptions      `cmd:""`
+	UIToken     UITokenOptions     `cmd:""`
+	Environment EnvironmentOptions `cmd:""`
+	Task        TaskOptions        `cmd:""`
+	Turn        TurnOptions        `cmd:""`
+	Logs        LogsOptions        `cmd:""`
 	Ctx         context.Context    `kong:"-"`
 }
 
@@ -112,7 +112,7 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Github.AssociateTenant.Run(options.Ctx, &options.SharedOptions)
 	case "github list-tenant-orgs":
 		return options.Github.ListTenantOrgs.Run(options.Ctx, &options.SharedOptions)
-	case "github update-tenant-orgs":
+	case "github update-tenant-org":
 		return options.Github.UpdateTenantOrg.Run(options.Ctx, &options.SharedOptions)
 	case "github get-tenant-org":
 		return options.Github.GetTenantOrg.Run(options.Ctx, &options.SharedOptions)

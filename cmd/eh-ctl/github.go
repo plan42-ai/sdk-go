@@ -11,15 +11,15 @@ import (
 )
 
 type GithubOptions struct {
-	AddOrg          AddGithubOrgOptions          `cmd:"add-org"`
-	ListOrgs        ListGithubOrgsOptions        `cmd:"list-orgs"`
-	GetOrg          GetGithubOrgOptions          `cmd:"get-org"`
-	UpdateOrg       UpdateGithubOrgOptions       `cmd:"update-org"`
-	DeleteOrg       DeleteGithubOrgOptions       `cmd:"delete-org"`
-	AssociateTenant AssociateGithubTenantOptions `cmd:"associate-tenant"`
-	GetTenantOrg    GetTenantOrgOptions          `cmd:"get-tenant-org"`
-	ListTenantOrgs  ListTenantOrgsOptions        `cmd:"list-tenant-orgs"`
-	UpdateTenantOrg UpdateTenantOrgOptions       `cmd:"update-tenant-orgs"`
+	AddOrg          AddGithubOrgOptions          `cmd:""`
+	ListOrgs        ListGithubOrgsOptions        `cmd:""`
+	GetOrg          GetGithubOrgOptions          `cmd:""`
+	UpdateOrg       UpdateGithubOrgOptions       `cmd:""`
+	DeleteOrg       DeleteGithubOrgOptions       `cmd:""`
+	AssociateTenant AssociateGithubTenantOptions `cmd:""`
+	GetTenantOrg    GetTenantOrgOptions          `cmd:""`
+	ListTenantOrgs  ListTenantOrgsOptions        `cmd:""`
+	UpdateTenantOrg UpdateTenantOrgOptions       `cmd:""`
 }
 
 type AddGithubOrgOptions struct {

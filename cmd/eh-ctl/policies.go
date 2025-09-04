@@ -7,7 +7,7 @@ import (
 )
 
 type PolicyOptions struct {
-	List ListPoliciesOptions `cmd:"list"`
+	List ListPoliciesOptions `cmd:""`
 }
 
 type ListPoliciesOptions struct {
