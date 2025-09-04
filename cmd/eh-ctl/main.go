@@ -116,6 +116,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Github.UpdateTenantOrg.Run(options.Ctx, &options.SharedOptions)
 	case "github get-tenant-org":
 		return options.Github.GetTenantOrg.Run(options.Ctx, &options.SharedOptions)
+	case "github delete-tenant-org":
+		return options.Github.DeleteTenantOrg.Run(options.Ctx, &options.SharedOptions)
 	case "environment create":
 		return options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
 	case "environment get":
