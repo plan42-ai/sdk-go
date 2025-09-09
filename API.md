@@ -2672,3 +2672,238 @@ Content-Type: application/json; charset=utf-8
 | UpdatedAt         | string | The timestamp when the association was last updated, in ISO 8601 format.                   |
 | Version           | int    | The version of the association. This is incremented every time the association is updated. |
 | Deleted           | bool   | Whether the association has been deleted.                                                  |
+
+# 41. CreateWorkstream 
+
+CreateWorkstream creates a new workstream for the given tenant.
+
+## 41.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/workstreams/{workstream_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "Name": "string",
+    "Description": "*string"
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to create the workstream for.                  |
+| workstream_id                            | path     | string  | The ID of the workstream to create. This must be a v4 UUID.         |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+| Name                                     | body     | string  | The name of the workstream.                                         |
+| Description                              | body     | string  | The description of the workstream.                                  |
+
+## 41.2 Response
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "WorkstreamID": "string",
+  "TenantID": "string",
+  "Name": "string",
+  "Description": "string",
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Paused": bool,
+  "Deleted": bool
+}
+```
+
+| Field        | Type   | Description                                                                              |
+|--------------|--------|------------------------------------------------------------------------------------------|
+| WorkstreamID | string | The ID of the workstream.                                                                |
+| TenantID     | string | The ID of the tenant that owns the workstream.                                           |
+| Name         | string | The name of the workstream.                                                              |
+| Description  | string | The description of the workstream.                                                       |
+| CreatedAt    | string | The timestamp when the workstream was created, in ISO 8601 format.                       |
+| UpdatedAt    | string | The timestamp when the workstream was last updated, in ISO 8601 format.                  |
+| Version      | int    | The version of the workstream. This is incremented every time the workstream is updated. |
+| Paused       | bool   | Whether the workstream is paused. Defaults to true for new workstreams.                  |
+| Deleted      | bool   | Whether the workstream has been deleted.                                                 |
+
+# 42. ListWorkstreams
+
+ListWorkstreams lists all workstreams for a given tenant.
+
+## 42.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/workstreams?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to list workstreams for.                                                                   |
+| maxResults                               | query    | *int    | Optional. The maximum number of workstreams to return. Default is 500. Must be >=1 and <= 500.                  |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted workstreams in the results.                                            |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 42.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Workstreams": [],
+  "NextToken": "*string"
+}
+```
+
+| Field       | Type                          | Description                                                                                    |
+|-------------|-------------------------------|------------------------------------------------------------------------------------------------|
+| Workstreams | [][Workstream](#422-response) | A list of workstreams for the tenant.                                                          |
+| NextToken   | *string                       | A token to retrieve the next page of results. If there are no more results, this will be null. |
+
+# 43. GetWorkstream
+
+GetWorkstream retrieves a workstream by ID for a given tenant.
+
+## 43.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}?includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to get the workstream for.                     |
+| workstream_id                            | path     | string  | The ID of the workstream to get.                                    |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return a deleted workstream.               |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 43.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "WorkstreamID": "string",
+  "TenantID": "string",
+  "Name": "string",
+  "Description": "string",
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Paused": bool,
+  "Deleted": bool
+}
+```
+
+See the [Workstream](#422-response) type for field descriptions.
+
+# 44. UpdateWorkstream
+UpdateWorkstream updates a workstream for a given tenant.
+
+## 44.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/workstreams/{workstream_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "Name": "*string",
+    "Description": "*string",
+    "Paused": "*bool",
+    "Deleted": "*bool"
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                               |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to update the workstream for.                                                                                                        |
+| workstream_id                            | path     | string  | The ID of the workstream to update.                                                                                                                       |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                 |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                    |
+| X-Event-Horizon-Signed-Headers           | header   | *string |                                                                                                                                                           | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
+| version                                  | header   | string  | The version of the workstream to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+| Name                                     | body     | *string | If set, update the name of the workstream.                                                                                                                |
+| Description                              | body     | *string | If set, update the description of the workstream.                                                                                                         |
+| Paused                                   | body     | *bool   | If set, update whether the workstream is paused.                                                                                                          |
+| Deleted                                  | body     | *bool   | If set to false, undelete the workstream.                                                                                                                 |
+
+## 44.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "WorkstreamID": "string",
+  "TenantID": "string",
+  "Name": "string",
+  "Description": "string",
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Paused": bool,
+  "Deleted": bool
+}
+```
+
+See the [Workstream](#422-response) type for field descriptions.
+
+# 45. DeleteWorkstream
+DeleteWorkstream soft deletes a workstream for a given tenant.
+
+## 45.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/workstreams/{workstream_id} HTTP/1.1
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                               |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to delete the workstream for.                                                                                                        |
+| workstream_id                            | path     | string  | The ID of the workstream to delete.                                                                                                                       |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                 |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                    |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                       |
+| version                                  | header   | string  | The version of the workstream to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+
+## 45.2 Response
+
+On success a 204 NO CONTENT is returned with no body.
+
