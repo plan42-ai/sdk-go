@@ -235,18 +235,14 @@ func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task,
 // UpdateTaskRequest is the request payload for UpdateTask.
 type UpdateTaskRequest struct {
 	DelegatedAuthInfo
-	TenantID           string                `json:"-"`
-	TaskID             string                `json:"-"`
-	Version            int                   `json:"-"`
-	Title              *string               `json:"Title,omitempty"`
-	Prompt             *string               `json:"Prompt,omitempty"`
-	AfterTaskID        *string               `json:"AfterTaskId,omitempty"`
-	Parallel           *bool                 `json:"Parallel,omitempty"`
-	Model              *ModelType            `json:"Model,omitempty"`
-	AssignedToTenantID *string               `json:"AssignedToTenantId,omitempty"`
-	AssignedToAI       *bool                 `json:"AssignedToAI,omitempty"`
-	RepoInfo           *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
-	Deleted            *bool                 `json:"Deleted,omitempty"`
+	TenantID string                `json:"-"`
+	TaskID   string                `json:"-"`
+	Version  int                   `json:"-"`
+	Title    *string               `json:"Title,omitempty"`
+	Prompt   *string               `json:"Prompt,omitempty"`
+	Model    *ModelType            `json:"Model,omitempty"`
+	RepoInfo *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
+	Deleted  *bool                 `json:"Deleted,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -262,16 +258,8 @@ func (r *UpdateTaskRequest) GetField(name string) (any, bool) {
 		return evalNullable(r.Title)
 	case "Prompt":
 		return evalNullable(r.Prompt)
-	case "AfterTaskID":
-		return evalNullable(r.AfterTaskID)
-	case "Parallel":
-		return evalNullable(r.Parallel)
 	case "Model":
 		return evalNullable(r.Model)
-	case "AssignedToTenantID":
-		return evalNullable(r.AssignedToTenantID)
-	case "AssignedToAI":
-		return evalNullable(r.AssignedToAI)
 	case "RepoInfo":
 		return evalNullable(r.RepoInfo)
 	case "Deleted":

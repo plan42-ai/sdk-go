@@ -1593,11 +1593,7 @@ If-Match: <version>
 {
     "Title": "*string",
     "Prompt": "*string",
-    "AfterTaskID": "*string",
-    "Parallel": *bool,
     "Model": "*ModelType",
-    "AssignedToTenantID": "*string",
-    "AssignedToAI" : *bool,
     "RepoInfo" : {},
     "Deleted": *bool
 }
@@ -1613,13 +1609,10 @@ If-Match: <version>
 | version                                  | header   | string                 | The version of the task to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
 | Title                                    | body     | *string                | If set, update the task's title.                                                                                                                     |
 | Prompt                                   | body     | *string                | If set, update the task's prompt.                                                                                                                    |
-| AfterTaskID                              | body     | *string                | If set, update the task's AfterTaskID.                                                                                                               |
-| Parallel                                 | body     | *bool                  | If set, update the task's parallel flag.                                                                                                             |
 | Model                                    | body     | *ModelType             | If set, update the task's model type.                                                                                                                |
-| AssignedToTenantID                       | body     | *string                | If set, update the task's assigned tenant ID.                                                                                                        |
-| AssignedToAI                             | body     | *bool                  | If set, update the task's assigned to AI flag.                                                                                                       |
 | RepoInfo                                 | body     | map[string][*RepoInfo] | If set, update the task's repository info. This tracks branch names and PR links for each repo used in the environment.                              |
 | Deleted                                  | body     | *bool                  | If set to false, undelete the task. May not be set to true. Use DeleteTask instead.                                                                  |
+
 ## 21.2 Response
 
 On success a 200 OK is returned with the following JSON body:
