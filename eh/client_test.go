@@ -2624,6 +2624,7 @@ func TestUpdateGithubOrgConflictError(t *testing.T) {
 	verifyGithubOrgConflict(t, err)
 }
 
+// nolint: dupl
 func TestUpdateGithubOrgPathEscaping(t *testing.T) {
 	t.Parallel()
 
@@ -3007,6 +3008,88 @@ func TestListFeatureFlagsError(t *testing.T) {
 
 	_, err := client.ListFeatureFlags(context.Background(), &eh.ListFeatureFlagsRequest{})
 	require.Error(t, err)
+}
+
+func TestUpdateFeatureFlag(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/featureflags/flag", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateFeatureFlagRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.Description)
+		require.Equal(t, "new", *reqBody.Description)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.FeatureFlag{Name: "flag", Description: "new", Version: 1}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	desc := "new"
+	flag, err := client.UpdateFeatureFlag(context.Background(), &eh.UpdateFeatureFlagRequest{
+		FlagName:    "flag",
+		Version:     1,
+		Description: &desc,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "flag", flag.Name)
+}
+
+func TestUpdateFeatureFlagError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UpdateFeatureFlag(context.Background(), &eh.UpdateFeatureFlagRequest{FlagName: "flag", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func TestUpdateFeatureFlagConflictError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveFeatureFlagConflict()
+	defer srv.Close()
+
+	_, err := client.UpdateFeatureFlag(context.Background(), &eh.UpdateFeatureFlagRequest{FlagName: "flag", Version: 1})
+	verifyFeatureFlagConflict(t, err)
+}
+
+// nolint: dupl
+func TestUpdateFeatureFlagPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 4, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedFeatureFlagName, parts[3])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.FeatureFlag{Name: featureFlagNameThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UpdateFeatureFlag(context.Background(), &eh.UpdateFeatureFlagRequest{
+		FlagName: featureFlagNameThatNeedsEscaping,
+		Version:  1,
+	})
+	require.NoError(t, err)
 }
 
 func TestGetTenantFeatureFlags(t *testing.T) {

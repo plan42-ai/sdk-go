@@ -228,3 +228,77 @@ func (c *Client) ListFeatureFlags(ctx context.Context, req *ListFeatureFlagsRequ
 	}
 	return &out, nil
 }
+
+// UpdateFeatureFlagRequest is the request payload for UpdateFeatureFlag.
+type UpdateFeatureFlagRequest struct {
+	DelegatedAuthInfo
+	FlagName    string   `json:"-"`
+	Version     int      `json:"-"`
+	Description *string  `json:"Description,omitempty"`
+	DefaultPct  *float64 `json:"DefaultPct,omitempty"`
+	Deleted     *bool    `json:"Deleted,omitempty"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *UpdateFeatureFlagRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "FlagName":
+		return r.FlagName, true
+	case "Version": //nolint: goconst
+		return r.Version, true
+	case "Description":
+		return evalNullable(r.Description)
+	case "DefaultPct":
+		return evalNullable(r.DefaultPct)
+	case "Deleted":
+		return evalNullable(r.Deleted)
+	default:
+		return nil, false
+	}
+}
+
+// UpdateFeatureFlag updates a feature flag.
+// nolint: dupl
+func (c *Client) UpdateFeatureFlag(ctx context.Context, req *UpdateFeatureFlagRequest) (*FeatureFlag, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.FlagName == "" {
+		return nil, fmt.Errorf("flag name is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "featureflags", url.PathEscape(req.FlagName))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out FeatureFlag
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
