@@ -2867,3 +2867,56 @@ func TestCreateFeatureFlagPathEscaping(t *testing.T) {
 	_, err := client.CreateFeatureFlag(context.Background(), &eh.CreateFeatureFlagRequest{FlagName: featureFlagNameThatNeedsEscaping, Description: "desc", DefaultPct: 0.5})
 	require.NoError(t, err)
 }
+
+func TestGetTenantFeatureFlags(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/featureflags", r.URL.Path)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GetTenantFeatureFlagsResponse{FeatureFlags: map[string]bool{"foo": true}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	resp, err := client.GetTenantFeatureFlags(context.Background(), &eh.GetTenantFeatureFlagsRequest{TenantID: "abc"})
+	require.NoError(t, err)
+	require.True(t, resp.FeatureFlags["foo"])
+}
+
+func TestGetTenantFeatureFlagsError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.GetTenantFeatureFlags(context.Background(), &eh.GetTenantFeatureFlagsRequest{TenantID: "abc"})
+	require.Error(t, err)
+}
+
+func TestGetTenantFeatureFlagsPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GetTenantFeatureFlagsResponse{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetTenantFeatureFlags(context.Background(), &eh.GetTenantFeatureFlagsRequest{TenantID: tenantIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
