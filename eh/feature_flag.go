@@ -645,3 +645,85 @@ func (c *Client) UpdateFeatureFlagOverride(ctx context.Context, req *UpdateFeatu
 	}
 	return &out, nil
 }
+
+// ListFeatureFlagOverridesRequest is the request for ListFeatureFlagOverrides.
+type ListFeatureFlagOverridesRequest struct {
+	DelegatedAuthInfo
+	TenantID       string  `json:"-"`
+	MaxResults     *int    `json:"-"`
+	Token          *string `json:"-"`
+	IncludeDeleted *bool   `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *ListFeatureFlagOverridesRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "MaxResults":
+		return evalNullable(r.MaxResults)
+	case "Token":
+		return evalNullable(r.Token)
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
+// ListFeatureFlagOverridesResponse is the response from ListFeatureFlagOverrides.
+type ListFeatureFlagOverridesResponse struct {
+	FeatureFlagOverrides []FeatureFlagOverride `json:"FeatureFlagOverrides"`
+	NextToken            *string               `json:"NextToken"`
+}
+
+// ListFeatureFlagOverrides lists feature flag overrides for a tenant.
+// nolint: dupl
+func (c *Client) ListFeatureFlagOverrides(ctx context.Context, req *ListFeatureFlagOverridesRequest) (*ListFeatureFlagOverridesResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "featureFlagOverrides")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out ListFeatureFlagOverridesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
