@@ -163,6 +163,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.FeatureFlag.Delete.Run(options.Ctx, &options.SharedOptions)
 	case "feature-flag update":
 		return options.FeatureFlag.Update.Run(options.Ctx, &options.SharedOptions)
+	case "feature-flag override":
+		return options.FeatureFlag.Override.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}

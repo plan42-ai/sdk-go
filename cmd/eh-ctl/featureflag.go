@@ -10,11 +10,12 @@ import (
 )
 
 type FeatureFlagOptions struct {
-	Add    AddFeatureFlagOptions    `cmd:""`
-	List   ListFeatureFlagsOptions  `cmd:""`
-	Get    GetFeatureFlagOptions    `cmd:""`
-	Delete DeleteFeatureFlagOptions `cmd:""`
-	Update UpdateFeatureFlagOptions `cmd:""`
+	Add      AddFeatureFlagOptions      `cmd:""`
+	List     ListFeatureFlagsOptions    `cmd:""`
+	Get      GetFeatureFlagOptions      `cmd:""`
+	Delete   DeleteFeatureFlagOptions   `cmd:""`
+	Update   UpdateFeatureFlagOptions   `cmd:""`
+	Override OverrideFeatureFlagOptions `cmd:""`
 }
 
 type AddFeatureFlagOptions struct {
@@ -161,6 +162,58 @@ func (o *UpdateFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) er
 	req.Version = flag.Version
 
 	updated, err := s.Client.UpdateFeatureFlag(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
+}
+
+type OverrideFeatureFlagOptions struct {
+	TenantID string `help:"The id of the tenant to add the override for." name:"tenant-id" short:"i" required:""`
+	FlagName string `help:"The name of the flag to get." name:"flag-name" short:"f" required:""`
+	Enabled  bool   `help:"When set, enables the flag. Otherwise the flag is disabled." name:"enabled" short:"e" optional:""`
+}
+
+func (o *OverrideFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetFeatureFlagOverrideRequest{
+		TenantID:       o.TenantID,
+		FlagName:       o.FlagName,
+		IncludeDeleted: pointer(true),
+	}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	flag, err := s.Client.GetFeatureFlagOverride(ctx, getReq)
+	if err != nil {
+		if !is404(err) {
+			return err
+		}
+
+		createReq := &eh.CreateFeatureFlagOverrideRequest{
+			TenantID: o.TenantID,
+			FlagName: o.FlagName,
+			Enabled:  o.Enabled,
+		}
+		processDelegatedAuth(s, &createReq.DelegatedAuthInfo)
+
+		flag, err = s.Client.CreateFeatureFlagOverride(ctx, createReq)
+		if err != nil {
+			return err
+		}
+		return printJSON(flag)
+	}
+
+	updateReq := &eh.UpdateFeatureFlagOverrideRequest{
+		TenantID: o.TenantID,
+		FlagName: o.FlagName,
+		Version:  flag.Version,
+		Enabled:  pointer(o.Enabled),
+	}
+	if flag.Deleted {
+		updateReq.Deleted = pointer(false)
+	}
+	processDelegatedAuth(s, &updateReq.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateFeatureFlagOverride(ctx, updateReq)
 	if err != nil {
 		return err
 	}
