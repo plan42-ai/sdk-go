@@ -390,7 +390,7 @@ Policies are defined using JSON.
   "DelegatedPrincipal": {},
   "Constraints":  [],
   "CreatedAt": "string", 
-  "UpdatedAt": "string",
+  "UpdatedAt": "string"
 }
 ```
 
@@ -925,7 +925,7 @@ This policy allows members of an enterprise to perform non-admin actions on the 
     "EnterpriseRole": "Member"
   },
   "Actions": [
-  ],
+  ]
 }
 ```
 
@@ -1091,7 +1091,7 @@ EnvVar is an object that defines an environment variable to set in the environme
 {
   "Name": "string",
   "Value": "string",
-  "IsSecret": bool,
+  "IsSecret": bool
 }
 ```
 
@@ -1518,7 +1518,7 @@ Content-Type: application/json; charset=utf-8
 ```
 | Field     | Type                    | Description                                                                                    |
 |-----------|-------------------------|------------------------------------------------------------------------------------------------|
-| Tasks     | [][Task](#182-response) | A list of tasks for the tenant, filtered by workstream if provided.                            |
+| Tasks     | [][Task](#183-response) | A list of tasks for the tenant, filtered by workstream if provided.                            |
 | NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
 
 # 20. GetTask
@@ -1641,7 +1641,7 @@ Content-Type: application/json; charset=utf-8
   "Version": int
 }
 ```
-See [CreateTask](#182-response) for details on the response fields.
+See [CreateTask](#183-response) for details on the response fields.
 
 # 22. DeleteTask
 
@@ -2899,4 +2899,457 @@ If-Match: <version>
 ## 45.2 Response
 
 On success a 204 NO CONTENT is returned with no body.
+
+# 46. CreateFeatureFlag
+
+CreateFeatureFlag is an admin api that creates a new feature flag.
+
+## 46.1 Request
+
+```http request
+PUT /v1/featureflags/{flag_name} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "Description": "string",
+    "DefaultPct" " float
+}
+```
+
+| Parameter                      | Location | Type    | Description                                                                                          |
+|--------------------------------|----------|---------|------------------------------------------------------------------------------------------------------|
+| flag_name                      | path     | string  | The name of the feature flag to create.                                                              |
+| Authorization                  | header   | string  | The authorization header for the request.                                                            |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                  | 
+| Description                    | body     | string  | The description of the feature flag.                                                                 |
+| DefaultPct                     | body     | float   | The default percentage of users that will have the feature flag enabled. Must be between 0.0 and 1.0 |
+
+## 46.2 Response
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "Name": "string",
+  "Description": "string",
+  "DefaultPct": float,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool
+}
+```
+
+| Field       | Type   | Description                                                                                  |
+|-------------|--------|----------------------------------------------------------------------------------------------|
+| Name        | string | The name of the feature flag.                                                                |
+| Description | string | The description of the feature flag.                                                         |
+| DefaultPct  | float  | The default percentage of users that will have the feature flag enabled.                     |
+| CreatedAt   | string | The timestamp when the feature flag was created, in ISO 8601 format.                         |
+| UpdatedAt   | string | The timestamp when the feature flag was last updated, in ISO 8601 format.                    |
+| Version     | int    | The version of the feature flag. This is incremented every time the feature flag is updated. |
+| Deleted     | bool   | Whether the feature flag has been deleted.                                                   |
+
+# 47. CreateFeatureFlagOverride
+
+CreateFeatureFlagOverride creates a new override for a feature flag for a specific tenant.
+
+## 47.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/featureFlagOverrides/{flagName} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "Enabled": bool
+}
+```
+
+| Parameter                      | Location | Type    | Description                                                         |
+|--------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                      | path     | string  | The ID of the tenant to create the override for.                    |
+| flag_name                      | path     | string  | The name of the feature flag to create the override for.            |
+| Authorization                  | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+| Enabled                        | body     | bool    | Whether the feature flag is enabled for the tenant.                 |
+
+## 47.2 Response
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "FlagName": "string",
+  "TenantID": "string",
+  "Enabled": bool,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool
+}
+```
+
+| Field     | Type   | Description                                                                          |
+|-----------|--------|--------------------------------------------------------------------------------------|
+| FlagName  | string | The name of the feature flag.                                                        |
+| TenantID  | string | The ID of the tenant.                                                                |
+| Enabled   | bool   | Whether the feature flag is enabled for the tenant.                                  |
+| CreatedAt | string | The timestamp when the override was created, in ISO 8601 format.                     |
+| UpdatedAt | string | The timestamp when the override was last updated, in ISO 8601 format.                |
+| Version   | int    | The version of the override. This is incremented every time the override is updated. |
+| Deleted   | bool   | Whether the override has been deleted.                                               |
+
+# 49. GetTenantFeatureFlags
+
+GetTenantFeatureFlags returns the values of all active feature flags for a given tenant.
+
+## 49.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/featureflags HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to get feature flags for.                      |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 49.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "FeatureFlags": {}
+}
+```
+
+| Field        | Type            | Description                                                                  |
+|--------------|-----------------|------------------------------------------------------------------------------|
+| FeatureFlags | map[string]bool | A map of feature flag names to their enabled/disabled status for the tenant. |
+
+# 50. ListFeatureFlags
+
+ListFeatureFlags is an admin api that lists all feature flags.
+
+## 50.1 Request
+
+```http request
+GET /v1/featureflags?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                     |
+|--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| maxResults                     | query    | *int    | Optional. The maximum number of feature flags to return. Default is 500. Must be >=1 and <= 500.                |
+| token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                 | query    | *bool   | Optional. Set to true to include deleted feature flags in the results.                                          |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 50.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "FeatureFlags": [],
+  "NextToken": "*string"
+}
+```
+
+| Field        | Type                           | Description                                                                                    |
+|--------------|--------------------------------|------------------------------------------------------------------------------------------------|
+| FeatureFlags | [][FeatureFlag](#462-response) | A list of feature flags.                                                                       |
+| NextToken    | *string                        | A token to retrieve the next page of results. If there are no more results, this will be null. |
+
+# 51. GetFeatureFlag
+
+GetFeatureFlag is an admin api that retrieves a feature flag by name.
+
+## 51.1 Request
+
+```http request
+GET /v1/featureflags/{flag_name}?includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                         |
+|--------------------------------|----------|---------|---------------------------------------------------------------------|
+| flag_name                      | path     | string  | The name of the feature flag to retrieve.                           |
+| includeDeleted                 | query    | *bool   | Optional. Set to true to return a deleted feature flag.             |
+| Authorization                  | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 51.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Name": "string",
+  "Description": "string",
+  "DefaultPct": float,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool
+}
+```
+
+See the [FeatureFlag](#462-response) type for field descriptions.
+
+# 52. UpdateFeatureFlag
+
+UpdateFeatureFlag is an admin api that updates a feature flag.
+
+## 52.1 Request
+
+```http request
+PATCH /v1/featureflags/{flag_name} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "Description": "*string",
+    "DefaultPct": "*float",
+    "Deleted": "*bool"
+}
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                                                                 |
+|--------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| flag_name                      | path     | string  | The name of the feature flag to update.                                                                                                                     |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                                                                   |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
+| version                        | header   | string  | The version of the feature flag to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+| Description                    | body     | *string | If set, update the description of the feature flag.                                                                                                         |
+| DefaultPct                     | body     | *float  | If set, update the default percentage of users that will have the feature flag enabled. Must be between 0.0 and 1.0.                                        |
+| Deleted                        | body     | *bool   | If set to false, undelete the feature flag.                                                                                                                 |
+
+## 52.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Name": "string",
+  "Description": "string",
+  "DefaultPct": float,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool
+}
+```
+
+See the [FeatureFlag](#462-response) type for field descriptions.
+
+# 53. DeleteFeatureFlag
+
+DeleteFeatureFlag is an admin api that soft deletes a feature flag.
+
+## 53.1 Request
+
+```http request
+DELETE /v1/featureflags/{flag_name} HTTP/1.1
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                                                                 |
+|--------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| flag_name                      | path     | string  | The name of the feature flag to delete.                                                                                                                     |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                                                                   |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
+| version                        | header   | string  | The version of the feature flag to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+
+## 53.2 Response
+On success a 204 NO CONTENT is returned with no body.
+
+# 54. ListFeatureFlagOverrides
+
+ListFeatureFlagOverrides is an admin api that lists all feature flag overrides for a given tenant.
+
+## 54.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/featureFlagOverrides?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                     |
+|--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                      | path     | string  | The ID of the tenant to list feature flag overrides for.                                                        |
+| maxResults                     | query    | *int    | Optional. The maximum number of feature flag overrides to return. Default is 500. Must be >=1 and <= 500.       |
+| token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                 | query    | *bool   | Optional. Set to true to include deleted feature flag overrides in the results.                                 |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 54.2 Response
+On success a 200 OK is returned with the following JSON body:
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "FeatureFlagOverrides": [],
+  "NextToken": "*string"
+}
+```
+
+| Field                | Type                                   | Description                                                                                    |
+|----------------------|----------------------------------------|------------------------------------------------------------------------------------------------|
+| FeatureFlagOverrides | [][FeatureFlagOverride](#472-response) | A list of feature flag overrides for the tenant.                                               |
+| NextToken            | *string                                | A token to retrieve the next page of results. If there are no more results, this will be null. |
+
+# 55. GetFeatureFlagOverride
+GetFeatureFlagOverride retrieves a feature flag override for a given tenant.
+
+## 55.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/featureFlagOverrides/{flag_name}?includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                         |
+|--------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                      | path     | string  | The ID of the tenant to get the feature flag override for.          |
+| flag_name                      | path     | string  | The name of the feature flag to get the override for.               |
+| includeDeleted                 | query    | *bool   | Optional. Set to true to return a deleted feature flag override.    |
+| Authorization                  | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+
+## 55.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "FlagName": "string",
+  "TenantID": "string",
+  "Enabled": bool,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool
+}
+```
+
+See the [FeatureFlagOverride](#472-response) type for field descriptions.
+
+# 56. UpdateFeatureFlagOverride
+UpdateFeatureFlagOverride is an admin api that updates a feature flag override for a given tenant.
+
+## 56.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/featureFlagOverrides/{flag_name} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "Enabled": "*bool",
+    "Deleted": "*bool"
+}
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                                                                          |
+|--------------------------------|----------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                      | path     | string  | The ID of the tenant to update the feature flag override for.                                                                                                        |
+| flag_name                      | path     | string  | The name of the feature flag to update the override for.                                                                                                             |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                                                                            |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                  |
+| version                        | header   | string  | The version of the feature flag override to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+| Enabled                        | body     | *bool   | If set, update whether the feature flag is enabled for the tenant.                                                                                                   |
+| Deleted                        | body     | *bool   | If set to false, undelete the feature flag override.                                                                                                                 |
+
+## 56.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "FlagName": "string",
+  "TenantID": "string",
+  "Enabled": bool,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int,
+  "Deleted": bool
+}
+```
+
+See the [FeatureFlagOverride](#472-response) type for field descriptions.
+
+# 57. DeleteFeatureFlagOverride
+DeleteFeatureFlagOverride is an admin override that soft deletes a feature flag override for a given tenant.
+
+## 57.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/featureFlagOverrides/{flag_name} HTTP/1.1
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                                                                          |
+|--------------------------------|----------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                      | path     | string  | The ID of the tenant to delete the feature flag override for.                                                                                                        |
+| flag_name                      | path     | string  | The name of the feature flag to delete the override for.                                                                                                             |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                                                                            |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                  |
+| version                        | header   | string  | The version of the feature flag override to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+
+## 57.2 Response
+On success a 204 NO CONTENT is returned with no body.
+
 
