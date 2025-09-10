@@ -2455,6 +2455,7 @@ func TestGetTenantGithubOrgAssociationPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// nolint: dupl
 func TestListGithubOrgs(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2947,7 +2948,8 @@ func TestCreateFeatureFlagOverrideConflictError(t *testing.T) {
 	verifyFeatureFlagOverrideConflict(t, err)
 }
 
-func TestCreateFeatureFlagOverridePathEscaping(t *testing.T) {
+// nolint: dupl
+func TestGetFeatureFlagPathEscaping(t *testing.T) {
 	t.Parallel()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2968,6 +2970,43 @@ func TestCreateFeatureFlagOverridePathEscaping(t *testing.T) {
 	client := eh.NewClient(srv.URL)
 	_, err := client.CreateFeatureFlagOverride(context.Background(), &eh.CreateFeatureFlagOverrideRequest{TenantID: tenantIDThatNeedsEscaping, FlagName: featureFlagNameThatNeedsEscaping, Enabled: true})
 	require.NoError(t, err)
+}
+
+// nolint: dupl
+func TestListFeatureFlags(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/featureflags", r.URL.Path)
+		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListFeatureFlagsResponse{FeatureFlags: []eh.FeatureFlag{{Name: "flag"}}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	maxResults := 123
+	includeDeleted := true
+	resp, err := client.ListFeatureFlags(context.Background(), &eh.ListFeatureFlagsRequest{MaxResults: &maxResults, Token: util.Pointer(tokenID), IncludeDeleted: &includeDeleted})
+	require.NoError(t, err)
+	require.Len(t, resp.FeatureFlags, 1)
+	require.Equal(t, "flag", resp.FeatureFlags[0].Name)
+}
+
+func TestListFeatureFlagsError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListFeatureFlags(context.Background(), &eh.ListFeatureFlagsRequest{})
+	require.Error(t, err)
 }
 
 func TestGetTenantFeatureFlags(t *testing.T) {

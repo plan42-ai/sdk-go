@@ -247,6 +247,7 @@ type UpdateTaskRequest struct {
 }
 
 // GetField retrieves the value of a field by name.
+// nolint: goconst
 func (r *UpdateTaskRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
