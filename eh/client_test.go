@@ -2868,6 +2868,108 @@ func TestCreateFeatureFlagPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestCreateFeatureFlagOverride(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/featureFlagOverrides/flag", r.URL.Path)
+
+		var reqBody eh.CreateFeatureFlagOverrideRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.True(t, reqBody.Enabled)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.FeatureFlagOverride{FlagName: "flag", TenantID: "abc", Enabled: true}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	resp, err := client.CreateFeatureFlagOverride(context.Background(), &eh.CreateFeatureFlagOverrideRequest{TenantID: "abc", FlagName: "flag", Enabled: true})
+	require.NoError(t, err)
+	require.Equal(t, "flag", resp.FlagName)
+	require.True(t, resp.Enabled)
+}
+
+func TestCreateFeatureFlagOverrideError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.CreateFeatureFlagOverride(context.Background(), &eh.CreateFeatureFlagOverrideRequest{TenantID: "abc", FlagName: "flag", Enabled: true})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func serveFeatureFlagOverrideConflict() (*httptest.Server, *eh.Client) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.FeatureFlagOverride{FlagName: "flag", TenantID: "abc", Enabled: true},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+	client := eh.NewClient(srv.URL)
+	return srv, client
+}
+
+func verifyFeatureFlagOverrideConflict(t *testing.T, err error) {
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.Equal(t, "exists", clientErr.Message)
+	require.Equal(t, "Conflict", clientErr.ErrorType)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, eh.ObjectTypeFeatureFlagOverride, clientErr.Current.ObjectType())
+	ovr, ok := clientErr.Current.(*eh.FeatureFlagOverride)
+	require.True(t, ok, "Expected Current to be of type *eh.FeatureFlagOverride")
+	require.Equal(t, eh.FeatureFlagOverride{FlagName: "flag", TenantID: "abc", Enabled: true}, *ovr)
+}
+
+func TestCreateFeatureFlagOverrideConflictError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveFeatureFlagOverrideConflict()
+	defer srv.Close()
+
+	_, err := client.CreateFeatureFlagOverride(context.Background(), &eh.CreateFeatureFlagOverrideRequest{TenantID: "abc", FlagName: "flag", Enabled: true})
+	verifyFeatureFlagOverrideConflict(t, err)
+}
+
+func TestCreateFeatureFlagOverridePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedFeatureFlagName, parts[5])
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.FeatureFlagOverride{FlagName: featureFlagNameThatNeedsEscaping, TenantID: tenantIDThatNeedsEscaping, Enabled: true}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.CreateFeatureFlagOverride(context.Background(), &eh.CreateFeatureFlagOverrideRequest{TenantID: tenantIDThatNeedsEscaping, FlagName: featureFlagNameThatNeedsEscaping, Enabled: true})
+	require.NoError(t, err)
+}
+
 func TestGetTenantFeatureFlags(t *testing.T) {
 	t.Parallel()
 

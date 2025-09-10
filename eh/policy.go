@@ -104,6 +104,7 @@ const (
 	ActionGetTenantGithubOrgAssociation    Action = "GetTenantGithubOrgAssociation"
 	ActionCreateFeatureFlag                Action = "CreateFeatureFlag"
 	ActionGetTenantFeatureFlags            Action = "GetTenantFeatureFlags"
+	ActionCreateFeatureFlagOverride        Action = "CreateFeatureFlagOverride"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -287,6 +288,7 @@ func init() {
 		ActionGetTenantGithubOrgAssociation,
 		ActionCreateFeatureFlag,
 		ActionGetTenantFeatureFlags,
+		ActionCreateFeatureFlagOverride,
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
