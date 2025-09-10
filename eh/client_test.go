@@ -3441,3 +3441,65 @@ func TestDeleteFeatureFlagOverridePathEscaping(t *testing.T) {
 	err := client.DeleteFeatureFlagOverride(context.Background(), &eh.DeleteFeatureFlagOverrideRequest{TenantID: tenantIDThatNeedsEscaping, FlagName: featureFlagNameThatNeedsEscaping, Version: 1})
 	require.NoError(t, err)
 }
+func TestListFeatureFlagOverrides(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/featureFlagOverrides", r.URL.Path)
+		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListFeatureFlagOverridesResponse{FeatureFlagOverrides: []eh.FeatureFlagOverride{{FlagName: "flag", TenantID: "abc"}}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	maxResults := 123
+	includeDeleted := true
+	resp, err := client.ListFeatureFlagOverrides(context.Background(), &eh.ListFeatureFlagOverridesRequest{
+		TenantID:       "abc",
+		MaxResults:     &maxResults,
+		Token:          util.Pointer(tokenID),
+		IncludeDeleted: &includeDeleted,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.FeatureFlagOverrides, 1)
+	require.Equal(t, "flag", resp.FeatureFlagOverrides[0].FlagName)
+}
+
+func TestListFeatureFlagOverridesPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListFeatureFlagOverridesResponse{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListFeatureFlagOverrides(context.Background(), &eh.ListFeatureFlagOverridesRequest{TenantID: tenantIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
+func TestListFeatureFlagOverridesError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListFeatureFlagOverrides(context.Background(), &eh.ListFeatureFlagOverridesRequest{TenantID: "abc"})
+	require.Error(t, err)
+}

@@ -322,6 +322,7 @@ type ListEnvironmentsResponse struct {
 }
 
 // ListEnvironments retrieves the environments for a tenant.
+// nolint: dupl
 func (c *Client) ListEnvironments(ctx context.Context, req *ListEnvironmentsRequest) (*ListEnvironmentsResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
