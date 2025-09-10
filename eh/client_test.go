@@ -3144,3 +3144,65 @@ func TestGetTenantFeatureFlagsPathEscaping(t *testing.T) {
 	_, err := client.GetTenantFeatureFlags(context.Background(), &eh.GetTenantFeatureFlagsRequest{TenantID: tenantIDThatNeedsEscaping})
 	require.NoError(t, err)
 }
+
+func TestDeleteFeatureFlag(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/featureflags/flag", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteFeatureFlag(context.Background(), &eh.DeleteFeatureFlagRequest{FlagName: "flag", Version: 1})
+	require.NoError(t, err)
+}
+
+func TestDeleteFeatureFlagError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.DeleteFeatureFlag(context.Background(), &eh.DeleteFeatureFlagRequest{FlagName: "flag", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func TestDeleteFeatureFlagConflictError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveFeatureFlagConflict()
+	defer srv.Close()
+
+	err := client.DeleteFeatureFlag(context.Background(), &eh.DeleteFeatureFlagRequest{FlagName: "flag", Version: 1})
+	verifyFeatureFlagConflict(t, err)
+}
+
+func TestDeleteFeatureFlagPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 4, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedFeatureFlagName, parts[3])
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteFeatureFlag(context.Background(), &eh.DeleteFeatureFlagRequest{FlagName: featureFlagNameThatNeedsEscaping, Version: 1})
+	require.NoError(t, err)
+}

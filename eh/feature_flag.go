@@ -302,3 +302,56 @@ func (c *Client) UpdateFeatureFlag(ctx context.Context, req *UpdateFeatureFlagRe
 	}
 	return &out, nil
 }
+
+// DeleteFeatureFlagRequest is the request payload for DeleteFeatureFlag.
+type DeleteFeatureFlagRequest struct {
+	DelegatedAuthInfo
+	FlagName string `json:"-"`
+	Version  int    `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteFeatureFlagRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "FlagName":
+		return r.FlagName, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteFeatureFlag deletes a feature flag.
+// nolint: dupl
+func (c *Client) DeleteFeatureFlag(ctx context.Context, req *DeleteFeatureFlagRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.FlagName == "" {
+		return fmt.Errorf("flag name is required")
+	}
+	u := c.BaseURL.JoinPath("v1", "featureflags", url.PathEscape(req.FlagName))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+	return nil
+}
