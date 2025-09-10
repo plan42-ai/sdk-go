@@ -187,6 +187,7 @@ func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 }
 
 // CreateTask creates a new task.
+// nolint:dupl
 func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")

@@ -254,6 +254,7 @@ const (
 	ObjectTypeGithubOrg            ObjectType = "GithubOrg"
 	ObjectTypeTenantGithubOrg      ObjectType = "TenantGithubOrg"
 	ObjectTypeFeatureFlag          ObjectType = "FeatureFlag"
+	ObjectTypeFeatureFlagOverride  ObjectType = "FeatureFlagOverride"
 )
 
 type ConflictObj interface {
@@ -315,6 +316,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &TenantGithubOrg{}
 		case ObjectTypeFeatureFlag:
 			current = &FeatureFlag{}
+		case ObjectTypeFeatureFlagOverride:
+			current = &FeatureFlagOverride{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
