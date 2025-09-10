@@ -10,12 +10,13 @@ import (
 )
 
 type FeatureFlagOptions struct {
-	Add      AddFeatureFlagOptions      `cmd:""`
-	List     ListFeatureFlagsOptions    `cmd:""`
-	Get      GetFeatureFlagOptions      `cmd:""`
-	Delete   DeleteFeatureFlagOptions   `cmd:""`
-	Update   UpdateFeatureFlagOptions   `cmd:""`
-	Override OverrideFeatureFlagOptions `cmd:""`
+	Add           AddFeatureFlagOptions           `cmd:""`
+	List          ListFeatureFlagsOptions         `cmd:""`
+	Get           GetFeatureFlagOptions           `cmd:""`
+	Delete        DeleteFeatureFlagOptions        `cmd:""`
+	Update        UpdateFeatureFlagOptions        `cmd:""`
+	Override      OverrideFeatureFlagOptions      `cmd:""`
+	ListOverrides ListFeatureFlagOverridesOptions `cmd:""`
 }
 
 type AddFeatureFlagOptions struct {
@@ -218,4 +219,36 @@ func (o *OverrideFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) 
 		return err
 	}
 	return printJSON(updated)
+}
+
+type ListFeatureFlagOverridesOptions struct {
+	TenantID       string `help:"The id of the tenant to list overrides for." name:"tenant-id" short:"i" required:""`
+	IncludeDeleted bool   `help:"When set, includes deleted overrides and overrides for deleted flags in the results." name:"include-deleted" short:"d" optional:""`
+}
+
+func (o *ListFeatureFlagOverridesOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var token *string
+	for {
+		req := &eh.ListFeatureFlagOverridesRequest{
+			TenantID:       o.TenantID,
+			Token:          token,
+			IncludeDeleted: pointer(o.IncludeDeleted),
+		}
+		processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+		resp, err := s.Client.ListFeatureFlagOverrides(ctx, req)
+		if err != nil {
+			return err
+		}
+		for _, override := range resp.FeatureFlagOverrides {
+			if err := printJSON(override); err != nil {
+				return err
+			}
+		}
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+	return nil
 }
