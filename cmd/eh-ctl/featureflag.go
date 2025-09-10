@@ -8,7 +8,8 @@ import (
 )
 
 type FeatureFlagOptions struct {
-	Add AddFeatureFlagOptions `cmd:""`
+	Add  AddFeatureFlagOptions   `cmd:""`
+	List ListFeatureFlagsOptions `cmd:""`
 }
 
 type AddFeatureFlagOptions struct {
@@ -37,4 +38,41 @@ func (o *AddFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error
 		return err
 	}
 	return printJSON(flag)
+}
+
+type ListFeatureFlagsOptions struct {
+	IncludeDeleted bool `help:"When set, include deleted feature flags in the results." short:"d" optional:""`
+}
+
+func (o *ListFeatureFlagsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "feature-flag list")
+	}
+
+	var token *string
+	for {
+		req := &eh.ListFeatureFlagsRequest{
+			Token:          token,
+			IncludeDeleted: pointer(o.IncludeDeleted),
+		}
+
+		resp, err := s.Client.ListFeatureFlags(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, flag := range resp.FeatureFlags {
+			if err := printJSON(flag); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		token = resp.NextToken
+	}
+
+	return nil
 }

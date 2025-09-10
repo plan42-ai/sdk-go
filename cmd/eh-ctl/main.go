@@ -155,6 +155,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Logs.Upload.Run(options.Ctx, &options.SharedOptions)
 	case "feature-flag add":
 		return options.FeatureFlag.Add.Run(options.Ctx, &options.SharedOptions)
+	case "feature-flag list":
+		return options.FeatureFlag.List.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
