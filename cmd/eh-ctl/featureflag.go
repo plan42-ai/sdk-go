@@ -8,9 +8,10 @@ import (
 )
 
 type FeatureFlagOptions struct {
-	Add  AddFeatureFlagOptions   `cmd:""`
-	List ListFeatureFlagsOptions `cmd:""`
-	Get  GetFeatureFlagOptions   `cmd:""`
+	Add    AddFeatureFlagOptions    `cmd:""`
+	List   ListFeatureFlagsOptions  `cmd:""`
+	Get    GetFeatureFlagOptions    `cmd:""`
+	Delete DeleteFeatureFlagOptions `cmd:""`
 }
 
 type AddFeatureFlagOptions struct {
@@ -98,4 +99,23 @@ func (o *GetFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error
 		return err
 	}
 	return printJSON(flag)
+}
+
+type DeleteFeatureFlagOptions struct {
+	FlagName string `help:"The name of the flag to delete." name:"flag-name" short:"f" required:""`
+}
+
+func (o *DeleteFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "feature-flag delete")
+	}
+
+	getReq := &eh.GetFeatureFlagRequest{FlagName: o.FlagName}
+	flag, err := s.Client.GetFeatureFlag(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req := &eh.DeleteFeatureFlagRequest{FlagName: o.FlagName, Version: flag.Version}
+	return s.Client.DeleteFeatureFlag(ctx, req)
 }

@@ -159,6 +159,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.FeatureFlag.List.Run(options.Ctx, &options.SharedOptions)
 	case "feature-flag get":
 		return options.FeatureFlag.Get.Run(options.Ctx, &options.SharedOptions)
+	case "feature-flag delete":
+		return options.FeatureFlag.Delete.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
