@@ -10,6 +10,7 @@ import (
 type FeatureFlagOptions struct {
 	Add  AddFeatureFlagOptions   `cmd:""`
 	List ListFeatureFlagsOptions `cmd:""`
+	Get  GetFeatureFlagOptions   `cmd:""`
 }
 
 type AddFeatureFlagOptions struct {
@@ -75,4 +76,26 @@ func (o *ListFeatureFlagsOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 
 	return nil
+}
+
+type GetFeatureFlagOptions struct {
+	FlagName       string `help:"The name of the flag to get." name:"flag-name" short:"f" required:""`
+	IncludeDeleted bool   `help:"Include deleted flags." short:"d" optional:""`
+}
+
+func (o *GetFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "feature-flag get")
+	}
+
+	req := &eh.GetFeatureFlagRequest{
+		FlagName:       o.FlagName,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+
+	flag, err := s.Client.GetFeatureFlag(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(flag)
 }
