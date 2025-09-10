@@ -61,6 +61,7 @@ type Options struct {
 	Task        TaskOptions        `cmd:""`
 	Turn        TurnOptions        `cmd:""`
 	Logs        LogsOptions        `cmd:""`
+	FeatureFlag FeatureFlagOptions `cmd:""`
 	Ctx         context.Context    `kong:"-"`
 }
 
@@ -152,6 +153,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Logs.Stream.Run(options.Ctx, &options.SharedOptions)
 	case "logs upload":
 		return options.Logs.Upload.Run(options.Ctx, &options.SharedOptions)
+	case "feature-flag add":
+		return options.FeatureFlag.Add.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
