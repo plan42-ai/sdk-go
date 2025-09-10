@@ -439,3 +439,62 @@ func (c *Client) CreateFeatureFlagOverride(ctx context.Context, req *CreateFeatu
 	}
 	return &out, nil
 }
+
+// DeleteFeatureFlagOverrideRequest is the request payload for DeleteFeatureFlagOverride.
+type DeleteFeatureFlagOverrideRequest struct {
+	DelegatedAuthInfo
+	TenantID string `json:"-"`
+	FlagName string `json:"-"`
+	Version  int    `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteFeatureFlagOverrideRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "FlagName":
+		return r.FlagName, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteFeatureFlagOverride deletes a feature flag override for a tenant.
+// nolint: dupl
+func (c *Client) DeleteFeatureFlagOverride(ctx context.Context, req *DeleteFeatureFlagOverrideRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.FlagName == "" {
+		return fmt.Errorf("flag name is required")
+	}
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "featureFlagOverrides", url.PathEscape(req.FlagName))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+	return nil
+}
