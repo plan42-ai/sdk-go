@@ -498,3 +498,73 @@ func (c *Client) DeleteFeatureFlagOverride(ctx context.Context, req *DeleteFeatu
 	}
 	return nil
 }
+
+// GetFeatureFlagOverrideRequest is the request payload for GetFeatureFlagOverride.
+type GetFeatureFlagOverrideRequest struct {
+	DelegatedAuthInfo
+	TenantID       string `json:"-"`
+	FlagName       string `json:"-"`
+	IncludeDeleted *bool  `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GetFeatureFlagOverrideRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "FlagName":
+		return r.FlagName, true
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
+// GetFeatureFlagOverride retrieves a feature flag override for a tenant.
+// nolint: dupl
+func (c *Client) GetFeatureFlagOverride(ctx context.Context, req *GetFeatureFlagOverrideRequest) (*FeatureFlagOverride, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.FlagName == "" {
+		return nil, fmt.Errorf("flag name is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "featureFlagOverrides", url.PathEscape(req.FlagName))
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out FeatureFlagOverride
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
