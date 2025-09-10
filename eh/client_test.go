@@ -3054,6 +3054,98 @@ func TestGetFeatureFlagOverridePathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestUpdateFeatureFlagOverride(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/featureFlagOverrides/flag", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateFeatureFlagOverrideRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.Enabled)
+		require.True(t, *reqBody.Enabled)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.FeatureFlagOverride{FlagName: "flag", TenantID: "abc", Enabled: true}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	enabled := true
+	resp, err := client.UpdateFeatureFlagOverride(context.Background(), &eh.UpdateFeatureFlagOverrideRequest{
+		TenantID: "abc",
+		FlagName: "flag",
+		Version:  1,
+		Enabled:  &enabled,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "flag", resp.FlagName)
+	require.True(t, resp.Enabled)
+}
+
+func TestUpdateFeatureFlagOverrideError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	enabled := true
+	_, err := client.UpdateFeatureFlagOverride(context.Background(), &eh.UpdateFeatureFlagOverrideRequest{
+		TenantID: "abc", FlagName: "flag", Version: 1, Enabled: &enabled,
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func TestUpdateFeatureFlagOverrideConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveFeatureFlagOverrideConflict()
+	defer srv.Close()
+
+	enabled := true
+	_, err := client.UpdateFeatureFlagOverride(context.Background(), &eh.UpdateFeatureFlagOverrideRequest{
+		TenantID: "abc", FlagName: "flag", Version: 1, Enabled: &enabled,
+	})
+	verifyFeatureFlagOverrideConflict(t, err)
+}
+
+// nolint: dupl
+func TestUpdateFeatureFlagOverridePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedFeatureFlagName, parts[5])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.FeatureFlagOverride{FlagName: featureFlagNameThatNeedsEscaping, TenantID: tenantIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	enabled := true
+	_, err := client.UpdateFeatureFlagOverride(context.Background(), &eh.UpdateFeatureFlagOverrideRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+		FlagName: featureFlagNameThatNeedsEscaping,
+		Version:  1,
+		Enabled:  &enabled,
+	})
+	require.NoError(t, err)
+}
+
 // nolint: dupl
 func TestListFeatureFlags(t *testing.T) {
 	t.Parallel()

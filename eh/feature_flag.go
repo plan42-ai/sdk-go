@@ -568,3 +568,80 @@ func (c *Client) GetFeatureFlagOverride(ctx context.Context, req *GetFeatureFlag
 	}
 	return &out, nil
 }
+
+// UpdateFeatureFlagOverrideRequest is the request payload for UpdateFeatureFlagOverride.
+type UpdateFeatureFlagOverrideRequest struct {
+	DelegatedAuthInfo
+	TenantID string `json:"-"`
+	FlagName string `json:"-"`
+	Version  int    `json:"-"`
+	Enabled  *bool  `json:"Enabled,omitempty"`
+	Deleted  *bool  `json:"Deleted,omitempty"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *UpdateFeatureFlagOverrideRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "FlagName":
+		return r.FlagName, true
+	case "Version":
+		return r.Version, true
+	case "Enabled":
+		return evalNullable(r.Enabled)
+	case "Deleted":
+		return evalNullable(r.Deleted)
+	default:
+		return nil, false
+	}
+}
+
+// UpdateFeatureFlagOverride updates a feature flag override for a tenant.
+// nolint: dupl
+func (c *Client) UpdateFeatureFlagOverride(ctx context.Context, req *UpdateFeatureFlagOverrideRequest) (*FeatureFlagOverride, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.FlagName == "" {
+		return nil, fmt.Errorf("flag name is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "featureFlagOverrides", url.PathEscape(req.FlagName))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out FeatureFlagOverride
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
