@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 )
@@ -12,6 +14,7 @@ type FeatureFlagOptions struct {
 	List   ListFeatureFlagsOptions  `cmd:""`
 	Get    GetFeatureFlagOptions    `cmd:""`
 	Delete DeleteFeatureFlagOptions `cmd:""`
+	Update UpdateFeatureFlagOptions `cmd:""`
 }
 
 type AddFeatureFlagOptions struct {
@@ -118,4 +121,48 @@ func (o *DeleteFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) er
 
 	req := &eh.DeleteFeatureFlagRequest{FlagName: o.FlagName, Version: flag.Version}
 	return s.Client.DeleteFeatureFlag(ctx, req)
+}
+
+type UpdateFeatureFlagOptions struct {
+	FlagName string `help:"The name of the flag to update." name:"flag-name" short:"f" required:""`
+	JSON     string `help:"The json file containing the updates to apply." short:"j" default:"-"`
+}
+
+// nolint: dupl
+func (o *UpdateFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "feature-flag update")
+	}
+
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.UpdateFeatureFlagRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	req.FlagName = o.FlagName
+
+	getReq := &eh.GetFeatureFlagRequest{FlagName: o.FlagName, IncludeDeleted: pointer(true)}
+	flag, err := s.Client.GetFeatureFlag(ctx, getReq)
+	if err != nil {
+		return err
+	}
+	req.Version = flag.Version
+
+	updated, err := s.Client.UpdateFeatureFlag(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
 }

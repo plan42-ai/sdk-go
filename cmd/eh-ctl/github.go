@@ -106,6 +106,7 @@ type UpdateGithubOrgOptions struct {
 	JSON          string `help:"The json file containing the updates to apply." short:"j" default:"-"`
 }
 
+// nolint: dupl
 func (o *UpdateGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "github update-org")
