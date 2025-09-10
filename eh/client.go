@@ -490,6 +490,64 @@ func (c *Client) GetCurrentUser(ctx context.Context, req *GetCurrentUserRequest)
 	return &tenant, nil
 }
 
+// GetTenantFeatureFlagsRequest is the request for GetTenantFeatureFlags.
+type GetTenantFeatureFlagsRequest struct {
+	DelegatedAuthInfo
+	TenantID string `json:"-"`
+}
+
+// nolint: goconst
+func (r *GetTenantFeatureFlagsRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	default:
+		return nil, false
+	}
+}
+
+// GetTenantFeatureFlagsResponse is the response from GetTenantFeatureFlags.
+type GetTenantFeatureFlagsResponse struct {
+	FeatureFlags map[string]bool `json:"FeatureFlags"`
+}
+
+// GetTenantFeatureFlags returns the values of all active feature flags for a tenant.
+func (c *Client) GetTenantFeatureFlags(ctx context.Context, req *GetTenantFeatureFlagsRequest) (*GetTenantFeatureFlagsResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "featureflags")
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out GetTenantFeatureFlagsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // GenerateWebUITokenRequest is the request for GenerateWebUIToken.
 type GenerateWebUITokenRequest struct {
 	DelegatedAuthInfo
