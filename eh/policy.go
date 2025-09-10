@@ -105,6 +105,8 @@ const (
 	ActionCreateFeatureFlag                Action = "CreateFeatureFlag"
 	ActionGetTenantFeatureFlags            Action = "GetTenantFeatureFlags"
 	ActionCreateFeatureFlagOverride        Action = "CreateFeatureFlagOverride"
+	ActionListFeatureFlags                 Action = "ListFeatureFlags"
+	ActionGetFeatureFlag                   Action = "GetFeatureFlag"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -289,6 +291,8 @@ func init() {
 		ActionCreateFeatureFlag,
 		ActionGetTenantFeatureFlags,
 		ActionCreateFeatureFlagOverride,
+		ActionListFeatureFlags,
+		ActionGetFeatureFlag,
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
