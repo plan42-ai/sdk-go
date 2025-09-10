@@ -102,6 +102,7 @@ const (
 	ActionUpdateTenantGithubOrgAssociation Action = "UpdateTenantGithubOrgAssociation"
 	ActionDeleteTenantGithubOrgAssociation Action = "DeleteTenantGithubOrgAssociation"
 	ActionGetTenantGithubOrgAssociation    Action = "GetTenantGithubOrgAssociation"
+	ActionCreateFeatureFlag                Action = "CreateFeatureFlag"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -283,6 +284,7 @@ func init() {
 		ActionUpdateTenantGithubOrgAssociation,
 		ActionDeleteTenantGithubOrgAssociation,
 		ActionGetTenantGithubOrgAssociation,
+		ActionCreateFeatureFlag,
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,

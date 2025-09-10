@@ -30,14 +30,16 @@ const (
 	tenantIDThatNeedsEscaping = "foo/../../bar"
 	escapedTenantID           = "foo%2F..%2F..%2Fbar"
 
-	tokenIDThatNeedsEscaping       = "tok/../../id"       // #nosec G101: This is not a credential.
-	escapedTokenID                 = "tok%2F..%2F..%2Fid" // #nosec G101: This is not a credential.
-	environmentIDThatNeedsEscaping = "env/../../id"
-	escapedEnvironmentID           = "env%2F..%2F..%2Fid"
-	taskIDThatNeedsEscaping        = "task/../../id"
-	escapedTaskID                  = "task%2F..%2F..%2Fid"
-	githubOrgIDThatNeedsEscaping   = "org/../../id"
-	escapedGithubOrgID             = "org%2F..%2F..%2Fid"
+	tokenIDThatNeedsEscaping         = "tok/../../id"       // #nosec G101: This is not a credential.
+	escapedTokenID                   = "tok%2F..%2F..%2Fid" // #nosec G101: This is not a credential.
+	environmentIDThatNeedsEscaping   = "env/../../id"
+	escapedEnvironmentID             = "env%2F..%2F..%2Fid"
+	taskIDThatNeedsEscaping          = "task/../../id"
+	escapedTaskID                    = "task%2F..%2F..%2Fid"
+	githubOrgIDThatNeedsEscaping     = "org/../../id"
+	escapedGithubOrgID               = "org%2F..%2F..%2Fid"
+	featureFlagNameThatNeedsEscaping = "flag/../../name"
+	escapedFeatureFlagName           = "flag%2F..%2F..%2Fname"
 
 	tokenID    = "tok"
 	taskTitle  = "new"
@@ -2764,5 +2766,104 @@ func TestDeleteTenantGithubOrgAssociationPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	err := client.DeleteTenantGithubOrgAssociation(context.Background(), &eh.DeleteTenantGithubOrgAssociationRequest{TenantID: tenantIDThatNeedsEscaping, OrgID: githubOrgIDThatNeedsEscaping, Version: 1})
+	require.NoError(t, err)
+}
+
+func TestCreateFeatureFlag(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/featureflags/flag", r.URL.Path)
+
+		var reqBody eh.CreateFeatureFlagRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, "desc", reqBody.Description)
+		require.Equal(t, 0.5, reqBody.DefaultPct)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.FeatureFlag{Name: "flag"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	flag, err := client.CreateFeatureFlag(context.Background(), &eh.CreateFeatureFlagRequest{FlagName: "flag", Description: "desc", DefaultPct: 0.5})
+	require.NoError(t, err)
+	require.Equal(t, "flag", flag.Name)
+}
+
+func TestCreateFeatureFlagError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.CreateFeatureFlag(context.Background(), &eh.CreateFeatureFlagRequest{FlagName: "flag", Description: "d", DefaultPct: 0.1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func serveFeatureFlagConflict() (*httptest.Server, *eh.Client) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.FeatureFlag{Name: "flag"},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+	client := eh.NewClient(srv.URL)
+	return srv, client
+}
+
+func verifyFeatureFlagConflict(t *testing.T, err error) {
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.Equal(t, "exists", clientErr.Message)
+	require.Equal(t, "Conflict", clientErr.ErrorType)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, eh.ObjectTypeFeatureFlag, clientErr.Current.ObjectType())
+	ff, ok := clientErr.Current.(*eh.FeatureFlag)
+	require.True(t, ok, "Expected Current to be of type *eh.FeatureFlag")
+	require.Equal(t, eh.FeatureFlag{Name: "flag"}, *ff)
+}
+
+func TestCreateFeatureFlagConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveFeatureFlagConflict()
+	defer srv.Close()
+
+	_, err := client.CreateFeatureFlag(context.Background(), &eh.CreateFeatureFlagRequest{FlagName: "flag", Description: "desc", DefaultPct: 0.5})
+	verifyFeatureFlagConflict(t, err)
+}
+
+func TestCreateFeatureFlagPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 4, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedFeatureFlagName, parts[3])
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.FeatureFlag{Name: featureFlagNameThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.CreateFeatureFlag(context.Background(), &eh.CreateFeatureFlagRequest{FlagName: featureFlagNameThatNeedsEscaping, Description: "desc", DefaultPct: 0.5})
 	require.NoError(t, err)
 }

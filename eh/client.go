@@ -253,6 +253,7 @@ const (
 	ObjectTypeTask                 ObjectType = "Task"
 	ObjectTypeGithubOrg            ObjectType = "GithubOrg"
 	ObjectTypeTenantGithubOrg      ObjectType = "TenantGithubOrg"
+	ObjectTypeFeatureFlag          ObjectType = "FeatureFlag"
 )
 
 type ConflictObj interface {
@@ -312,6 +313,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &GithubOrg{}
 		case ObjectTypeTenantGithubOrg:
 			current = &TenantGithubOrg{}
+		case ObjectTypeFeatureFlag:
+			current = &FeatureFlag{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
@@ -374,6 +377,7 @@ func decodeError(resp *http.Response) error {
 }
 
 // CreateTenant creates a new tenant.
+// nolint: dupl
 func (c *Client) CreateTenant(ctx context.Context, req *CreateTenantRequest) (*Tenant, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
