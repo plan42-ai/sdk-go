@@ -16,6 +16,7 @@ type FeatureFlagOptions struct {
 	Delete        DeleteFeatureFlagOptions        `cmd:""`
 	Update        UpdateFeatureFlagOptions        `cmd:""`
 	Override      OverrideFeatureFlagOptions      `cmd:""`
+	GetOverride   GetFeatureFlagOverrideOptions   `cmd:""`
 	ListOverrides ListFeatureFlagOverridesOptions `cmd:""`
 }
 
@@ -219,6 +220,27 @@ func (o *OverrideFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) 
 		return err
 	}
 	return printJSON(updated)
+}
+
+type GetFeatureFlagOverrideOptions struct {
+	TenantID       string `help:"The id of the tenant to fetch the override for." name:"tenant-id" short:"i" required:""`
+	FlagName       string `help:"The name of the flag to fetch the override for." name:"flag-name" short:"f" required:""`
+	IncludeDeleted bool   `help:"Set to return information about deleted overrides or deleted flags." name:"include-deleted" short:"d" optional:""`
+}
+
+func (o *GetFeatureFlagOverrideOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetFeatureFlagOverrideRequest{
+		TenantID:       o.TenantID,
+		FlagName:       o.FlagName,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	flag, err := s.Client.GetFeatureFlagOverride(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(flag)
 }
 
 type ListFeatureFlagOverridesOptions struct {
