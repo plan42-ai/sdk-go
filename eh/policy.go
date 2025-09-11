@@ -262,49 +262,49 @@ var (
 
 func init() {
 	ActionToBit, BitToAction = createEnumMaps([]Action{
-		ActionPerformDelegatedAction,
-		ActionCreateTenant,
-		ActionGetTenant,
-		ActionGenerateWebUIToken,
-		ActionListPolicies,
-		ActionUpdateTurn,
-		ActionUpdateTask,
-		ActionGetTask,
-		ActionListTasks,
-		ActionGetTurn,
-		ActionUploadTurnLogs,
-		ActionGetCurrentUser,
-		ActionCreateEnvironment,
-		ActionGetEnvironment,
-		ActionListEnvironments,
-		ActionUpdateEnvironment,
-		ActionDeleteEnvironment,
-		ActionGetLastTurn,
-		ActionCreateTask,
-		ActionGetLastTurnLog,
-		ActionStreamLogs,
-		ActionListTurns,
-		ActionAddGithubOrg,
-		ActionUpdateGithubOrg,
-		ActionDeleteGithubOrg,
-		ActionListGithubOrgs,
-		ActionGetGithubOrg,
-		ActionAssociateGithubOrgWithTenant,
-		ActionListTenantGithubOrgs,
-		ActionUpdateTenantGithubOrgAssociation,
-		ActionDeleteTenantGithubOrgAssociation,
-		ActionGetTenantGithubOrgAssociation,
-		ActionCreateFeatureFlag,
-		ActionGetTenantFeatureFlags,
-		ActionCreateFeatureFlagOverride,
-		ActionListFeatureFlags,
-		ActionGetFeatureFlag,
-		ActionUpdateFeatureFlag,
-		ActionDeleteFeatureFlag,
-		ActionDeleteFeatureFlagOverride,
-		ActionGetFeatureFlagOverride,
-		ActionUpdateFeatureFlagOverride,
-		ActionListFeatureFlagOverrides,
+		ActionPerformDelegatedAction,           // 0x1
+		ActionCreateTenant,                     // 0x2
+		ActionGetTenant,                        // 0x4
+		ActionGenerateWebUIToken,               // 0x8
+		ActionListPolicies,                     // 0x10
+		ActionUpdateTurn,                       // 0x20
+		ActionUpdateTask,                       // 0x40
+		ActionGetTask,                          // 0x80
+		ActionListTasks,                        // 0x100
+		ActionGetTurn,                          // 0x200
+		ActionUploadTurnLogs,                   // 0x400
+		ActionGetCurrentUser,                   // 0x800
+		ActionCreateEnvironment,                // 0x1000
+		ActionGetEnvironment,                   // 0x2000
+		ActionListEnvironments,                 // 0x4000
+		ActionUpdateEnvironment,                // 0x8000
+		ActionDeleteEnvironment,                // 0x10000
+		ActionGetLastTurn,                      // 0x20000
+		ActionCreateTask,                       // 0x40000
+		ActionGetLastTurnLog,                   // 0x80000
+		ActionStreamLogs,                       // 0x100000
+		ActionListTurns,                        // 0x200000
+		ActionAddGithubOrg,                     // 0x400000
+		ActionUpdateGithubOrg,                  // 0x800000
+		ActionDeleteGithubOrg,                  // 0x1000000
+		ActionListGithubOrgs,                   // 0x2000000
+		ActionGetGithubOrg,                     // 0x4000000
+		ActionAssociateGithubOrgWithTenant,     // 0x8000000
+		ActionListTenantGithubOrgs,             // 0x10000000
+		ActionUpdateTenantGithubOrgAssociation, // 0x20000000
+		ActionDeleteTenantGithubOrgAssociation, // 0x40000000
+		ActionGetTenantGithubOrgAssociation,    // 0x80000000
+		ActionCreateFeatureFlag,                // 0x100000000
+		ActionGetTenantFeatureFlags,            // 0x200000000
+		ActionCreateFeatureFlagOverride,        // 0x400000000
+		ActionListFeatureFlags,                 // 0x800000000
+		ActionGetFeatureFlag,                   // 0x1000000000
+		ActionUpdateFeatureFlag,                // 0x2000000000
+		ActionDeleteFeatureFlag,                // 0x4000000000
+		ActionDeleteFeatureFlagOverride,        // 0x8000000000
+		ActionGetFeatureFlagOverride,           // 0x10000000000
+		ActionUpdateFeatureFlagOverride,        // 0x20000000000
+		ActionListFeatureFlagOverrides,         // 0x40000000000
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
