@@ -31,6 +31,10 @@ func (o *CreateUserOptions) Run(ctx context.Context, shared *SharedOptions) erro
 		LastName:   &o.LastName,
 		PictureURL: o.PictureURL,
 	}
+	err := loadFeatureFlags(shared, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	processDelegatedAuth(shared, &req.DelegatedAuthInfo)
 
 	t, err := shared.Client.CreateTenant(ctx, req)
@@ -44,6 +48,10 @@ type GetCurrentUserOptions struct{}
 
 func (o *GetCurrentUserOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &eh.GetCurrentUserRequest{}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	t, err := s.Client.GetCurrentUser(ctx, req)
@@ -60,6 +68,10 @@ type GetTenantOptions struct {
 func (o *GetTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &eh.GetTenantRequest{
 		TenantID: o.TenantID,
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
 	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 

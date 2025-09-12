@@ -33,6 +33,9 @@ func (o *AddGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "github add-org")
 	}
+	if err := ensureNoFeatureFlags(s, "github add-org"); err != nil {
+		return err
+	}
 
 	req := &eh.AddGithubOrgRequest{
 		OrgID:          uuid.NewString(),
@@ -55,6 +58,9 @@ type ListGithubOrgsOptions struct {
 func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "github list-orgs")
+	}
+	if err := ensureNoFeatureFlags(s, "github list-orgs"); err != nil {
+		return err
 	}
 	var token *string
 	for {
@@ -88,6 +94,9 @@ func (o *GetGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "github get-org")
 	}
+	if err := ensureNoFeatureFlags(s, "github get-org"); err != nil {
+		return err
+	}
 
 	req := &eh.GetGithubOrgRequest{
 		OrgID:          o.InternalOrgID,
@@ -110,6 +119,9 @@ type UpdateGithubOrgOptions struct {
 func (o *UpdateGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "github update-org")
+	}
+	if err := ensureNoFeatureFlags(s, "github update-org"); err != nil {
+		return err
 	}
 	var reader *os.File
 	if o.JSON == "-" {
@@ -152,6 +164,9 @@ func (o *DeleteGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "github delete-org")
 	}
+	if err := ensureNoFeatureFlags(s, "github delete-org"); err != nil {
+		return err
+	}
 	getReq := &eh.GetGithubOrgRequest{OrgID: o.InternalOrgID}
 	org, err := s.Client.GetGithubOrg(ctx, getReq)
 	if err != nil {
@@ -169,6 +184,9 @@ type AssociateGithubTenantOptions struct {
 }
 
 func (o *AssociateGithubTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := ensureNoFeatureFlags(s, "github associate-tenant"); err != nil {
+		return err
+	}
 	var reader *os.File
 	if o.JSON == "-" {
 		reader = os.Stdin
@@ -203,6 +221,9 @@ type GetTenantOrgOptions struct {
 }
 
 func (o *GetTenantOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := ensureNoFeatureFlags(s, "github get-tenant-org"); err != nil {
+		return err
+	}
 	req := &eh.GetTenantGithubOrgAssociationRequest{
 		TenantID:       o.TenantID,
 		OrgID:          o.InternalOrgID,
@@ -223,6 +244,9 @@ type ListTenantOrgsOptions struct {
 }
 
 func (o *ListTenantOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := ensureNoFeatureFlags(s, "github list-tenant-orgs"); err != nil {
+		return err
+	}
 	var token *string
 	for {
 		req := &eh.ListTenantGithubOrgsRequest{
@@ -256,6 +280,9 @@ type UpdateTenantOrgOptions struct {
 }
 
 func (o *UpdateTenantOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := ensureNoFeatureFlags(s, "github update-tenant-org"); err != nil {
+		return err
+	}
 	var reader *os.File
 	if o.JSON == "-" {
 		reader = os.Stdin
@@ -302,6 +329,9 @@ type DeleteTenantOrgOptions struct {
 }
 
 func (o *DeleteTenantOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := ensureNoFeatureFlags(s, "github delete-tenant-org"); err != nil {
+		return err
+	}
 	getReq := &eh.GetTenantGithubOrgAssociationRequest{TenantID: o.TenantID, OrgID: o.InternalOrgID}
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	assoc, err := s.Client.GetTenantGithubOrgAssociation(ctx, getReq)

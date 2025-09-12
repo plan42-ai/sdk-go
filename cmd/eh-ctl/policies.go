@@ -15,12 +15,16 @@ type ListPoliciesOptions struct {
 }
 
 func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.ListPoliciesRequest{
+		TenantID: o.TenantID,
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	var token *string
 	for {
-		req := &eh.ListPoliciesRequest{
-			TenantID: o.TenantID,
-			Token:    token,
-		}
+		req.Token = token
 		processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 		resp, err := s.Client.ListPolicies(ctx, req)

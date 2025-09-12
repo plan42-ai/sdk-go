@@ -24,6 +24,9 @@ type CreateTaskOptions struct {
 }
 
 func (o *CreateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
 	var reader *os.File
 	if o.JSON == "-" {
 		reader = os.Stdin
@@ -40,7 +43,10 @@ func (o *CreateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err := json.NewDecoder(reader).Decode(&req); err != nil {
 		return err
 	}
-
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	req.TenantID = o.TenantID
 	req.TaskID = uuid.NewString()
 	req.WorkstreamID = o.WorkstreamID
@@ -61,6 +67,9 @@ type UpdateTaskOptions struct {
 
 // nolint: dupl
 func (o *UpdateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
 	var reader *os.File
 	if o.JSON == "-" {
 		reader = os.Stdin
@@ -77,17 +86,22 @@ func (o *UpdateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err := json.NewDecoder(reader).Decode(&req); err != nil {
 		return err
 	}
-
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	req.TenantID = o.TenantID
 	req.TaskID = o.TaskID
 
 	getReq := &eh.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID, IncludeDeleted: pointer(true)}
+	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	task, err := s.Client.GetTask(ctx, getReq)
 	if err != nil {
 		return err
 	}
 	req.Version = task.Version
+	req.FeatureFlags = getReq.FeatureFlags
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	updated, err := s.Client.UpdateTask(ctx, &req)
@@ -104,6 +118,10 @@ type DeleteTaskOptions struct {
 
 func (o *DeleteTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	getReq := &eh.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID}
+	err := loadFeatureFlags(s, &getReq.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	task, err := s.Client.GetTask(ctx, getReq)
 	if err != nil {
@@ -111,6 +129,7 @@ func (o *DeleteTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 
 	req := &eh.DeleteTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID, Version: task.Version}
+	req.FeatureFlags = getReq.FeatureFlags
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 	return s.Client.DeleteTask(ctx, req)
 }
@@ -122,13 +141,17 @@ type ListTasksOptions struct {
 }
 
 func (o *ListTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.ListTasksRequest{
+		TenantID:       o.TenantID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	var token *string
 	for {
-		req := &eh.ListTasksRequest{
-			TenantID:       o.TenantID,
-			Token:          token,
-			IncludeDeleted: pointer(o.IncludeDeleted),
-		}
+		req.Token = token
 		if o.WorkstreamID != nil {
 			req.WorkstreamID = o.WorkstreamID
 		}
@@ -162,6 +185,10 @@ func (o *GetTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
 		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
 	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 

@@ -14,7 +14,10 @@ import (
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 )
 
-const delegatedAuthNotSupported = "delegated auth is not supported for %s"
+const (
+	delegatedAuthNotSupported = "delegated auth is not supported for %s"
+	featureFlagsNotSupported  = "feature flags not supported for %s"
+)
 
 type SharedOptions struct {
 	Endpoint          string     `help:"Set to override the api endpoint." optional:""`
@@ -23,6 +26,7 @@ type SharedOptions struct {
 	Local             bool       `help:"Short for --endpoint localhost:7443 --insecure"`
 	DelegatedAuthType *string    `help:"The delegated auth type to use." optional:""`
 	DelegatedToken    *string    `help:"The delegated JWT token to use." optional:""`
+	FeatureFlags      *string    `help:"The JSON file containing feature flag overrides." name:"feature-flags" short:"F" optional:""`
 	Client            *eh.Client `kong:"-"`
 }
 
@@ -49,6 +53,39 @@ func is404(err error) bool {
 		return apiErr.ResponseCode == http.StatusNotFound
 	}
 	return false
+}
+
+func validateJSONFeatureFlags(jsonPath string, featureFlags *string) error {
+	if featureFlags != nil && jsonPath == *featureFlags {
+		return fmt.Errorf("the --json and --feature-flags options must be different")
+	}
+	return nil
+}
+
+func loadFeatureFlags(s *SharedOptions, f *eh.FeatureFlags) error {
+	if s.FeatureFlags == nil {
+		return nil
+	}
+	var reader *os.File
+	if *s.FeatureFlags == "-" {
+		reader = os.Stdin
+	} else {
+		var err error
+		reader, err = os.Open(*s.FeatureFlags)
+		if err != nil {
+			return nil
+		}
+		defer reader.Close()
+	}
+
+	return json.NewDecoder(reader).Decode(&f.FeatureFlags)
+}
+
+func ensureNoFeatureFlags(s *SharedOptions, cmd string) error {
+	if s.FeatureFlags != nil {
+		return fmt.Errorf(featureFlagsNotSupported, cmd)
+	}
+	return nil
 }
 
 type Options struct {
@@ -216,5 +253,6 @@ func postProcessOptions(o *Options) error {
 
 	options = append(options, eh.WithSigv4Auth(awsCfg, clock.RealClock{}))
 	o.Client = eh.NewClient(o.Endpoint, options...)
+
 	return nil
 }

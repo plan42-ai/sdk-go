@@ -20,6 +20,8 @@ type LogUploaderConfig struct {
 	StartIndex int
 	Logs       <-chan TurnLog
 
+	FeatureFlags map[string]bool
+
 	MaxBatchLen   int
 	MaxBatchAge   time.Duration
 	MaxBatchBytes int
@@ -42,6 +44,8 @@ type LogUploader struct {
 	index     int
 
 	logs <-chan TurnLog
+
+	featureFlags map[string]bool
 
 	maxBatchLen   int
 	maxBatchAge   time.Duration
@@ -92,6 +96,7 @@ func NewLogUploader(cfg *LogUploaderConfig) *LogUploader {
 		version:       cfg.Version,
 		index:         cfg.StartIndex,
 		logs:          cfg.Logs,
+		featureFlags:  cfg.FeatureFlags,
 		maxBatchLen:   cfg.MaxBatchLen,
 		maxBatchAge:   cfg.MaxBatchAge,
 		maxBatchBytes: cfg.MaxBatchBytes,
@@ -158,12 +163,13 @@ func (l *LogUploader) flush() {
 		return
 	}
 	resp, err := l.client.UploadTurnLogs(l.cg.Context(), &UploadTurnLogsRequest{
-		TenantID:  l.tenantID,
-		TaskID:    l.taskID,
-		TurnIndex: l.turnIndex,
-		Version:   l.version,
-		Index:     l.index,
-		Logs:      l.batch,
+		TenantID:     l.tenantID,
+		TaskID:       l.taskID,
+		TurnIndex:    l.turnIndex,
+		Version:      l.version,
+		Index:        l.index,
+		Logs:         l.batch,
+		FeatureFlags: FeatureFlags{FeatureFlags: l.featureFlags},
 	})
 	if err != nil {
 		var conflictErr *ConflictError

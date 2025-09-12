@@ -23,6 +23,9 @@ type CreateEnvironmentOptions struct {
 }
 
 func (o *CreateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
 	var reader *os.File
 	if o.JSON == "-" {
 		reader = os.Stdin
@@ -39,7 +42,10 @@ func (o *CreateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	if err := json.NewDecoder(reader).Decode(&req); err != nil {
 		return err
 	}
-
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	req.TenantID = o.TenantID
 	req.EnvironmentID = uuid.NewString()
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
@@ -63,6 +69,11 @@ func (o *GetEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error
 		EnvironmentID:  o.EnvironmentID,
 		IncludeDeleted: pointer(o.IncludeDeleted),
 	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	env, err := s.Client.GetEnvironment(ctx, req)
@@ -80,6 +91,9 @@ type UpdateEnvironmentOptions struct {
 
 // nolint: dupl
 func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
 	var reader *os.File
 	if o.JSON == "-" {
 		reader = os.Stdin
@@ -96,11 +110,15 @@ func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	if err := json.NewDecoder(reader).Decode(&req); err != nil {
 		return err
 	}
-
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	req.TenantID = o.TenantID
 	req.EnvironmentID = o.EnvironmentID
 
 	getReq := &eh.GetEnvironmentRequest{TenantID: o.TenantID, EnvironmentID: o.EnvironmentID, IncludeDeleted: pointer(true)}
+	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	env, err := s.Client.GetEnvironment(ctx, getReq)
 	if err != nil {
@@ -123,6 +141,10 @@ type DeleteEnvironmentOptions struct {
 
 func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error {
 	getReq := &eh.GetEnvironmentRequest{TenantID: o.TenantID, EnvironmentID: o.EnvironmentID}
+	err := loadFeatureFlags(s, &getReq.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	env, err := s.Client.GetEnvironment(ctx, getReq)
 	if err != nil {
@@ -130,6 +152,7 @@ func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	}
 
 	req := &eh.DeleteEnvironmentRequest{TenantID: o.TenantID, EnvironmentID: o.EnvironmentID, Version: env.Version}
+	req.FeatureFlags = getReq.FeatureFlags
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 	return s.Client.DeleteEnvironment(ctx, req)
 }
@@ -140,13 +163,17 @@ type ListEnvironmentsOptions struct {
 }
 
 func (o *ListEnvironmentsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.ListEnvironmentsRequest{
+		TenantID:       o.TenantID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	var token *string
 	for {
-		req := &eh.ListEnvironmentsRequest{
-			TenantID:       o.TenantID,
-			Token:          token,
-			IncludeDeleted: pointer(o.IncludeDeleted),
-		}
+		req.Token = token
 		processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 		resp, err := s.Client.ListEnvironments(ctx, req)

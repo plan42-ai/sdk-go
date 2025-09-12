@@ -36,6 +36,9 @@ func (o *AddFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "feature-flag add")
 	}
+	if err := ensureNoFeatureFlags(s, "feature-flag add"); err != nil {
+		return err
+	}
 
 	req := &eh.CreateFeatureFlagRequest{
 		FlagName:    o.FlagName,
@@ -57,6 +60,9 @@ type ListFeatureFlagsOptions struct {
 func (o *ListFeatureFlagsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "feature-flag list")
+	}
+	if err := ensureNoFeatureFlags(s, "feature-flag list"); err != nil {
+		return err
 	}
 
 	var token *string
@@ -96,6 +102,9 @@ func (o *GetFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "feature-flag get")
 	}
+	if err := ensureNoFeatureFlags(s, "feature-flag get"); err != nil {
+		return err
+	}
 
 	req := &eh.GetFeatureFlagRequest{
 		FlagName:       o.FlagName,
@@ -117,6 +126,9 @@ func (o *DeleteFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) er
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "feature-flag delete")
 	}
+	if err := ensureNoFeatureFlags(s, "feature-flag delete"); err != nil {
+		return err
+	}
 
 	getReq := &eh.GetFeatureFlagRequest{FlagName: o.FlagName}
 	flag, err := s.Client.GetFeatureFlag(ctx, getReq)
@@ -137,6 +149,10 @@ type UpdateFeatureFlagOptions struct {
 func (o *UpdateFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "feature-flag update")
+	}
+
+	if err := ensureNoFeatureFlags(s, "feature-flag update"); err != nil {
+		return err
 	}
 
 	var reader *os.File
@@ -178,6 +194,10 @@ type GetTenantFeatureFlagsOptions struct {
 
 func (o *GetTenantFeatureFlagsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &eh.GetTenantFeatureFlagsRequest{TenantID: o.TenantID}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 	resp, err := s.Client.GetTenantFeatureFlags(ctx, req)
 	if err != nil {
@@ -193,6 +213,9 @@ type OverrideFeatureFlagOptions struct {
 }
 
 func (o *OverrideFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := ensureNoFeatureFlags(s, "feature-flag override"); err != nil {
+		return err
+	}
 	getReq := &eh.GetFeatureFlagOverrideRequest{
 		TenantID:       o.TenantID,
 		FlagName:       o.FlagName,
@@ -245,6 +268,9 @@ type GetFeatureFlagOverrideOptions struct {
 }
 
 func (o *GetFeatureFlagOverrideOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := ensureNoFeatureFlags(s, "feature-flag get-override"); err != nil {
+		return err
+	}
 	req := &eh.GetFeatureFlagOverrideRequest{
 		TenantID:       o.TenantID,
 		FlagName:       o.FlagName,
@@ -265,6 +291,9 @@ type DeleteFeatureFlagOverrideOptions struct {
 }
 
 func (o *DeleteFeatureFlagOverrideOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := ensureNoFeatureFlags(s, "feature-flag delete-override"); err != nil {
+		return err
+	}
 	getReq := &eh.GetFeatureFlagOverrideRequest{
 		TenantID: o.TenantID,
 		FlagName: o.FlagName,
@@ -292,6 +321,9 @@ type ListFeatureFlagOverridesOptions struct {
 }
 
 func (o *ListFeatureFlagOverridesOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := ensureNoFeatureFlags(s, "feature-flag list-overrides"); err != nil {
+		return err
+	}
 	var token *string
 	for {
 		req := &eh.ListFeatureFlagOverridesRequest{
