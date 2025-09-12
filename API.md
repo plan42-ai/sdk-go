@@ -3352,4 +3352,106 @@ If-Match: <version>
 ## 57.2 Response
 On success a 204 NO CONTENT is returned with no body.
 
+# 58. Using Feature Flags
 
+The API service will cache the data returned by GetTenantFeatureFlags for up to 5 minutes. This means that seeing changes
+to feature flags may take up to 5 minutes to be reflected everywhere. 
+
+We want to avoid situations where different API service instances or the API service and the UI service see different
+values for feature flags, as that can lead to inconsistent behavior.
+
+To prevent this, we will allow callers to pass in feature flag values via the "X-EventHorizon-FeatureFlags" header.
+This allows the UI service to pass in the same feature flag values it is using into the API service, ensuring consistent
+behavior.
+
+The UI will store feature flags in a cookie, so that they are available to javascript code running in the browser. They
+wil also be sent to the UI service on each request, so that the UI service can pass them into the API service as needed.
+
+If no cookie value is present, the browser will make a call to the GetTenantFeatureFlags API to fetch them, and will then
+store them in the cookie for future requests.
+
+The UI will use 5 min cookie expiration times, to match the API service cache TTL.
+
+> NOTE: Feature flags can be overridden by the browser. This is needed to enable distributed consistency. Thus, even
+> though no customer has permission to add feature flag overrides, they can modify cookies, or set the
+> X-EventHorizon-FeatureFlags header in api requests. This means that feature flags are not "secure" and should not be
+> used to make authorization or authentication decisions. They are only used to enable or disable experimental features,
+> or to perform A/B experiments. 
+
+## 58.1 Adding a new feature flag
+
+```bash
+eh-ctl feature-flag create -f <flag-name> -D <description> -p <default-pct>
+```
+
+This will create a new feature flag with the given name, description and default percentage. The flag name must be
+unique. The default percentage must be between 0.0 and 1.0.
+
+## 58.2 Explicitly enabling a feature flag for a tenant
+
+```bash
+eh-ctl feature-flag override -t <tenant-id> -f <flag-name> -e
+```
+
+This will create a new feature flag override for the given tenant and flag name. If an override already exists, it will
+be updated. 
+
+## 58.3 Explicitly disabling a feature flag for a tenant
+
+```bash
+eh-ctl feature-flag override -t <tenant-id> -f <flag-name>
+```
+
+This adds an override, but doesn't pass "-e / --enable".
+
+## 58.4 Removing an explicit override for a tenant
+
+```bash
+eh-ctl feature-flag delete-override -t <tenant-id> -f <flag>
+```
+
+This will delete the feature flag override for the given tenant and flag name. After this, the feature flag will be
+enabled or disabled based on the default percentage and the tenant ID hash.
+
+## 58.5 Deleting a feature flag
+
+```bash
+eh-ctl feature-flag delete -f <flag-name>
+```
+
+## 58.6 Undeleting a feature flag
+
+```bash
+eh-ctl feature-flag update -f <flag-name> <<EOF
+{
+  "Deleted": false
+}
+EOF
+```
+
+## 58.7 Updating a feature flag default percentage
+
+```bash
+eh-ctl feature-flag update -f <flag-name> <<EOF
+{
+  "DefaultPct": 0.25
+}
+EOF
+```
+
+You can also combine undelete / default percentage updates in a single call.
+
+```bash
+eh-ctl feature-flag update -f <flag-name> <<EOF
+{
+  "DefaultPct": 0.25,
+  "Deleted": false
+}
+EOF
+```
+
+## 58.9 Getting effective feature flags for a tenant
+
+```bash
+eh-ctl feature-flag get-tenant-flags -t <tenant-id>
+```
