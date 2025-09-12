@@ -10,14 +10,15 @@ import (
 )
 
 type FeatureFlagOptions struct {
-	Add           AddFeatureFlagOptions           `cmd:""`
-	List          ListFeatureFlagsOptions         `cmd:""`
-	Get           GetFeatureFlagOptions           `cmd:""`
-	Delete        DeleteFeatureFlagOptions        `cmd:""`
-	Update        UpdateFeatureFlagOptions        `cmd:""`
-	Override      OverrideFeatureFlagOptions      `cmd:""`
-	GetOverride   GetFeatureFlagOverrideOptions   `cmd:""`
-	ListOverrides ListFeatureFlagOverridesOptions `cmd:""`
+	Add            AddFeatureFlagOptions            `cmd:""`
+	List           ListFeatureFlagsOptions          `cmd:""`
+	Get            GetFeatureFlagOptions            `cmd:""`
+	Delete         DeleteFeatureFlagOptions         `cmd:""`
+	Update         UpdateFeatureFlagOptions         `cmd:""`
+	Override       OverrideFeatureFlagOptions       `cmd:""`
+	GetOverride    GetFeatureFlagOverrideOptions    `cmd:""`
+	ListOverrides  ListFeatureFlagOverridesOptions  `cmd:""`
+	DeleteOverride DeleteFeatureFlagOverrideOptions `cmd:""`
 }
 
 type AddFeatureFlagOptions struct {
@@ -241,6 +242,33 @@ func (o *GetFeatureFlagOverrideOptions) Run(ctx context.Context, s *SharedOption
 		return err
 	}
 	return printJSON(flag)
+}
+
+type DeleteFeatureFlagOverrideOptions struct {
+	TenantID string `help:"The id of the tenant to delete the override for." name:"tenant-id" short:"i" required:""`
+	FlagName string `help:"The name of the flag to delete the override for." name:"flag-name" short:"f" required:""`
+}
+
+func (o *DeleteFeatureFlagOverrideOptions) Run(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetFeatureFlagOverrideRequest{
+		TenantID: o.TenantID,
+		FlagName: o.FlagName,
+	}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	override, err := s.Client.GetFeatureFlagOverride(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	delReq := &eh.DeleteFeatureFlagOverrideRequest{
+		TenantID: o.TenantID,
+		FlagName: o.FlagName,
+		Version:  override.Version,
+	}
+	processDelegatedAuth(s, &delReq.DelegatedAuthInfo)
+
+	return s.Client.DeleteFeatureFlagOverride(ctx, delReq)
 }
 
 type ListFeatureFlagOverridesOptions struct {
