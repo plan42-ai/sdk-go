@@ -15,6 +15,7 @@ type FeatureFlagOptions struct {
 	Get            GetFeatureFlagOptions            `cmd:""`
 	Delete         DeleteFeatureFlagOptions         `cmd:""`
 	Update         UpdateFeatureFlagOptions         `cmd:""`
+	GetTenantFlags GetTenantFeatureFlagsOptions     `cmd:""`
 	Override       OverrideFeatureFlagOptions       `cmd:""`
 	GetOverride    GetFeatureFlagOverrideOptions    `cmd:""`
 	ListOverrides  ListFeatureFlagOverridesOptions  `cmd:""`
@@ -169,6 +170,20 @@ func (o *UpdateFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) er
 		return err
 	}
 	return printJSON(updated)
+}
+
+type GetTenantFeatureFlagsOptions struct {
+	TenantID string `help:"The id of the tenant to get the flags for." name:"tenant-id" short:"i" required:""`
+}
+
+func (o *GetTenantFeatureFlagsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetTenantFeatureFlagsRequest{TenantID: o.TenantID}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+	resp, err := s.Client.GetTenantFeatureFlags(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(resp)
 }
 
 type OverrideFeatureFlagOptions struct {
