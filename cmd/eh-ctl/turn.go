@@ -23,6 +23,9 @@ type CreateTurnOptions struct {
 }
 
 func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
 	var reader *os.File
 	if o.JSON == "-" {
 		reader = os.Stdin
@@ -39,8 +42,13 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err := json.NewDecoder(reader).Decode(&req); err != nil {
 		return err
 	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 
 	getTaskReq := &eh.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID}
+	getTaskReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getTaskReq.DelegatedAuthInfo)
 	task, err := s.Client.GetTask(ctx, getTaskReq)
 	if err != nil {
@@ -48,6 +56,7 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 
 	getReq := &eh.GetLastTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID}
+	getReq.FeatureFlags = getTaskReq.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	last, err := s.Client.GetLastTurn(ctx, getReq)
 	if err != nil {
@@ -58,6 +67,7 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req.TaskID = o.TaskID
 	req.TurnIndex = last.TurnIndex + 1
 	req.TaskVersion = task.Version
+	req.FeatureFlags = getReq.FeatureFlags
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	turn, err := s.Client.CreateTurn(ctx, &req)
@@ -74,14 +84,18 @@ type ListTurnsOptions struct {
 }
 
 func (o *ListTurnsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.ListTurnsRequest{
+		TenantID:       o.TenantID,
+		TaskID:         o.TaskID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	var token *string
 	for {
-		req := &eh.ListTurnsRequest{
-			TenantID:       o.TenantID,
-			TaskID:         o.TaskID,
-			Token:          token,
-			IncludeDeleted: pointer(o.IncludeDeleted),
-		}
+		req.Token = token
 		processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 		resp, err := s.Client.ListTurns(ctx, req)
@@ -109,6 +123,9 @@ type UpdateTurnOptions struct {
 }
 
 func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
 	var reader *os.File
 	if o.JSON == "-" {
 		reader = os.Stdin
@@ -125,18 +142,23 @@ func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err := json.NewDecoder(reader).Decode(&req); err != nil {
 		return err
 	}
-
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	req.TenantID = o.TenantID
 	req.TaskID = o.TaskID
 	req.TurnIndex = o.TurnIndex
 
 	getReq := &eh.GetTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex, IncludeDeleted: pointer(true)}
+	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	turn, err := s.Client.GetTurn(ctx, getReq)
 	if err != nil {
 		return err
 	}
 	req.Version = turn.Version
+	req.FeatureFlags = getReq.FeatureFlags
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	updated, err := s.Client.UpdateTurn(ctx, &req)
@@ -160,6 +182,10 @@ func (o *GetTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TurnIndex:      o.TurnIndex,
 		IncludeDeleted: pointer(o.IncludeDeleted),
 	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	turn, err := s.Client.GetTurn(ctx, req)
@@ -180,6 +206,10 @@ func (o *GetLastTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
 		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
 	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 

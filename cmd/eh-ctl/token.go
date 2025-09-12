@@ -20,6 +20,10 @@ func (o *GenerateUITokenOptions) Run(ctx context.Context, s *SharedOptions) erro
 		TenantID: o.TenantID,
 		TokenID:  uuid.NewString(),
 	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	resp, err := s.Client.GenerateWebUIToken(ctx, req)

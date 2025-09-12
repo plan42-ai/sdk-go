@@ -36,7 +36,7 @@ func TestLogStream(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	ls := eh.NewLogStream(client, "ten", "task", 0, 10, nil)
+	ls := eh.NewLogStream(client, "ten", "task", 0, 10, nil, nil)
 	defer ls.Close()
 
 	var logs []eh.TurnLog
@@ -67,7 +67,7 @@ func TestLogStreamCloseDuringRead(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	ls := eh.NewLogStream(client, "ten", "task", 0, 1, nil)
+	ls := eh.NewLogStream(client, "ten", "task", 0, 1, nil, nil)
 
 	time.Sleep(50 * time.Millisecond)
 

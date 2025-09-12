@@ -24,8 +24,13 @@ type StreamLogsOptions struct {
 }
 
 func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
-	// TODO: Modify this to that NewLogStream uses the passed in context.
-	ls := eh.NewLogStream(s.Client, o.TenantID, o.TaskID, o.TurnIndex, 1000, pointer(o.IncludeDeleted))
+	// TODO: Modify this so that NewLogStream uses the passed in context.
+	var flags eh.FeatureFlags
+	err := loadFeatureFlags(s, &flags)
+	if err != nil {
+		return err
+	}
+	ls := eh.NewLogStream(s.Client, o.TenantID, o.TaskID, o.TurnIndex, 1000, pointer(o.IncludeDeleted), flags.FeatureFlags)
 	defer ls.Close()
 
 	enc := json.NewEncoder(os.Stdout)
@@ -47,6 +52,9 @@ type UploadLogsOptions struct {
 }
 
 func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
 	var reader *os.File
 	if o.JSON == "-" {
 		reader = os.Stdin
@@ -60,6 +68,10 @@ func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 
 	getTurnReq := &eh.GetTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex}
+	err := loadFeatureFlags(s, &getTurnReq.FeatureFlags)
+	if err != nil {
+		return err
+	}
 	processDelegatedAuth(s, &getTurnReq.DelegatedAuthInfo)
 	turn, err := s.Client.GetTurn(ctx, getTurnReq)
 	if err != nil {
@@ -67,6 +79,7 @@ func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 
 	lastReq := &eh.GetLastTurnLogRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex}
+	lastReq.FeatureFlags = getTurnReq.FeatureFlags
 	processDelegatedAuth(s, &lastReq.DelegatedAuthInfo)
 	last, err := s.Client.GetLastTurnLog(ctx, lastReq)
 	if err != nil && !is404(err) {
@@ -78,13 +91,14 @@ func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
 
 	logsCh := make(chan eh.TurnLog, 1000)
 	lu := eh.NewLogUploader(&eh.LogUploaderConfig{
-		Client:     s.Client,
-		TenantID:   o.TenantID,
-		TaskID:     o.TaskID,
-		TurnIndex:  o.TurnIndex,
-		Version:    turn.Version,
-		StartIndex: last.Index + 1,
-		Logs:       logsCh,
+		Client:       s.Client,
+		TenantID:     o.TenantID,
+		TaskID:       o.TaskID,
+		TurnIndex:    o.TurnIndex,
+		Version:      turn.Version,
+		StartIndex:   last.Index + 1,
+		Logs:         logsCh,
+		FeatureFlags: getTurnReq.FeatureFlags.FeatureFlags,
 	})
 
 	dec := json.NewDecoder(reader)

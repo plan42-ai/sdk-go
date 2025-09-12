@@ -24,6 +24,8 @@ type LogStream struct {
 	turnIndex      int
 	includeDeleted *bool
 
+	featureFlags map[string]bool
+
 	logs chan TurnLog
 
 	lastID int
@@ -33,7 +35,7 @@ type LogStream struct {
 }
 
 // NewLogStream creates and starts a LogStream.
-func NewLogStream(client *Client, tenantID, taskID string, turnIndex int, buffer int, includeDeleted *bool) *LogStream {
+func NewLogStream(client *Client, tenantID, taskID string, turnIndex int, buffer int, includeDeleted *bool, featureFlags map[string]bool) *LogStream {
 	ls := &LogStream{
 		cg:             concurrency.NewContextGroup(),
 		client:         client,
@@ -41,6 +43,7 @@ func NewLogStream(client *Client, tenantID, taskID string, turnIndex int, buffer
 		taskID:         taskID,
 		turnIndex:      turnIndex,
 		includeDeleted: includeDeleted,
+		featureFlags:   featureFlags,
 		logs:           make(chan TurnLog, buffer),
 		backoff:        util.NewBackoff(100*time.Millisecond, 2*time.Second),
 	}
@@ -99,6 +102,8 @@ func (l *LogStream) connectAndStream(ctx context.Context) error {
 	if l.lastID != 0 {
 		req.LastEventID = &l.lastID
 	}
+
+	req.FeatureFlags = FeatureFlags{FeatureFlags: l.featureFlags}
 
 	body, err := l.client.StreamTurnLogs(ctx, req)
 	if err != nil {
