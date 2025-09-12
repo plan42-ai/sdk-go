@@ -3503,3 +3503,360 @@ func TestListFeatureFlagOverridesError(t *testing.T) {
 	_, err := client.ListFeatureFlagOverrides(context.Background(), &eh.ListFeatureFlagOverridesRequest{TenantID: "abc"})
 	require.Error(t, err)
 }
+
+func TestFeatureFlagsHeader(t *testing.T) {
+	t.Parallel()
+	ffHeader := `{"ff":true}`
+
+	cases := []struct {
+		name   string
+		status int
+		resp   any
+		call   func(*eh.Client) error
+	}{
+		{
+			name:   "CreateTenant",
+			status: http.StatusCreated,
+			resp:   eh.Tenant{},
+			call: func(c *eh.Client) error {
+				_, err := c.CreateTenant(context.Background(), &eh.CreateTenantRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					Type:         eh.TenantTypeUser,
+				})
+				return err
+			},
+		},
+		{
+			name:   "GetTenant",
+			status: http.StatusOK,
+			resp:   eh.Tenant{},
+			call: func(c *eh.Client) error {
+				_, err := c.GetTenant(context.Background(), &eh.GetTenantRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+				})
+				return err
+			},
+		},
+		{
+			name:   "GetCurrentUser",
+			status: http.StatusOK,
+			resp:   eh.Tenant{},
+			call: func(c *eh.Client) error {
+				_, err := c.GetCurrentUser(context.Background(), &eh.GetCurrentUserRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+				})
+				return err
+			},
+		},
+		{
+			name:   "GetTenantFeatureFlags",
+			status: http.StatusOK,
+			resp:   eh.GetTenantFeatureFlagsResponse{},
+			call: func(c *eh.Client) error {
+				_, err := c.GetTenantFeatureFlags(context.Background(), &eh.GetTenantFeatureFlagsRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+				})
+				return err
+			},
+		},
+		{
+			name:   "GenerateWebUIToken",
+			status: http.StatusCreated,
+			resp:   eh.GenerateWebUITokenResponse{JWT: "x"},
+			call: func(c *eh.Client) error {
+				_, err := c.GenerateWebUIToken(context.Background(), &eh.GenerateWebUITokenRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TokenID:      "id",
+				})
+				return err
+			},
+		},
+		{
+			name:   "CreateEnvironment",
+			status: http.StatusCreated,
+			resp:   eh.Environment{},
+			call: func(c *eh.Client) error {
+				_, err := c.CreateEnvironment(context.Background(), &eh.CreateEnvironmentRequest{
+					FeatureFlags:  eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:      "t",
+					EnvironmentID: "e",
+				})
+				return err
+			},
+		},
+		{
+			name:   "GetEnvironment",
+			status: http.StatusOK,
+			resp:   eh.Environment{},
+			call: func(c *eh.Client) error {
+				_, err := c.GetEnvironment(context.Background(), &eh.GetEnvironmentRequest{
+					FeatureFlags:  eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:      "t",
+					EnvironmentID: "e",
+				})
+				return err
+			},
+		},
+		{
+			name:   "UpdateEnvironment",
+			status: http.StatusOK,
+			resp:   eh.Environment{},
+			call: func(c *eh.Client) error {
+				_, err := c.UpdateEnvironment(context.Background(), &eh.UpdateEnvironmentRequest{
+					FeatureFlags:  eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:      "t",
+					EnvironmentID: "e",
+					Version:       1,
+				})
+				return err
+			},
+		},
+		{
+			name:   "ListEnvironments",
+			status: http.StatusOK,
+			resp:   eh.ListEnvironmentsResponse{},
+			call: func(c *eh.Client) error {
+				_, err := c.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+				})
+				return err
+			},
+		},
+		{
+			name:   "DeleteEnvironment",
+			status: http.StatusNoContent,
+			resp:   nil,
+			call: func(c *eh.Client) error {
+				return c.DeleteEnvironment(context.Background(), &eh.DeleteEnvironmentRequest{
+					FeatureFlags:  eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:      "t",
+					EnvironmentID: "e",
+					Version:       1,
+				})
+			},
+		},
+		{
+			name:   "UploadTurnLogs",
+			status: http.StatusOK,
+			resp:   eh.UploadTurnLogsResponse{},
+			call: func(c *eh.Client) error {
+				_, err := c.UploadTurnLogs(context.Background(), &eh.UploadTurnLogsRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+					TurnIndex:    1,
+					Version:      1,
+					Index:        0,
+					Logs:         []eh.TurnLog{},
+				})
+				return err
+			},
+		},
+		{
+			name:   "GetLastTurnLog",
+			status: http.StatusOK,
+			resp:   eh.LastTurnLog{},
+			call: func(c *eh.Client) error {
+				_, err := c.GetLastTurnLog(context.Background(), &eh.GetLastTurnLogRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+					TurnIndex:    1,
+				})
+				return err
+			},
+		},
+		{
+			name:   "StreamTurnLogs",
+			status: http.StatusNoContent,
+			resp:   nil,
+			call: func(c *eh.Client) error {
+				body, err := c.StreamTurnLogs(context.Background(), &eh.StreamTurnLogsRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+					TurnIndex:    1,
+				})
+				if body != nil {
+					_ = body.Close()
+				}
+				return err
+			},
+		},
+		{
+			name:   "GetTask",
+			status: http.StatusOK,
+			resp:   eh.Task{},
+			call: func(c *eh.Client) error {
+				_, err := c.GetTask(context.Background(), &eh.GetTaskRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+				})
+				return err
+			},
+		},
+		{
+			name:   "CreateTask",
+			status: http.StatusCreated,
+			resp:   eh.Task{},
+			call: func(c *eh.Client) error {
+				_, err := c.CreateTask(context.Background(), &eh.CreateTaskRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+					RepoInfo:     map[string]*eh.RepoInfo{},
+				})
+				return err
+			},
+		},
+		{
+			name:   "UpdateTask",
+			status: http.StatusOK,
+			resp:   eh.Task{},
+			call: func(c *eh.Client) error {
+				title := ""
+				_, err := c.UpdateTask(context.Background(), &eh.UpdateTaskRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+					Version:      1,
+					Title:        &title,
+				})
+				return err
+			},
+		},
+		{
+			name:   "DeleteTask",
+			status: http.StatusNoContent,
+			resp:   nil,
+			call: func(c *eh.Client) error {
+				return c.DeleteTask(context.Background(), &eh.DeleteTaskRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+					Version:      1,
+				})
+			},
+		},
+		{
+			name:   "ListTasks",
+			status: http.StatusOK,
+			resp:   eh.ListTasksResponse{},
+			call: func(c *eh.Client) error {
+				_, err := c.ListTasks(context.Background(), &eh.ListTasksRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+				})
+				return err
+			},
+		},
+		{
+			name:   "CreateTurn",
+			status: http.StatusCreated,
+			resp:   eh.Turn{},
+			call: func(c *eh.Client) error {
+				_, err := c.CreateTurn(context.Background(), &eh.CreateTurnRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+					TurnIndex:    2,
+					TaskVersion:  1,
+					Prompt:       "",
+				})
+				return err
+			},
+		},
+		{
+			name:   "GetTurn",
+			status: http.StatusOK,
+			resp:   eh.Turn{},
+			call: func(c *eh.Client) error {
+				_, err := c.GetTurn(context.Background(), &eh.GetTurnRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+					TurnIndex:    1,
+				})
+				return err
+			},
+		},
+		{
+			name:   "GetLastTurn",
+			status: http.StatusOK,
+			resp:   eh.Turn{},
+			call: func(c *eh.Client) error {
+				_, err := c.GetLastTurn(context.Background(), &eh.GetLastTurnRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+				})
+				return err
+			},
+		},
+		{
+			name:   "UpdateTurn",
+			status: http.StatusOK,
+			resp:   eh.Turn{},
+			call: func(c *eh.Client) error {
+				status := "s"
+				_, err := c.UpdateTurn(context.Background(), &eh.UpdateTurnRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+					TurnIndex:    1,
+					Version:      1,
+					Status:       &status,
+				})
+				return err
+			},
+		},
+		{
+			name:   "ListTurns",
+			status: http.StatusOK,
+			resp:   eh.ListTurnsResponse{},
+			call: func(c *eh.Client) error {
+				_, err := c.ListTurns(context.Background(), &eh.ListTurnsRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					TaskID:       "task",
+				})
+				return err
+			},
+		},
+		{
+			name:   "ListPolicies",
+			status: http.StatusOK,
+			resp:   eh.ListPoliciesResponse{},
+			call: func(c *eh.Client) error {
+				_, err := c.ListPolicies(context.Background(), &eh.ListPoliciesRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+				})
+				return err
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, ffHeader, r.Header.Get("X-EventHorizon-FeatureFlags"))
+				w.WriteHeader(tt.status)
+				if tt.resp != nil {
+					_ = json.NewEncoder(w).Encode(tt.resp)
+				}
+			}))
+			defer srv.Close()
+			client := eh.NewClient(srv.URL)
+			require.NoError(t, tt.call(client))
+		})
+	}
+}

@@ -68,6 +68,7 @@ func (Task) ObjectType() ObjectType { return ObjectTypeTask }
 
 // GetTaskRequest is the request payload for GetTask.
 type GetTaskRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string `json:"-"`
 	TaskID         string `json:"-"`
@@ -114,6 +115,7 @@ func (c *Client) GetTask(ctx context.Context, req *GetTaskRequest) (*Task, error
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -138,6 +140,7 @@ func (c *Client) GetTask(ctx context.Context, req *GetTaskRequest) (*Task, error
 
 // CreateTaskRequest is the request payload for CreateTask.
 type CreateTaskRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID           string               `json:"-"`
 	TaskID             string               `json:"-"`
@@ -211,6 +214,7 @@ func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task,
 	}
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -235,6 +239,7 @@ func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task,
 
 // UpdateTaskRequest is the request payload for UpdateTask.
 type UpdateTaskRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID string                `json:"-"`
 	TaskID   string                `json:"-"`
@@ -297,6 +302,7 @@ func (c *Client) UpdateTask(ctx context.Context, req *UpdateTaskRequest) (*Task,
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -321,6 +327,7 @@ func (c *Client) UpdateTask(ctx context.Context, req *UpdateTaskRequest) (*Task,
 
 // DeleteTaskRequest is the request payload for DeleteTask.
 type DeleteTaskRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID string `json:"-"`
 	TaskID   string `json:"-"`
@@ -361,6 +368,7 @@ func (c *Client) DeleteTask(ctx context.Context, req *DeleteTaskRequest) error {
 	}
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return err
@@ -380,6 +388,7 @@ func (c *Client) DeleteTask(ctx context.Context, req *DeleteTaskRequest) error {
 
 // ListTasksRequest is the request for ListTasks.
 type ListTasksRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string
 	WorkstreamID   *string
@@ -443,6 +452,7 @@ func (c *Client) ListTasks(ctx context.Context, req *ListTasksRequest) (*ListTas
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err

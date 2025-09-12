@@ -41,6 +41,7 @@ func (Environment) ObjectType() ObjectType { return ObjectTypeEnvironment }
 
 // CreateEnvironmentRequest is the request payload for CreateEnvironment.
 type CreateEnvironmentRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID      string   `json:"-"`
 	EnvironmentID string   `json:"-"`
@@ -100,6 +101,7 @@ func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRe
 	}
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -124,6 +126,7 @@ func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRe
 
 // GetEnvironmentRequest is the request payload for GetEnvironment.
 type GetEnvironmentRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string `json:"-"`
 	EnvironmentID  string `json:"-"`
@@ -169,6 +172,7 @@ func (c *Client) GetEnvironment(ctx context.Context, req *GetEnvironmentRequest)
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -193,6 +197,7 @@ func (c *Client) GetEnvironment(ctx context.Context, req *GetEnvironmentRequest)
 
 // UpdateEnvironmentRequest is the request payload for UpdateEnvironment.
 type UpdateEnvironmentRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID      string    `json:"-"`
 	EnvironmentID string    `json:"-"`
@@ -267,6 +272,7 @@ func (c *Client) UpdateEnvironment(ctx context.Context, req *UpdateEnvironmentRe
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -291,6 +297,7 @@ func (c *Client) UpdateEnvironment(ctx context.Context, req *UpdateEnvironmentRe
 
 // ListEnvironmentsRequest is the request for ListEnvironments.
 type ListEnvironmentsRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string
 	MaxResults     *int
@@ -348,6 +355,7 @@ func (c *Client) ListEnvironments(ctx context.Context, req *ListEnvironmentsRequ
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -372,6 +380,7 @@ func (c *Client) ListEnvironments(ctx context.Context, req *ListEnvironmentsRequ
 
 // DeleteEnvironmentRequest is the request payload for DeleteEnvironment.
 type DeleteEnvironmentRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID      string `json:"-"`
 	EnvironmentID string `json:"-"`
@@ -412,6 +421,7 @@ func (c *Client) DeleteEnvironment(ctx context.Context, req *DeleteEnvironmentRe
 	}
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return err

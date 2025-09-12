@@ -326,6 +326,7 @@ const (
 
 // ListPoliciesRequest is the request for ListPolicies.
 type ListPoliciesRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID   string
 	MaxResults *int
@@ -376,6 +377,7 @@ func (c *Client) ListPolicies(ctx context.Context, req *ListPoliciesRequest) (*L
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
