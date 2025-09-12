@@ -33,6 +33,7 @@ func (Turn) ObjectType() ObjectType { return ObjectTypeTurn }
 
 // CreateTurnRequest is the request payload for CreateTurn.
 type CreateTurnRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID           string  `json:"-"`
 	TaskID             string  `json:"-"`
@@ -97,6 +98,7 @@ func (c *Client) CreateTurn(ctx context.Context, req *CreateTurnRequest) (*Turn,
 	if req.TaskVersion != 0 {
 		httpReq.Header.Set("If-Match", strconv.Itoa(req.TaskVersion))
 	}
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -121,6 +123,7 @@ func (c *Client) CreateTurn(ctx context.Context, req *CreateTurnRequest) (*Turn,
 
 // GetTurnRequest is the request payload for GetTurn.
 type GetTurnRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string `json:"-"`
 	TaskID         string `json:"-"`
@@ -171,6 +174,7 @@ func (c *Client) GetTurn(ctx context.Context, req *GetTurnRequest) (*Turn, error
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -195,6 +199,7 @@ func (c *Client) GetTurn(ctx context.Context, req *GetTurnRequest) (*Turn, error
 
 // GetLastTurnRequest is the request payload for GetLastTurn.
 type GetLastTurnRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string `json:"-"`
 	TaskID         string `json:"-"`
@@ -240,6 +245,7 @@ func (c *Client) GetLastTurn(ctx context.Context, req *GetLastTurnRequest) (*Tur
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -264,6 +270,7 @@ func (c *Client) GetLastTurn(ctx context.Context, req *GetLastTurnRequest) (*Tur
 
 // UpdateTurnRequest is the request payload for UpdateTurn.
 type UpdateTurnRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID           string  `json:"-"`
 	TaskID             string  `json:"-"`
@@ -334,6 +341,7 @@ func (c *Client) UpdateTurn(ctx context.Context, req *UpdateTurnRequest) (*Turn,
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -358,6 +366,7 @@ func (c *Client) UpdateTurn(ctx context.Context, req *UpdateTurnRequest) (*Turn,
 
 // ListTurnsRequest is the request payload for ListTurns.
 type ListTurnsRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string
 	TaskID         string
@@ -421,6 +430,7 @@ func (c *Client) ListTurns(ctx context.Context, req *ListTurnsRequest) (*ListTur
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err

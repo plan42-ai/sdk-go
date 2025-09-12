@@ -129,6 +129,7 @@ type DelegatedAuthInfo struct {
 
 // CreateTenantRequest is the request payload for CreateTenant.
 type CreateTenantRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string     `json:"-"`
 	Type           TenantType `json:"Type"`
@@ -172,12 +173,14 @@ func (r *CreateTenantRequest) GetField(name string) (any, bool) {
 
 // GetTenantRequest is the request for GetTenant.
 type GetTenantRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID string
 }
 
 // GetCurrentUserRequest is the request for GetCurrentUser.
 type GetCurrentUserRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 }
 
@@ -401,6 +404,7 @@ func (c *Client) CreateTenant(ctx context.Context, req *CreateTenantRequest) (*T
 	}
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -438,6 +442,7 @@ func (c *Client) GetTenant(ctx context.Context, req *GetTenantRequest) (*Tenant,
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -471,6 +476,7 @@ func (c *Client) GetCurrentUser(ctx context.Context, req *GetCurrentUserRequest)
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -495,6 +501,7 @@ func (c *Client) GetCurrentUser(ctx context.Context, req *GetCurrentUserRequest)
 
 // GetTenantFeatureFlagsRequest is the request for GetTenantFeatureFlags.
 type GetTenantFeatureFlagsRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID string `json:"-"`
 }
@@ -529,6 +536,7 @@ func (c *Client) GetTenantFeatureFlags(ctx context.Context, req *GetTenantFeatur
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -553,6 +561,7 @@ func (c *Client) GetTenantFeatureFlags(ctx context.Context, req *GetTenantFeatur
 
 // GenerateWebUITokenRequest is the request for GenerateWebUIToken.
 type GenerateWebUITokenRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID string
 	TokenID  string
@@ -592,6 +601,7 @@ func (c *Client) GenerateWebUIToken(ctx context.Context, req *GenerateWebUIToken
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -642,6 +652,7 @@ type LastTurnLog struct {
 
 // UploadTurnLogsRequest is the request payload for UploadTurnLogs.
 type UploadTurnLogsRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID  string    `json:"-"`
 	TaskID    string    `json:"-"`
@@ -653,6 +664,7 @@ type UploadTurnLogsRequest struct {
 
 // GetLastTurnLogRequest is the request payload for GetLastTurnLog.
 type GetLastTurnLogRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string `json:"-"`
 	TaskID         string `json:"-"`
@@ -731,6 +743,7 @@ func (c *Client) UploadTurnLogs(ctx context.Context, req *UploadTurnLogsRequest)
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -755,6 +768,7 @@ func (c *Client) UploadTurnLogs(ctx context.Context, req *UploadTurnLogsRequest)
 
 // StreamTurnLogsRequest is the request payload for StreamTurnLogs.
 type StreamTurnLogsRequest struct {
+	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string `json:"-"`
 	TaskID         string `json:"-"`
@@ -811,6 +825,7 @@ func (c *Client) StreamTurnLogs(ctx context.Context, req *StreamTurnLogsRequest)
 	if req.LastEventID != nil {
 		httpReq.Header.Set("Last-Event-ID", strconv.Itoa(*req.LastEventID))
 	}
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
@@ -861,6 +876,7 @@ func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest)
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
 		return nil, err
