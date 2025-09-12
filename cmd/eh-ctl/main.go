@@ -165,6 +165,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.FeatureFlag.Update.Run(options.Ctx, &options.SharedOptions)
 	case "feature-flag override":
 		return options.FeatureFlag.Override.Run(options.Ctx, &options.SharedOptions)
+	case "feature-flag get-override":
+		return options.FeatureFlag.GetOverride.Run(options.Ctx, &options.SharedOptions)
 	case "feature-flag list-overrides":
 		return options.FeatureFlag.ListOverrides.Run(options.Ctx, &options.SharedOptions)
 	default:
