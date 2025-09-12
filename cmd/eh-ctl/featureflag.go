@@ -24,7 +24,7 @@ type FeatureFlagOptions struct {
 type AddFeatureFlagOptions struct {
 	FlagName    string  `help:"The name of the flag to add." name:"flag-name" short:"f" required:""`
 	Percentage  float64 `help:"The % of customers getting the new flag by default." name:"percentage" short:"p" default:"0.0"`
-	Description string  `help:"The description of the flag to add. Optional." name:"description" short:"-D" optional:""`
+	Description string  `help:"The description of the flag to add. Optional." name:"description" short:"D" optional:""`
 }
 
 func (o *AddFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error {

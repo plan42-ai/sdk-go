@@ -3358,7 +3358,7 @@ The API service will cache the data returned by GetTenantFeatureFlags for up to 
 to feature flags may take up to 5 minutes to be reflected everywhere. 
 
 We want to avoid situations where different API service instances or the API service and the UI service see different
-values for feature flags, as that can lead to inconsistent behavior.
+values for feature flags at the same time, as that can lead to inconsistent behavior.
 
 To prevent this, we will allow callers to pass in feature flag values via the "X-EventHorizon-FeatureFlags" header.
 This allows the UI service to pass in the same feature flag values it is using into the API service, ensuring consistent
