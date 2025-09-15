@@ -2202,24 +2202,28 @@ Content-Type: application/json; charset=utf-8
 
 # 31. ListGithubOrgs
 
-ListGithubOrgs lists all github orgs in the service.
+ListGithubOrgs lists all github orgs in the service. When the optional `name`
+query parameter is provided, only the GitHub org whose name matches the
+supplied value exactly is returned. If no org name matches, the response is
+empty.
 
 ## 31.1 Request
 
 ```http request
-GET /v1/github/orgs?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+GET /v1/github/orgs?maxResults={maxResults}&token={token}&name={name}&includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
 ```
 
-| Parameter                      | Location | Type    | Description                                                                                                     |
-|--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
-| maxResults                     | query    | *int    | Optional. The maximum number of orgs to return. Default is 500. Must be >=1 and <= 500.                         |
-| token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
-| includeDeleted                 | query    | *bool   | Optional. Set to true to return deleted orgs.                                                                   |
-| Authorization                  | header   | string  | The authorization header for the request.                                                                       |
-| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+| Parameter                      | Location | Type    | Description                                                                                                                                      |
+|--------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| maxResults                     | query    | *int    | Optional. The maximum number of orgs to return. Default is 500. Must be >=1 and <= 500.                                                          |
+| token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned.                                  |
+| name                           | query    | *string | Optional. When provided, only the GitHub org whose name matches the value exactly is returned. If no org matches, the response contains no orgs. |
+| includeDeleted                 | query    | *bool   | Optional. Set to true to return deleted orgs.                                                                                                    |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                                                        |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                              |
 
 ## 31.2 Response
 
