@@ -248,7 +248,9 @@ func (o *OverrideFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) 
 		FlagName: o.FlagName,
 		Version:  flag.Version,
 		Enabled:  pointer(o.Enabled),
+		Deleted:  pointer(false),
 	}
+
 	if flag.Deleted {
 		updateReq.Deleted = pointer(false)
 	}
