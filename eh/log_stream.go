@@ -53,6 +53,25 @@ func NewLogStream(client *Client, tenantID, taskID string, turnIndex int, buffer
 	return ls
 }
 
+func NewLogStreamWithLastID(client *Client, tenantID, taskID string, turnIndex int, buffer int, includeDeleted *bool, featureFlags map[string]bool, lastID int) *LogStream {
+	ls := &LogStream{
+		cg:             concurrency.NewContextGroup(),
+		client:         client,
+		tenantID:       tenantID,
+		taskID:         taskID,
+		turnIndex:      turnIndex,
+		includeDeleted: includeDeleted,
+		featureFlags:   featureFlags,
+		logs:           make(chan TurnLog, buffer),
+		backoff:        util.NewBackoff(100*time.Millisecond, 2*time.Second),
+		lastID:         lastID,
+	}
+	ls.cg.Add(1)
+	ls.cg.Init()
+	go ls.run()
+	return ls
+}
+
 // Logs returns a channel that emits TurnLog entries as they are received.
 func (l *LogStream) Logs() <-chan TurnLog { return l.logs }
 
