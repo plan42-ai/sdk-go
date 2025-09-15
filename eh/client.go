@@ -1033,6 +1033,7 @@ func (c *Client) GetGithubOrg(ctx context.Context, req *GetGithubOrgRequest) (*G
 type ListGithubOrgsRequest struct {
 	MaxResults     *int
 	Token          *string
+	Name           *string
 	IncludeDeleted *bool
 }
 
@@ -1044,6 +1045,8 @@ func (r *ListGithubOrgsRequest) GetField(name string) (any, bool) {
 		return evalNullable(r.MaxResults)
 	case "Token":
 		return evalNullable(r.Token)
+	case "Name":
+		return evalNullable(r.Name)
 	case "IncludeDeleted":
 		return evalNullable(r.IncludeDeleted)
 	default:
@@ -1069,6 +1072,9 @@ func (c *Client) ListGithubOrgs(ctx context.Context, req *ListGithubOrgsRequest)
 	}
 	if req.Token != nil {
 		q.Set("token", *req.Token)
+	}
+	if req.Name != nil {
+		q.Set("name", *req.Name)
 	}
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
