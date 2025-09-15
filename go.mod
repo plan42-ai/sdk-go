@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.29.17
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.70
 	github.com/debugging-sucks/clock v1.1.3
+	github.com/debugging-sucks/concurrency v1.0.1
 	github.com/debugging-sucks/sigv4util v1.0.5
 	github.com/google/uuid v1.6.0
 )
@@ -26,7 +27,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.34.0 // indirect
 	github.com/aws/smithy-go v1.22.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/debugging-sucks/concurrency v1.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/scottwis/persistent v1.0.8 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect

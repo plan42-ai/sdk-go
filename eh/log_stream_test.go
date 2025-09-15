@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -78,4 +80,102 @@ func TestLogStreamCloseDuringRead(t *testing.T) {
 	if elapsed := time.Since(start); elapsed > 200*time.Millisecond {
 		t.Fatalf("close took too long: %v", elapsed)
 	}
+}
+
+func TestLogStreamWithLastID_UsesHeader(t *testing.T) {
+	var gotLastEventID string
+	var called int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called++
+		if called > 1 {
+			// Do not allow reconnects in this test
+			return
+		}
+		gotLastEventID = r.Header.Get("Last-Event-ID")
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprintf(w, "id: 5\nevent: log\ndata: {\"Timestamp\":\"2025-01-01T00:00:00Z\",\"Message\":\"resumed\"}\n\n")
+		// Close connection after sending one event
+	}))
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	ls := eh.NewLogStreamWithLastID(client, "ten", "task", 0, 1, nil, nil, 42)
+
+	var logs []eh.TurnLog
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for log := range ls.Logs() {
+			logs = append(logs, log)
+		}
+	}()
+	time.Sleep(50 * time.Millisecond)
+	ls.Close()
+	wg.Wait()
+
+	if gotLastEventID != "42" {
+		t.Errorf("expected Last-Event-ID header '42', got '%s'", gotLastEventID)
+	}
+	if len(logs) != 1 || logs[0].Message != "resumed" {
+		t.Errorf("unexpected logs: %#v", logs)
+	}
+}
+
+func TestLogStreamWithLastID_UpdatesLastID(t *testing.T) {
+	var gotLastEventID string
+	var called int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called++
+		if called > 1 {
+			// Prevent reconnects
+			return
+		}
+		gotLastEventID = r.Header.Get("Last-Event-ID")
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprintf(w, "id: 100\nevent: log\ndata: {\"Timestamp\":\"2025-01-01T00:00:00Z\",\"Message\":\"foo\"}\n\n")
+		// Connection will close after handler returns
+	}))
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	ls := eh.NewLogStreamWithLastID(client, "ten", "task", 0, 1, nil, nil, 99)
+
+	var logs []eh.TurnLog
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for log := range ls.Logs() {
+			logs = append(logs, log)
+		}
+	}()
+	time.Sleep(50 * time.Millisecond)
+	ls.Close()
+	wg.Wait()
+
+	if gotLastEventID != "99" {
+		t.Errorf("expected Last-Event-ID header '99', got '%s'", gotLastEventID)
+	}
+	if len(logs) != 1 || logs[0].Message != "foo" {
+		t.Errorf("unexpected logs: %#v", logs)
+	}
+	// Check that lastID is updated after receiving event with id: 100
+	if lsLastID := getLogStreamLastID(ls); lsLastID != 100 {
+		t.Errorf("expected lastID to be updated to 100, got %d", lsLastID)
+	}
+}
+
+// getLogStreamLastID is a helper to access the unexported lastID field for testing.
+func getLogStreamLastID(ls interface{}) int {
+	v := reflect.ValueOf(ls)
+	// If pointer, get the element
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	field := v.FieldByName("lastID")
+	if field.IsValid() && field.CanInt() {
+		return int(field.Int())
+	}
+	return -1
 }
