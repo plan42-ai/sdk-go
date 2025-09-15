@@ -52,7 +52,8 @@ func (o *AddGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type ListGithubOrgsOptions struct {
-	IncludeDeleted bool `help:"Include deleted github orgs" short:"d"`
+	Name           *string `help:"Return only the GitHub org whose name matches the provided value." name:"name" short:"n" optional:""`
+	IncludeDeleted bool    `help:"Include deleted github orgs" short:"d"`
 }
 
 func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -66,6 +67,7 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 	for {
 		req := &eh.ListGithubOrgsRequest{
 			Token:          token,
+			Name:           o.Name,
 			IncludeDeleted: pointer(o.IncludeDeleted),
 		}
 		resp, err := s.Client.ListGithubOrgs(ctx, req)

@@ -2463,6 +2463,7 @@ func TestListGithubOrgs(t *testing.T) {
 		require.Equal(t, "/v1/github/orgs", r.URL.Path)
 		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
 		require.Equal(t, tokenID, r.URL.Query().Get("token"))
+		require.Empty(t, r.URL.Query().Get("name"))
 		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
 
 		w.WriteHeader(http.StatusOK)
@@ -2477,6 +2478,32 @@ func TestListGithubOrgs(t *testing.T) {
 	maxResults := 123
 	includeDeleted := true
 	resp, err := client.ListGithubOrgs(context.Background(), &eh.ListGithubOrgsRequest{MaxResults: &maxResults, Token: util.Pointer(tokenID), IncludeDeleted: &includeDeleted})
+	require.NoError(t, err)
+	require.Len(t, resp.Orgs, 1)
+	require.Equal(t, "org", resp.Orgs[0].OrgID)
+}
+
+func TestListGithubOrgsWithName(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/github/orgs", r.URL.Path)
+		require.Equal(t, "the-name", r.URL.Query().Get("name"))
+		require.Empty(t, r.URL.Query().Get("maxResults"))
+		require.Empty(t, r.URL.Query().Get("token"))
+		require.Empty(t, r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListGithubOrgsResponse{Orgs: []eh.GithubOrg{{OrgID: "org"}}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	name := "the-name"
+	resp, err := client.ListGithubOrgs(context.Background(), &eh.ListGithubOrgsRequest{Name: &name})
 	require.NoError(t, err)
 	require.Len(t, resp.Orgs, 1)
 	require.Equal(t, "org", resp.Orgs[0].OrgID)
