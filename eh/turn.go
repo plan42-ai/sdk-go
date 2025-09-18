@@ -35,14 +35,11 @@ func (Turn) ObjectType() ObjectType { return ObjectTypeTurn }
 type CreateTurnRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID           string  `json:"-"`
-	TaskID             string  `json:"-"`
-	TurnIndex          int     `json:"-"`
-	TaskVersion        int     `json:"-"`
-	Prompt             string  `json:"Prompt"`
-	PreviousResponseID *string `json:"PreviousResponseID,omitempty"`
-	BaselineCommitHash *string `json:"BaselineCommitHash,omitempty"`
-	LastCommitHash     *string `json:"LastCommitHash,omitempty"`
+	TenantID    string `json:"-"`
+	TaskID      string `json:"-"`
+	TurnIndex   int    `json:"-"`
+	TaskVersion int    `json:"-"`
+	Prompt      string `json:"Prompt"`
 }
 
 // nolint: goconst
@@ -58,12 +55,6 @@ func (c *CreateTurnRequest) GetField(name string) (any, bool) {
 		return c.TaskVersion, true
 	case "Prompt":
 		return c.Prompt, true
-	case "PreviousResponseID":
-		return c.PreviousResponseID, true
-	case "BaselineCommitHash":
-		return c.BaselineCommitHash, true
-	case "LastCommitHash":
-		return c.LastCommitHash, true
 	default:
 		return nil, false
 	}

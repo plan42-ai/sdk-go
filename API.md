@@ -1696,10 +1696,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 If-Match: <taskVersion>
 
 {
-    "Prompt": "string",    
-    "PreviousResponseID": "*string",
-    "BaselineCommitHash": "*string",
-    "LastCommitHash": "*string",    
+    "Prompt": "string"    
 }
 ```
 
@@ -1713,9 +1710,6 @@ If-Match: <taskVersion>
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                           |
 | taskVersion                              | header   | string  | The version of the task to create the turn for. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. Adding a turn to a task will increment it's version number. |
 | Prompt                                   | body     | string  | The prompt to use for the turn.                                                                                                                                                                                               |
-| PreviousResponseID                       | body     | *string | Optional. The ID of the previous response for the turn. Used to enable the AI to resume with the context of the previous turn.                                                                                                |
-| BaselineCommitHash                       | body     | *string | Optional. The baseline commit hash of the task. When creating turn n + 1, set to the value for turn n. Will be updated by the agent while it works.                                                                           |
-| LastCommitHash                           | body     | *string | Optional. The last commit hash of the task. When creating turn n + 1, set to the value for turn n. Will be updated by the agent while it works.                                                                               |
 
 ## 23.2 Response
 
