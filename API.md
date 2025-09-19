@@ -2375,300 +2375,11 @@ If-Match: <version>
 
 On success a 204 NO CONTENT is returned with no body.
 
-# 36. AssociateGithubOrgWithTenant
-
-The AssociateGithubOrgWithTenant API is used to associate a github org with a tenant in the service.
-
-## 36.1 Request
-
-```http request
-PUT /v1/tenants/{tenant_id}/github/orgs/{org_id} HTTP/1.1
-Accept: application/json
-Content-Type: application/json; charset=utf-8
-Authorization: <authorization>
-X-Event-Horizon-Delegating-Authorization: <authorization>
-X-Event-Horizon-Signed-Headers: <signed headers>
-
-{
-    "GithubUserID": int,
-    "GithubUsername": "string",
-    "OAuthToken": "string",
-    "OAuthRefreshToken" : "string".
-    "ExpiresAt": "string"
-}
-```
-| Parameter                                | Location | Type    | Description                                                         |
-|------------------------------------------|----------|---------|---------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to associate the github org with.              |
-| org_id                                   | path     | string  | The ID of the github org to associate with the user.                |
-| Authorization                            | header   | string  | The authorization header for the request.                           |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
-| GithubUserID                             | body     | int     | The ID of the github user in Github.                                |
-| GithubUsername                           | body     | string  | The username of the github user in Github.                          |
-| OAuthToken                               | body     | string  | The OAuth token for the github user.                                |
-| OAuthRefreshToken                        | body     | string  | The OAuth refresh token for the github user.                        |
-| ExpiresAt                                | body     | string  | The timestamp when the OAuth token expires, in ISO 8601 format.     |
-
-## 36.2 Response
-
-On success a 201 CREATED is returned with the following JSON body:
-
-```http request
-HTTP/1.1 201 Created
-Content-Type: application/json; charset=utf-8
-
-{
-  "TenantID": "string",
-  "OrgID": "string",
-  "GithubUserID": int,
-  "GithubUserName": "string",
-  "OAuthToken": "string",
-  "OAuthRefreshToken": "string",
-  "ExpiresAt": "string"
-  "OrgName": "string",
-  "InstallationID": int,
-  "ExternalOrgID": int,  
-  "CreatedAt": "string",
-  "UpdatedAt": "string",
-  "Version": int,
-  "Deleted": bool,
-}
-```
-
-| Field             | Type   | Description                                                                                |
-|-------------------|--------|--------------------------------------------------------------------------------------------|
-| TenantID          | string | The ID of the tenant.                                                                      |
-| OrgID             | string | The ID of the github org.                                                                  |
-| GithubUserID      | int    | The ID of the github user in Github.                                                       |
-| GithubUserName    | string | The username of the github user in Github.                                                 |
-| OAuthToken        | string | The OAuth token for the github user.                                                       |
-| OAuthRefreshToken | string | The OAuth refresh token for the github user.                                               |
-| ExpiresAt         | string | The timestamp when the OAuth token expires, in ISO 8601 format.                            |
-| OrgName           | string | The name of the github org.                                                                |
-| InstallationID    | int    | The installation ID of the github app for the org.                                         |
-| ExternalOrgID     | int    | The ID of the github org in Github.                                                        |
-| CreatedAt         | string | The timestamp when the association was created, in ISO 8601 format.                        |
-| UpdatedAt         | string | The timestamp when the association was last updated, in ISO 8601 format.                   |
-| Version           | int    | The version of the association. This is incremented every time the association is updated. |
-
-# 37. ListTenantGithubOrgs
-
-ListTenantGithubOrgs lists all github orgs associated with a tenant.
-
-## 37.1 Request
-
-```http request
-GET /v1/tenants/{tenant_id}/github/orgs?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
-Accept: application/json
-Authorization: <authorization>
-X-Event-Horizon-Delegating-Authorization: <authorization>
-X-Event-Horizon-Signed-Headers: <signed headers>
-```
-
-| Parameter                                | Location | Type    | Description                                                                                                     |
-|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to list github orgs for.                                                                   |
-| maxResults                               | query    | *int    | Optional. The maximum number of orgs to return. Default is 500. Must be >=1 and <= 500.                         |
-| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
-| includeDeleted                           | query    | *bool   | Optional. Set to true to return deleted orgs.                                                                   |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
-
-## 37.2 Response
-
-On success a 200 OK is returned with the following JSON body:
-
-```http request
-HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-
-{
-  "Orgs": [],
-  "NextToken": "*string"
-}
-```
-
-| Field     | Type                               | Description                                                                                     |
-|-----------|------------------------------------|-------------------------------------------------------------------------------------------------|
-| Orgs      | [][TenantGithubOrg](#362-response) | A list of github orgs associated with the tenant.                                               |
-| NextToken | *string                            | A token to retrieve the next page of results. If there are no more results, this will be null.  |
-
-# 38. UpdateTenantGithubOrgAssociation
-
-The UpdateTenantGithubOrgAssociation API is used to update the association between a github org and a tenant.
-
-## 38.1 Request
-
-```http request
-PATCH /v1/tenants/{tenant_id}/github/orgs/{org_id} HTTP/1.1
-Accept: application/json
-Content-Type: application/json; charset=utf-8
-Authorization: <authorization>
-X-Event-Horizon-Delegating-Authorization: <authorization>
-X-Event-Horizon-Signed-Headers: <signed headers>
-If-Match: <version>
-
-{
-    "OAuthToken": "*string",
-    "OAuthRefreshToken": "*string",
-    "ExpiresAt": "*string",
-    "Deleted":  "*bool",
-    "GithubUserName": "*string"
-}
-```
-
-| Parameter                                | Location | Type    | Description                                                                                                                                                 |
-|------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to update the github org association for.                                                                                              |
-| org_id                                   | path     | string  | The ID of the github org to update the association for.                                                                                                     |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                   |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                      |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
-| version                                  | header   | string  | The version of the association to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
-| OAuthToken                               | body     | *string | If set, update the OAuth token for the github user.                                                                                                         |
-| OAuthRefreshToken                        | body     | *string | If set, update the OAuth refresh token for the github user.                                                                                                 |
-| ExpiresAt                                | body     | *string | If set, update the timestamp when the OAuth token expires, in ISO 8601 format.                                                                              |
-| Deleted                                  | body     | *bool   | If set to false, undelete the association.                                                                                                                  |
-| GithubUserName                           | body     | *string | If set, update the github username for the github user.                                                                                                     |
-
-## 38.2 Response
-
-On success a 200 OK is returned with the following JSON body:
-
-```http request
-HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-
-{
-  "TenantID": "string",
-  "OrgID": "string",
-  "GithubUserID": int,
-  "OAuthToken": "string",
-  "OAuthRefreshToken": "string",
-  "ExpiresAt": "string",
-  "OrgName": "string",
-  "InstallationID": int,
-  "ExternalOrgID": int,  
-  "CreatedAt": "string",
-  "UpdatedAt": "string",
-  "Version": int,
-  "Deleted": bool,
-}
-```
-
-| Field             | Type   | Description                                                                                |
-|-------------------|--------|--------------------------------------------------------------------------------------------|
-| TenantID          | string | The ID of the tenant.                                                                      |
-| OrgID             | string | The ID of the github org.                                                                  |
-| GithubUserID      | int    | The ID of the github user in Github.                                                       |
-| OAuthToken        | string | The OAuth token for the github user.                                                       |
-| OAuthRefreshToken | string | The OAuth refresh token for the github user.                                               |
-| ExpiresAt         | string | The timestamp when the OAuth token expires, in ISO 8601 format.                            |
-| OrgName           | string | The name of the github org.                                                                |
-| InstallationID    | int    | The installation ID of the github app for the org.                                         |
-| ExternalOrgID     | int    | The ID of the github org in Github.                                                        |
-| CreatedAt         | string | The timestamp when the association was created, in ISO 8601 format.                        |
-| UpdatedAt         | string | The timestamp when the association was last updated, in ISO 8601 format.                   |
-| Version           | int    | The version of the association. This is incremented every time the association is updated. |
-
-# 39. DeleteTenantGithubOrgAssociation
-
-DeleteTenantGithubOrgAssociation soft deletes the association between a github org and a tenant.
-
-## 39.1 Request
-
-```http request
-DELETE /v1/tenants/{tenant_id}/github/orgs/{org_id} HTTP/1.1
-Authorization: <authorization>
-X-Event-Horizon-Delegating-Authorization: <authorization>
-X-Event-Horizon-Signed-Headers: <signed headers>
-If-Match: <version>
-```
-
-| Parameter                                | Location | Type    | Description                                                                                                                                                 |
-|------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to delete the github org association for.                                                                                              |
-| org_id                                   | path     | string  | The ID of the github org to delete the association for.                                                                                                     |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                   |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                      |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
-| version                                  | header   | string  | The version of the association to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
-
-## 39.2 Response
-
-On success a 204 NO CONTENT is returned with no body.
-
-# 40. GetTenantGithubOrgAssociation
-
-GetTenantGithubOrgAssociation retrieves the association between a github org and a tenant.
-
-## 40.1 Request
-
-```http request
-GET /v1/tenants/{tenant_id}/github/orgs/{org_id}?includeDeleted={includeDeleted} HTTP/1.1
-Accept: application/json
-Authorization: <authorization>
-X-Event-Horizon-Delegating-Authorization: <authorization>
-X-Event-Horizon-Signed-Headers: <signed headers>
-```
-
-| Parameter                                | Location | Type    | Description                                                         |
-|------------------------------------------|----------|---------|---------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to get the github org association for.         |
-| org_id                                   | path     | string  | The ID of the github org to get the association for.                |
-| includeDeleted                           | query    | *bool   | Optional. Set to true to return a deleted association.              |
-| Authorization                            | header   | string  |                                                                     | The authorization header for the request.                           |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
-
-## 40.2 Response
-
-On success a 200 OK is returned with the following JSON body:
-
-```http request
-HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-
-{
-  "TenantID": "string",
-  "OrgID": "string",
-  "GithubUserID": int,
-  "OAuthToken": "string",
-  "OAuthRefreshToken": "string",
-  "ExpiresAt": "string",
-  "OrgName": "string",
-  "InstallationID": int,
-  "ExternalOrgID": int,  
-  "CreatedAt": "string",
-  "UpdatedAt": "string",
-  "Version": int,
-  "Deleted": bool,
-}
-```
-
-| Field             | Type   | Description                                                                                |
-|-------------------|--------|--------------------------------------------------------------------------------------------|
-| TenantID          | string | The ID of the tenant.                                                                      |
-| OrgID             | string | The ID of the github org.                                                                  |
-| GithubUserID      | int    | The ID of the github user in Github.                                                       |
-| OAuthToken        | string | The OAuth token for the github user.                                                       |
-| OAuthRefreshToken | string | The OAuth refresh token for the github user.                                               |
-| ExpiresAt         | string | The timestamp when the OAuth token expires, in ISO 8601 format.                            |
-| OrgName           | string | The name of the github org.                                                                |
-| InstallationID    | int    | The installation ID of the github app for the org.                                         |
-| ExternalOrgID     | int    | The ID of the github org in Github.                                                        |
-| CreatedAt         | string | The timestamp when the association was created, in ISO 8601 format.                        |
-| UpdatedAt         | string | The timestamp when the association was last updated, in ISO 8601 format.                   |
-| Version           | int    | The version of the association. This is incremented every time the association is updated. |
-| Deleted           | bool   | Whether the association has been deleted.                                                  |
-
-# 41. CreateWorkstream 
+# 35. CreateWorkstream 
 
 CreateWorkstream creates a new workstream for the given tenant.
 
-## 41.1 Request
+## 35.1 Request
 
 ```http request
 PUT /v1/tenants/{tenant_id}/workstreams/{workstream_id} HTTP/1.1
@@ -2694,7 +2405,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Name                                     | body     | string  | The name of the workstream.                                         |
 | Description                              | body     | string  | The description of the workstream.                                  |
 
-## 41.2 Response
+## 35.2 Response
 On success a 201 CREATED is returned with the following JSON body:
 
 ```http request
@@ -2726,11 +2437,11 @@ Content-Type: application/json; charset=utf-8
 | Paused       | bool   | Whether the workstream is paused. Defaults to true for new workstreams.                  |
 | Deleted      | bool   | Whether the workstream has been deleted.                                                 |
 
-# 42. ListWorkstreams
+# 36. ListWorkstreams
 
 ListWorkstreams lists all workstreams for a given tenant.
 
-## 42.1 Request
+## 36.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/workstreams?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
@@ -2750,7 +2461,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 
-## 42.2 Response
+## 36.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -2766,14 +2477,14 @@ Content-Type: application/json; charset=utf-8
 
 | Field       | Type                          | Description                                                                                    |
 |-------------|-------------------------------|------------------------------------------------------------------------------------------------|
-| Workstreams | [][Workstream](#422-response) | A list of workstreams for the tenant.                                                          |
+| Workstreams | [][Workstream](#362-response) | A list of workstreams for the tenant.                                                          |
 | NextToken   | *string                       | A token to retrieve the next page of results. If there are no more results, this will be null. |
 
-# 43. GetWorkstream
+# 37. GetWorkstream
 
 GetWorkstream retrieves a workstream by ID for a given tenant.
 
-## 43.1 Request
+## 37.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}?includeDeleted={includeDeleted} HTTP/1.1
@@ -2792,7 +2503,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
-## 43.2 Response
+## 37.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -2812,12 +2523,12 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-See the [Workstream](#422-response) type for field descriptions.
+See the [Workstream](#362-response) type for field descriptions.
 
-# 44. UpdateWorkstream
+# 38. UpdateWorkstream
 UpdateWorkstream updates a workstream for a given tenant.
 
-## 44.1 Request
+## 38.1 Request
 
 ```http request
 PATCH /v1/tenants/{tenant_id}/workstreams/{workstream_id} HTTP/1.1
@@ -2849,7 +2560,7 @@ If-Match: <version>
 | Paused                                   | body     | *bool   | If set, update whether the workstream is paused.                                                                                                          |
 | Deleted                                  | body     | *bool   | If set to false, undelete the workstream.                                                                                                                 |
 
-## 44.2 Response
+## 38.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -2870,12 +2581,12 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-See the [Workstream](#422-response) type for field descriptions.
+See the [Workstream](#362-response) type for field descriptions.
 
-# 45. DeleteWorkstream
+# 39. DeleteWorkstream
 DeleteWorkstream soft deletes a workstream for a given tenant.
 
-## 45.1 Request
+## 39.1 Request
 
 ```http request
 DELETE /v1/tenants/{tenant_id}/workstreams/{workstream_id} HTTP/1.1
@@ -2894,15 +2605,15 @@ If-Match: <version>
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                       |
 | version                                  | header   | string  | The version of the workstream to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
 
-## 45.2 Response
+## 39.2 Response
 
 On success a 204 NO CONTENT is returned with no body.
 
-# 46. CreateFeatureFlag
+# 40. CreateFeatureFlag
 
 CreateFeatureFlag is an admin api that creates a new feature flag.
 
-## 46.1 Request
+## 40.1 Request
 
 ```http request
 PUT /v1/featureflags/{flag_name} HTTP/1.1
@@ -2925,7 +2636,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Description                    | body     | string  | The description of the feature flag.                                                                 |
 | DefaultPct                     | body     | float   | The default percentage of users that will have the feature flag enabled. Must be between 0.0 and 1.0 |
 
-## 46.2 Response
+## 41.2 Response
 On success a 201 CREATED is returned with the following JSON body:
 
 ```http request
@@ -2953,11 +2664,11 @@ Content-Type: application/json; charset=utf-8
 | Version     | int    | The version of the feature flag. This is incremented every time the feature flag is updated. |
 | Deleted     | bool   | Whether the feature flag has been deleted.                                                   |
 
-# 47. CreateFeatureFlagOverride
+# 42. CreateFeatureFlagOverride
 
 CreateFeatureFlagOverride creates a new override for a feature flag for a specific tenant.
 
-## 47.1 Request
+## 42.1 Request
 
 ```http request
 PUT /v1/tenants/{tenant_id}/featureFlagOverrides/{flagName} HTTP/1.1
@@ -2979,7 +2690,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 | Enabled                        | body     | bool    | Whether the feature flag is enabled for the tenant.                 |
 
-## 47.2 Response
+## 43.2 Response
 On success a 201 CREATED is returned with the following JSON body:
 
 ```http request
@@ -3007,11 +2718,11 @@ Content-Type: application/json; charset=utf-8
 | Version   | int    | The version of the override. This is incremented every time the override is updated. |
 | Deleted   | bool   | Whether the override has been deleted.                                               |
 
-# 49. GetTenantFeatureFlags
+# 44. GetTenantFeatureFlags
 
 GetTenantFeatureFlags returns the values of all active feature flags for a given tenant.
 
-## 49.1 Request
+## 44.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/featureflags HTTP/1.1
@@ -3028,7 +2739,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
-## 49.2 Response
+## 44.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -3045,11 +2756,11 @@ Content-Type: application/json; charset=utf-8
 |--------------|-----------------|------------------------------------------------------------------------------|
 | FeatureFlags | map[string]bool | A map of feature flag names to their enabled/disabled status for the tenant. |
 
-# 50. ListFeatureFlags
+# 45. ListFeatureFlags
 
 ListFeatureFlags is an admin api that lists all feature flags.
 
-## 50.1 Request
+## 45.1 Request
 
 ```http request
 GET /v1/featureflags?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
@@ -3066,7 +2777,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Authorization                  | header   | string  | The authorization header for the request.                                                                       |
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 
-## 50.2 Response
+## 45.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -3081,14 +2792,14 @@ Content-Type: application/json; charset=utf-8
 
 | Field        | Type                           | Description                                                                                    |
 |--------------|--------------------------------|------------------------------------------------------------------------------------------------|
-| FeatureFlags | [][FeatureFlag](#462-response) | A list of feature flags.                                                                       |
+| FeatureFlags | [][FeatureFlag](#412-response) | A list of feature flags.                                                                       |
 | NextToken    | *string                        | A token to retrieve the next page of results. If there are no more results, this will be null. |
 
-# 51. GetFeatureFlag
+# 46. GetFeatureFlag
 
 GetFeatureFlag is an admin api that retrieves a feature flag by name.
 
-## 51.1 Request
+## 46.1 Request
 
 ```http request
 GET /v1/featureflags/{flag_name}?includeDeleted={includeDeleted} HTTP/1.1
@@ -3104,7 +2815,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Authorization                  | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
-## 51.2 Response
+## 46.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -3122,13 +2833,13 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-See the [FeatureFlag](#462-response) type for field descriptions.
+See the [FeatureFlag](#412-response) type for field descriptions.
 
-# 52. UpdateFeatureFlag
+# 47. UpdateFeatureFlag
 
 UpdateFeatureFlag is an admin api that updates a feature flag.
 
-## 52.1 Request
+## 47.1 Request
 
 ```http request
 PATCH /v1/featureflags/{flag_name} HTTP/1.1
@@ -3155,7 +2866,7 @@ If-Match: <version>
 | DefaultPct                     | body     | *float  | If set, update the default percentage of users that will have the feature flag enabled. Must be between 0.0 and 1.0.                                        |
 | Deleted                        | body     | *bool   | If set to false, undelete the feature flag.                                                                                                                 |
 
-## 52.2 Response
+## 47.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -3173,13 +2884,13 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-See the [FeatureFlag](#462-response) type for field descriptions.
+See the [FeatureFlag](#412-response) type for field descriptions.
 
-# 53. DeleteFeatureFlag
+# 48. DeleteFeatureFlag
 
 DeleteFeatureFlag is an admin api that soft deletes a feature flag.
 
-## 53.1 Request
+## 48.1 Request
 
 ```http request
 DELETE /v1/featureflags/{flag_name} HTTP/1.1
@@ -3195,14 +2906,14 @@ If-Match: <version>
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
 | version                        | header   | string  | The version of the feature flag to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
 
-## 53.2 Response
+## 48.2 Response
 On success a 204 NO CONTENT is returned with no body.
 
-# 54. ListFeatureFlagOverrides
+# 49. ListFeatureFlagOverrides
 
 ListFeatureFlagOverrides is an admin api that lists all feature flag overrides for a given tenant.
 
-## 54.1 Request
+## 49.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/featureFlagOverrides?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
@@ -3220,7 +2931,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Authorization                  | header   | string  | The authorization header for the request.                                                                       |
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 
-## 54.2 Response
+## 49.2 Response
 On success a 200 OK is returned with the following JSON body:
 ```http request
 HTTP/1.1 200 OK
@@ -3234,13 +2945,13 @@ Content-Type: application/json; charset=utf-8
 
 | Field                | Type                                   | Description                                                                                    |
 |----------------------|----------------------------------------|------------------------------------------------------------------------------------------------|
-| FeatureFlagOverrides | [][FeatureFlagOverride](#472-response) | A list of feature flag overrides for the tenant.                                               |
+| FeatureFlagOverrides | [][FeatureFlagOverride](#432-response) | A list of feature flag overrides for the tenant.                                               |
 | NextToken            | *string                                | A token to retrieve the next page of results. If there are no more results, this will be null. |
 
-# 55. GetFeatureFlagOverride
+# 50. GetFeatureFlagOverride
 GetFeatureFlagOverride retrieves a feature flag override for a given tenant.
 
-## 55.1 Request
+## 50.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/featureFlagOverrides/{flag_name}?includeDeleted={includeDeleted} HTTP/1.1
@@ -3258,7 +2969,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
 
-## 55.2 Response
+## 50.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -3276,12 +2987,12 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-See the [FeatureFlagOverride](#472-response) type for field descriptions.
+See the [FeatureFlagOverride](#432-response) type for field descriptions.
 
-# 56. UpdateFeatureFlagOverride
+# 51. UpdateFeatureFlagOverride
 UpdateFeatureFlagOverride is an admin api that updates a feature flag override for a given tenant.
 
-## 56.1 Request
+## 51.1 Request
 
 ```http request
 PATCH /v1/tenants/{tenant_id}/featureFlagOverrides/{flag_name} HTTP/1.1
@@ -3307,7 +3018,7 @@ If-Match: <version>
 | Enabled                        | body     | *bool   | If set, update whether the feature flag is enabled for the tenant.                                                                                                   |
 | Deleted                        | body     | *bool   | If set to false, undelete the feature flag override.                                                                                                                 |
 
-## 56.2 Response
+## 51.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -3325,12 +3036,12 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-See the [FeatureFlagOverride](#472-response) type for field descriptions.
+See the [FeatureFlagOverride](#432-response) type for field descriptions.
 
-# 57. DeleteFeatureFlagOverride
+# 52. DeleteFeatureFlagOverride
 DeleteFeatureFlagOverride is an admin override that soft deletes a feature flag override for a given tenant.
 
-## 57.1 Request
+## 52.1 Request
 
 ```http request
 DELETE /v1/tenants/{tenant_id}/featureFlagOverrides/{flag_name} HTTP/1.1
@@ -3347,10 +3058,10 @@ If-Match: <version>
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                  |
 | version                        | header   | string  | The version of the feature flag override to delete. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
 
-## 57.2 Response
+## 52.2 Response
 On success a 204 NO CONTENT is returned with no body.
 
-# 58. Using Feature Flags
+# 53. Using Feature Flags
 
 The API service will cache the data returned by GetTenantFeatureFlags for up to 5 minutes. This means that seeing changes
 to feature flags may take up to 5 minutes to be reflected everywhere. 
@@ -3376,7 +3087,7 @@ The UI will use 5 min cookie expiration times, to match the API service cache TT
 > used to make authorization or authentication decisions. They are only used to enable or disable experimental features,
 > or to perform A/B experiments. 
 
-## 58.1 Adding a new feature flag
+## 53.1 Adding a new feature flag
 
 ```bash
 eh-ctl feature-flag create -f <flag-name> -D <description> -p <default-pct>
@@ -3385,7 +3096,7 @@ eh-ctl feature-flag create -f <flag-name> -D <description> -p <default-pct>
 This will create a new feature flag with the given name, description and default percentage. The flag name must be
 unique. The default percentage must be between 0.0 and 1.0.
 
-## 58.2 Explicitly enabling a feature flag for a tenant
+## 53.2 Explicitly enabling a feature flag for a tenant
 
 ```bash
 eh-ctl feature-flag override -t <tenant-id> -f <flag-name> -e
@@ -3394,7 +3105,7 @@ eh-ctl feature-flag override -t <tenant-id> -f <flag-name> -e
 This will create a new feature flag override for the given tenant and flag name. If an override already exists, it will
 be updated. 
 
-## 58.3 Explicitly disabling a feature flag for a tenant
+## 53.3 Explicitly disabling a feature flag for a tenant
 
 ```bash
 eh-ctl feature-flag override -t <tenant-id> -f <flag-name>
@@ -3402,7 +3113,7 @@ eh-ctl feature-flag override -t <tenant-id> -f <flag-name>
 
 This adds an override, but doesn't pass "-e / --enable".
 
-## 58.4 Removing an explicit override for a tenant
+## 53.4 Removing an explicit override for a tenant
 
 ```bash
 eh-ctl feature-flag delete-override -t <tenant-id> -f <flag>
@@ -3411,13 +3122,13 @@ eh-ctl feature-flag delete-override -t <tenant-id> -f <flag>
 This will delete the feature flag override for the given tenant and flag name. After this, the feature flag will be
 enabled or disabled based on the default percentage and the tenant ID hash.
 
-## 58.5 Deleting a feature flag
+## 53.5 Deleting a feature flag
 
 ```bash
 eh-ctl feature-flag delete -f <flag-name>
 ```
 
-## 58.6 Undeleting a feature flag
+## 53.6 Undeleting a feature flag
 
 ```bash
 eh-ctl feature-flag update -f <flag-name> <<EOF
@@ -3427,7 +3138,7 @@ eh-ctl feature-flag update -f <flag-name> <<EOF
 EOF
 ```
 
-## 58.7 Updating a feature flag default percentage
+## 53.7 Updating a feature flag default percentage
 
 ```bash
 eh-ctl feature-flag update -f <flag-name> <<EOF
@@ -3448,7 +3159,7 @@ eh-ctl feature-flag update -f <flag-name> <<EOF
 EOF
 ```
 
-## 58.9 Getting effective feature flags for a tenant
+## 53.8 Getting effective feature flags for a tenant
 
 ```bash
 eh-ctl feature-flag get-tenant-flags -t <tenant-id>
