@@ -3164,3 +3164,148 @@ EOF
 ```bash
 eh-ctl feature-flag get-tenant-flags -t <tenant-id>
 ```
+
+# 54. GetTenantGithubCreds
+
+The GetTenantGithubCreds API retrieves the GitHub credentials and related information for a specific tenant.
+
+## 54.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/githubcreds HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to retrieve GitHub credentials for.            |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   |         | *string                                                             | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 54.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "SkipOnboarding": bool,
+  "OAuthToken": "string",
+  "RefreshToken": "string",
+  "TokenExpiry": "string",
+  "State" : "string",
+  "StateExpiry" : "string",
+  "GithubUserLogin" : "string",
+  "GithubUserID" : int,
+  "TenantVersion": int
+}
+```
+
+| Field           | Type   | Description                                                                      |
+|-----------------|--------|----------------------------------------------------------------------------------|
+| TenantID        | string | The ID of the tenant.                                                            |
+| SkipOnboarding  | bool   | Whether the tenant has chosen to skip the GitHub onboarding process.             |
+| OAuthToken      | string | The OAuth token for accessing the GitHub API.                                    |
+| RefreshToken    | string | The refresh token for obtaining a new OAuth token.                               |
+| TokenExpiry     | string | The expiration time of the OAuth token, in ISO 8601 format.                      |
+| State           | string | The state value used in the OAuth flow to prevent CSRF attacks.                  |
+| StateExpiry     | string | The expiration time of the state value, in ISO 8601 format.                      |
+| GithubUserLogin | string | The GitHub username associated with the OAuth token.                             |
+| GithubUserID    | int    | The GitHub user ID associated with the OAuth token.                              |
+| TenantVersion   | int    | The version of the tenant. This is incremented every time the tenant is updated. |
+
+# 55. UpdateTenantGithubCreds
+
+The UpdateTenantGithubCreds API updates the GitHub credentials and related information for a specific tenant.
+
+## 55.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/githubcreds HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "SkipOnboarding": "*bool",
+    "OAuthToken": "*string",
+    "RefreshToken": "*string",
+    "TokenExpiry": "*string",
+    "State": "*string",
+    "StateExpiry": "*string",
+    "GithubUserLogin": "*string",
+    "GithubUserID": *int
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                            |
+|------------------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to update GitHub credentials for.                                                                                                 |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                              |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                 |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                    |
+| version                                  | header   | string  | The version of the tenant to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| SkipOnboarding                           | body     | *bool   | If set, update whether the tenant has chosen to skip the GitHub onboarding process.                                                                    |
+| OAuthToken                               | body     | *string | If set, update the OAuth token for accessing the GitHub API.                                                                                           |
+| RefreshToken                             | body     | *string | If set, update the refresh token for obtaining a new OAuth token.                                                                                      |
+| TokenExpiry                              | body     | *string | If set, update the expiration time of the OAuth token, in ISO 8601 format.                                                                             |
+| State                                    | body     | *string | If set, update the state value used in the OAuth flow to prevent CSRF attacks.                                                                         |
+| StateExpiry                              | body     | *string | If set, update the expiration time of the state value, in ISO 8601 format.                                                                             |
+| GithubUserLogin                          | body     |         | *string                                                                                                                                                | If set, update the GitHub username associated with the OAuth token.                                                   |
+| GithubUserID                             | body     | *int    | If set, update the GitHub user ID associated with the OAuth token.                                                                                     |   
+
+# 56. FindGithubUser
+
+The FindGithubUser API searches for users based on either github user id or github login. This results are an array of
+the same objects returned by GetTenantGithubCreds.
+
+This is intended to be used by the github webhook to deal with user renames.
+
+## 56.1 Request
+
+```http request
+GET /v1/users?githubID={githubID}&githubLogin={githubLogin}&maxResults={maxResults}&token={token} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                     |
+|--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| githubID                       | query    | *int    | Optional. The GitHub user ID to search for.                                                                     |
+| githubLogin                    | query    | *string | Optional. The GitHub username to search for.                                                                    |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+| maxResults                     | query    | *int    | Optional. The maximum number of users to return. Default is 500. Must be >=1 and <= 500.                        |
+| token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+
+Exactly one of `githubID` or `githubLogin` must be provided. 
+
+## 56.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextToken": "*string",
+    "Users": []
+}
+```
+
+| Field     | Type                    | Description                                                                                    |
+|-----------|-------------------------|------------------------------------------------------------------------------------------------|
+| NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Users     | [][User](#542-response) | A list of users that match the search criteria.                                                |
