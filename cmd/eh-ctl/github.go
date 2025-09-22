@@ -18,6 +18,57 @@ type GithubOptions struct {
 	DeleteOrg         DeleteGithubOrgOptions         `cmd:""`
 	GetTenantCreds    GetTenantGithubCredsOptions    `cmd:""`
 	UpdateTenantCreds UpdateTenantGithubCredsOptions `cmd:""`
+	FindUsers         FindGithubUsersOptions         `cmd:""`
+}
+
+// FindGithubUsersOptions provides options for the `github find-users` command.
+// Exactly one of GithubUserID or GithubLogin must be provided.
+type FindGithubUsersOptions struct {
+	GithubUserID *int    `help:"The GitHub user id to search for." name:"github-user-id" short:"I" optional:""`
+	GithubLogin  *string `help:"The GitHub login to search for." name:"github-login" short:"L" optional:""`
+}
+
+func (o *FindGithubUsersOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "github find-users")
+	}
+
+	if err := ensureNoFeatureFlags(s, "github find-users"); err != nil {
+		return err
+	}
+
+	// Ensure exactly one search parameter was provided.
+	idProvided := o.GithubUserID != nil
+	loginProvided := o.GithubLogin != nil
+	if idProvided == loginProvided {
+		return fmt.Errorf("exactly one of --github-user-id or --github-login must be provided")
+	}
+
+	var token *string
+	for {
+		req := &eh.FindGithubUserRequest{
+			GithubID:    o.GithubUserID,
+			GithubLogin: o.GithubLogin,
+			Token:       token,
+		}
+
+		resp, err := s.Client.FindGithubUser(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, user := range resp.Users {
+			if err := printJSON(user); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+	return nil
 }
 
 type AddGithubOrgOptions struct {
