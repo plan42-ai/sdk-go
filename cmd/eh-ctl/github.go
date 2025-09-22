@@ -11,12 +11,13 @@ import (
 )
 
 type GithubOptions struct {
-	AddOrg         AddGithubOrgOptions         `cmd:""`
-	ListOrgs       ListGithubOrgsOptions       `cmd:""`
-	GetOrg         GetGithubOrgOptions         `cmd:""`
-	UpdateOrg      UpdateGithubOrgOptions      `cmd:""`
-	DeleteOrg      DeleteGithubOrgOptions      `cmd:""`
-	GetTenantCreds GetTenantGithubCredsOptions `cmd:""`
+	AddOrg            AddGithubOrgOptions            `cmd:""`
+	ListOrgs          ListGithubOrgsOptions          `cmd:""`
+	GetOrg            GetGithubOrgOptions            `cmd:""`
+	UpdateOrg         UpdateGithubOrgOptions         `cmd:""`
+	DeleteOrg         DeleteGithubOrgOptions         `cmd:""`
+	GetTenantCreds    GetTenantGithubCredsOptions    `cmd:""`
+	UpdateTenantCreds UpdateTenantGithubCredsOptions `cmd:""`
 }
 
 type AddGithubOrgOptions struct {
@@ -195,4 +196,67 @@ func (o *GetTenantGithubCredsOptions) Run(ctx context.Context, s *SharedOptions)
 		return err
 	}
 	return printJSON(resp)
+}
+
+// UpdateTenantGithubCredsOptions updates GitHub credentials for a tenant.
+type UpdateTenantGithubCredsOptions struct {
+	TenantID string `help:"The ID of the tenant whose GitHub credentials will be updated." name:"tenant-id" short:"i" required:""`
+	JSON     string `help:"The JSON file containing the fields to update. Pass '-' to read from stdin." name:"json" short:"j" default:"-"`
+}
+
+func (o *UpdateTenantGithubCredsOptions) Run(ctx context.Context, s *SharedOptions) error { // nolint: funlen, dupl
+	// Ensure user didn't specify the same file for both JSON body and feature flags.
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
+
+	// Read the JSON payload.
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.UpdateTenantGithubCredsRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	// Populate path params.
+	req.TenantID = o.TenantID
+
+	// Load feature flags (allow optional overrides).
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+
+	// Retrieve current creds to obtain latest version for optimistic concurrency.
+	getReq := &eh.GetTenantGithubCredsRequest{TenantID: o.TenantID}
+	if err := loadFeatureFlags(s, &getReq.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	current, err := s.Client.GetTenantGithubCreds(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req.Version = current.TenantVersion
+
+	// Attach delegated auth information for the update request.
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateTenantGithubCreds(ctx, &req)
+	if err != nil {
+		return err
+	}
+
+	return printJSON(updated)
 }
