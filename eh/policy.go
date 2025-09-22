@@ -110,6 +110,7 @@ const (
 	ActionListFeatureFlagOverrides  Action = "ListFeatureFlagOverrides"
 	ActionGetTenantGithubCreds      Action = "GetTenantGithubCreds"    // #nosec G101: This is not a credential.
 	ActionUpdateTenantGithubCreds   Action = "UpdateTenantGithubCreds" // #nosec G101: This is not a credential.
+	ActionFindGithubUser            Action = "FindGithubUser"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -259,46 +260,47 @@ var (
 
 func init() {
 	ActionToBit, BitToAction = createEnumMaps([]Action{
-		ActionPerformDelegatedAction,    // 0x0_000_000_001
-		ActionCreateTenant,              // 0x0_000_000_002
-		ActionGetTenant,                 // 0x0_000_000_004
-		ActionGenerateWebUIToken,        // 0x0_000_000_008
-		ActionListPolicies,              // 0x0_000_000_010
-		ActionUpdateTurn,                // 0x0_000_000_020
-		ActionUpdateTask,                // 0x0_000_000_040
-		ActionGetTask,                   // 0x0_000_000_080
-		ActionListTasks,                 // 0x0_000_000_100
-		ActionGetTurn,                   // 0x0_000_000_200
-		ActionUploadTurnLogs,            // 0x0_000_000_400
-		ActionGetCurrentUser,            // 0x0_000_000_800
-		ActionCreateEnvironment,         // 0x0_000_001_000
-		ActionGetEnvironment,            // 0x0_000_002_000
-		ActionListEnvironments,          // 0x0_000_004_000
-		ActionUpdateEnvironment,         // 0x0_000_008_000
-		ActionDeleteEnvironment,         // 0x0_000_010_000
-		ActionGetLastTurn,               // 0x0_000_020_000
-		ActionCreateTask,                // 0x0_000_040_000
-		ActionGetLastTurnLog,            // 0x0_000_080_000
-		ActionStreamLogs,                // 0x0_000_100_000
-		ActionListTurns,                 // 0x0_000_200_000
-		ActionAddGithubOrg,              // 0x0_000_400_000
-		ActionUpdateGithubOrg,           // 0x0_000_800_000
-		ActionDeleteGithubOrg,           // 0x0_001_000_000
-		ActionListGithubOrgs,            // 0x0_002_000_000
-		ActionGetGithubOrg,              // 0x0_004_000_000
-		ActionCreateFeatureFlag,         // 0x0_008_000_000
-		ActionGetTenantFeatureFlags,     // 0x0_010_000_000
-		ActionCreateFeatureFlagOverride, // 0x0_020_000_000
-		ActionListFeatureFlags,          // 0x0_040_000_000
-		ActionGetFeatureFlag,            // 0x0_080_000_000
-		ActionUpdateFeatureFlag,         // 0x0_100_000_000
-		ActionDeleteFeatureFlag,         // 0x0_200_000_000
-		ActionDeleteFeatureFlagOverride, // 0x0_400_000_000
-		ActionGetFeatureFlagOverride,    // 0x0_800_000_000
-		ActionUpdateFeatureFlagOverride, // 0x1_000_000_000
-		ActionListFeatureFlagOverrides,  // 0x2_000_000_000
-		ActionGetTenantGithubCreds,      // 0x4_000_000_000
-		ActionUpdateTenantGithubCreds,   // 0x8_000_000_000
+		ActionPerformDelegatedAction,    // 0x00_000_000_001
+		ActionCreateTenant,              // 0x00_000_000_002
+		ActionGetTenant,                 // 0x00_000_000_004
+		ActionGenerateWebUIToken,        // 0x00_000_000_008
+		ActionListPolicies,              // 0x00_000_000_010
+		ActionUpdateTurn,                // 0x00_000_000_020
+		ActionUpdateTask,                // 0x00_000_000_040
+		ActionGetTask,                   // 0x00_000_000_080
+		ActionListTasks,                 // 0x00_000_000_100
+		ActionGetTurn,                   // 0x00_000_000_200
+		ActionUploadTurnLogs,            // 0x00_000_000_400
+		ActionGetCurrentUser,            // 0x00_000_000_800
+		ActionCreateEnvironment,         // 0x00_000_001_000
+		ActionGetEnvironment,            // 0x00_000_002_000
+		ActionListEnvironments,          // 0x00_000_004_000
+		ActionUpdateEnvironment,         // 0x00_000_008_000
+		ActionDeleteEnvironment,         // 0x00_000_010_000
+		ActionGetLastTurn,               // 0x00_000_020_000
+		ActionCreateTask,                // 0x00_000_040_000
+		ActionGetLastTurnLog,            // 0x00_000_080_000
+		ActionStreamLogs,                // 0x00_000_100_000
+		ActionListTurns,                 // 0x00_000_200_000
+		ActionAddGithubOrg,              // 0x00_000_400_000
+		ActionUpdateGithubOrg,           // 0x00_000_800_000
+		ActionDeleteGithubOrg,           // 0x00_001_000_000
+		ActionListGithubOrgs,            // 0x00_002_000_000
+		ActionGetGithubOrg,              // 0x00_004_000_000
+		ActionCreateFeatureFlag,         // 0x00_008_000_000
+		ActionGetTenantFeatureFlags,     // 0x00_010_000_000
+		ActionCreateFeatureFlagOverride, // 0x00_020_000_000
+		ActionListFeatureFlags,          // 0x00_040_000_000
+		ActionGetFeatureFlag,            // 0x00_080_000_000
+		ActionUpdateFeatureFlag,         // 0x00_100_000_000
+		ActionDeleteFeatureFlag,         // 0x00_200_000_000
+		ActionDeleteFeatureFlagOverride, // 0x00_400_000_000
+		ActionGetFeatureFlagOverride,    // 0x00_800_000_000
+		ActionUpdateFeatureFlagOverride, // 0x01_000_000_000
+		ActionListFeatureFlagOverrides,  // 0x02_000_000_000
+		ActionGetTenantGithubCreds,      // 0x04_000_000_000
+		ActionUpdateTenantGithubCreds,   // 0x08_000_000_000
+		ActionFindGithubUser,            // 0x10_000_000_000
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
