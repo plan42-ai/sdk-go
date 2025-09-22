@@ -520,6 +520,7 @@ type GetTenantFeatureFlagsResponse struct {
 }
 
 // GetTenantFeatureFlags returns the values of all active feature flags for a tenant.
+// nolint: dupl
 func (c *Client) GetTenantFeatureFlags(ctx context.Context, req *GetTenantFeatureFlagsRequest) (*GetTenantFeatureFlagsResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")

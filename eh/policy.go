@@ -108,6 +108,7 @@ const (
 	ActionGetFeatureFlagOverride    Action = "GetFeatureFlagOverride"
 	ActionUpdateFeatureFlagOverride Action = "UpdateFeatureFlagOverride"
 	ActionListFeatureFlagOverrides  Action = "ListFeatureFlagOverrides"
+	ActionGetTenantGithubCreds      Action = "GetTenantGithubCreds" // #nosec G101: This is not a credential.
 )
 
 // TokenType defines the type of token a principal used to authenticate.
