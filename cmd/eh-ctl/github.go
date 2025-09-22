@@ -11,11 +11,12 @@ import (
 )
 
 type GithubOptions struct {
-	AddOrg    AddGithubOrgOptions    `cmd:""`
-	ListOrgs  ListGithubOrgsOptions  `cmd:""`
-	GetOrg    GetGithubOrgOptions    `cmd:""`
-	UpdateOrg UpdateGithubOrgOptions `cmd:""`
-	DeleteOrg DeleteGithubOrgOptions `cmd:""`
+	AddOrg         AddGithubOrgOptions         `cmd:""`
+	ListOrgs       ListGithubOrgsOptions       `cmd:""`
+	GetOrg         GetGithubOrgOptions         `cmd:""`
+	UpdateOrg      UpdateGithubOrgOptions      `cmd:""`
+	DeleteOrg      DeleteGithubOrgOptions      `cmd:""`
+	GetTenantCreds GetTenantGithubCredsOptions `cmd:""`
 }
 
 type AddGithubOrgOptions struct {
@@ -172,4 +173,26 @@ func (o *DeleteGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 
 	req := &eh.DeleteGithubOrgRequest{OrgID: o.InternalOrgID, Version: org.Version}
 	return s.Client.DeleteGithubOrg(ctx, req)
+}
+
+// GetTenantGithubCredsOptions retrieves GitHub credentials for a tenant.
+type GetTenantGithubCredsOptions struct {
+	TenantID string `help:"The ID of the tenant to fetch GitHub credentials for." name:"tenant-id" short:"i" required:""`
+}
+
+func (o *GetTenantGithubCredsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetTenantGithubCredsRequest{
+		TenantID: o.TenantID,
+	}
+
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	resp, err := s.Client.GetTenantGithubCreds(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(resp)
 }
