@@ -108,7 +108,8 @@ const (
 	ActionGetFeatureFlagOverride    Action = "GetFeatureFlagOverride"
 	ActionUpdateFeatureFlagOverride Action = "UpdateFeatureFlagOverride"
 	ActionListFeatureFlagOverrides  Action = "ListFeatureFlagOverrides"
-	ActionGetTenantGithubCreds      Action = "GetTenantGithubCreds" // #nosec G101: This is not a credential.
+	ActionGetTenantGithubCreds      Action = "GetTenantGithubCreds"    // #nosec G101: This is not a credential.
+	ActionUpdateTenantGithubCreds   Action = "UpdateTenantGithubCreds" // #nosec G101: This is not a credential.
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -296,6 +297,8 @@ func init() {
 		ActionGetFeatureFlagOverride,    // 0x0_800_000_000
 		ActionUpdateFeatureFlagOverride, // 0x1_000_000_000
 		ActionListFeatureFlagOverrides,  // 0x2_000_000_000
+		ActionGetTenantGithubCreds,      // 0x4_000_000_000
+		ActionUpdateTenantGithubCreds,   // 0x8_000_000_000
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
