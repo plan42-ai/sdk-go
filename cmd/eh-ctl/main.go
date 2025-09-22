@@ -146,6 +146,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Github.UpdateOrg.Run(options.Ctx, &options.SharedOptions)
 	case "github delete-org":
 		return options.Github.DeleteOrg.Run(options.Ctx, &options.SharedOptions)
+	case "github find-users":
+		return options.Github.FindUsers.Run(options.Ctx, &options.SharedOptions)
 	case "github get-tenant-creds":
 		return options.Github.GetTenantCreds.Run(options.Ctx, &options.SharedOptions)
 	case "github update-tenant-creds":
