@@ -129,16 +129,16 @@ func (c *Client) FindGithubUser(ctx context.Context, req *FindGithubUserRequest)
 
 // TenantGithubCreds represents the GitHub credentials and related information for a tenant.
 type TenantGithubCreds struct {
-	TenantID        string  `json:"TenantID"`
-	SkipOnboarding  bool    `json:"SkipOnboarding"`
-	OAuthToken      *string `json:"OAuthToken,omitempty"`
-	RefreshToken    *string `json:"RefreshToken,omitempty"`
-	TokenExpiry     *string `json:"TokenExpiry,omitempty"`
-	State           *string `json:"State,omitempty"`
-	StateExpiry     *string `json:"StateExpiry,omitempty"`
-	GithubUserLogin *string `json:"GithubUserLogin,omitempty"`
-	GithubUserID    *int    `json:"GithubUserID,omitempty"`
-	TenantVersion   int     `json:"TenantVersion"`
+	TenantID        string     `json:"TenantID"`
+	SkipOnboarding  bool       `json:"SkipOnboarding"`
+	OAuthToken      *string    `json:"OAuthToken,omitempty"`
+	RefreshToken    *string    `json:"RefreshToken,omitempty"`
+	TokenExpiry     *time.Time `json:"TokenExpiry,omitempty"`
+	State           *string    `json:"State,omitempty"`
+	StateExpiry     *time.Time `json:"StateExpiry,omitempty"`
+	GithubUserLogin *string    `json:"GithubUserLogin,omitempty"`
+	GithubUserID    *int       `json:"GithubUserID,omitempty"`
+	TenantVersion   int        `json:"TenantVersion"`
 }
 
 // UpdateTenantGithubCredsRequest is the request payload for UpdateTenantGithubCreds.
@@ -151,14 +151,14 @@ type UpdateTenantGithubCredsRequest struct {
 	TenantID string `json:"-"`
 	Version  int    `json:"-"`
 
-	SkipOnboarding  *bool   `json:"SkipOnboarding,omitempty"`
-	OAuthToken      *string `json:"OAuthToken,omitempty"`
-	RefreshToken    *string `json:"RefreshToken,omitempty"`
-	TokenExpiry     *string `json:"TokenExpiry,omitempty"`
-	State           *string `json:"State,omitempty"`
-	StateExpiry     *string `json:"StateExpiry,omitempty"`
-	GithubUserLogin *string `json:"GithubUserLogin,omitempty"`
-	GithubUserID    *int    `json:"GithubUserID,omitempty"`
+	SkipOnboarding  *bool      `json:"SkipOnboarding,omitempty"`
+	OAuthToken      *string    `json:"OAuthToken,omitempty"`
+	RefreshToken    *string    `json:"RefreshToken,omitempty"`
+	TokenExpiry     *time.Time `json:"TokenExpiry,omitempty"`
+	State           *string    `json:"State,omitempty"`
+	StateExpiry     *time.Time `json:"StateExpiry,omitempty"`
+	GithubUserLogin *string    `json:"GithubUserLogin,omitempty"`
+	GithubUserID    *int       `json:"GithubUserID,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
