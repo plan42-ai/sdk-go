@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
+	"github.com/debugging-sucks/event-horizon-sdk-go/internal/util"
 	"github.com/google/uuid"
 )
 
@@ -24,8 +25,9 @@ type GithubOptions struct {
 // FindGithubUsersOptions provides options for the `github find-users` command.
 // Exactly one of GithubUserID or GithubLogin must be provided.
 type FindGithubUsersOptions struct {
-	GithubUserID *int    `help:"The GitHub user id to search for." name:"github-user-id" short:"I" optional:""`
-	GithubLogin  *string `help:"The GitHub login to search for." name:"github-login" short:"L" optional:""`
+	GithubUserID   *int    `help:"The GitHub user id to search for." name:"github-user-id" short:"I" optional:""`
+	GithubLogin    *string `help:"The GitHub login to search for." name:"github-login" short:"L" optional:""`
+	IncludeDeleted bool    `help:"Include deleted github users" short:"d"`
 }
 
 func (o *FindGithubUsersOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -47,9 +49,10 @@ func (o *FindGithubUsersOptions) Run(ctx context.Context, s *SharedOptions) erro
 	var token *string
 	for {
 		req := &eh.FindGithubUserRequest{
-			GithubID:    o.GithubUserID,
-			GithubLogin: o.GithubLogin,
-			Token:       token,
+			GithubID:       o.GithubUserID,
+			GithubLogin:    o.GithubLogin,
+			Token:          token,
+			IncludeDeleted: util.Pointer(o.IncludeDeleted),
 		}
 
 		resp, err := s.Client.FindGithubUser(ctx, req)
