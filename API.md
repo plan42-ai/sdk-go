@@ -3274,7 +3274,7 @@ This is intended to be used by the github webhook to deal with user renames.
 ## 56.1 Request
 
 ```http request
-GET /v1/users?githubID={githubID}&githubLogin={githubLogin}&maxResults={maxResults}&token={token} HTTP/1.1
+GET /v1/users?githubID={githubID}&githubLogin={githubLogin}&maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
@@ -3288,6 +3288,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 | maxResults                     | query    | *int    | Optional. The maximum number of users to return. Default is 500. Must be >=1 and <= 500.                        |
 | token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                 | query    | *bool   | Optional. Set to true to include deleted users in the results.                                                  |
 
 Exactly one of `githubID` or `githubLogin` must be provided. 
 
