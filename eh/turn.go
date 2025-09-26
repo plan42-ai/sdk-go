@@ -13,23 +13,27 @@ import (
 
 // Turn represents a single execution turn of a task.
 type Turn struct {
-	TenantID           string    `json:"TenantId"`
-	TaskID             string    `json:"TaskId"`
-	TurnIndex          int       `json:"TurnIndex"`
-	Prompt             string    `json:"Prompt"`
-	PreviousResponseID *string   `json:"PreviousResponseID,omitempty"`
-	BaselineCommitHash *string   `json:"BaselineCommitHash,omitempty"`
-	LastCommitHash     *string   `json:"LastCommitHash,omitempty"`
-	Status             string    `json:"Status"`
-	OutputMessage      *string   `json:"OutputMessage,omitempty"`
-	ErrorMessage       *string   `json:"ErrorMessage,omitempty"`
-	CreatedAt          time.Time `json:"CreatedAt"`
-	UpdatedAt          time.Time `json:"UpdatedAt"`
-	Version            int       `json:"Version"`
+	TenantID           string                `json:"TenantId"`
+	TaskID             string                `json:"TaskId"`
+	TurnIndex          int                   `json:"TurnIndex"`
+	Prompt             string                `json:"Prompt"`
+	PreviousResponseID *string               `json:"PreviousResponseID,omitempty"`
+	CommitInfo         map[string]CommitInfo `json:"CommitInfo,omitempty"`
+	Status             string                `json:"Status"`
+	OutputMessage      *string               `json:"OutputMessage,omitempty"`
+	ErrorMessage       *string               `json:"ErrorMessage,omitempty"`
+	CreatedAt          time.Time             `json:"CreatedAt"`
+	UpdatedAt          time.Time             `json:"UpdatedAt"`
+	Version            int                   `json:"Version"`
 }
 
 // ObjectType returns the object type for ConflictError handling.
 func (Turn) ObjectType() ObjectType { return ObjectTypeTurn }
+
+type CommitInfo struct {
+	BaselineCommitHash *string `json:"BaselineCommitHash"`
+	LastCommitHash     *string `json:"LastCommitHash"`
+}
 
 // CreateTurnRequest is the request payload for CreateTurn.
 type CreateTurnRequest struct {
@@ -263,16 +267,15 @@ func (c *Client) GetLastTurn(ctx context.Context, req *GetLastTurnRequest) (*Tur
 type UpdateTurnRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID           string  `json:"-"`
-	TaskID             string  `json:"-"`
-	TurnIndex          int     `json:"-"`
-	Version            int     `json:"-"`
-	PreviousResponseID *string `json:"PreviousResponseID,omitempty"`
-	BaselineCommitHash *string `json:"BaselineCommitHash,omitempty"`
-	LastCommitHash     *string `json:"LastCommitHash,omitempty"`
-	Status             *string `json:"Status,omitempty"`
-	OutputMessage      *string `json:"OutputMessage,omitempty"`
-	ErrorMessage       *string `json:"ErrorMessage,omitempty"`
+	TenantID           string                 `json:"-"`
+	TaskID             string                 `json:"-"`
+	TurnIndex          int                    `json:"-"`
+	Version            int                    `json:"-"`
+	PreviousResponseID *string                `json:"PreviousResponseID,omitempty"`
+	CommitInfo         *map[string]CommitInfo `json:"CommitInfo,omitempty"`
+	Status             *string                `json:"Status,omitempty"`
+	OutputMessage      *string                `json:"OutputMessage,omitempty"`
+	ErrorMessage       *string                `json:"ErrorMessage,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -289,10 +292,8 @@ func (r *UpdateTurnRequest) GetField(name string) (any, bool) {
 		return r.Version, true
 	case "PreviousResponseID":
 		return evalNullable(r.PreviousResponseID)
-	case "BaselineCommitHash":
-		return evalNullable(r.BaselineCommitHash)
-	case "LastCommitHash":
-		return evalNullable(r.LastCommitHash)
+	case "CommitInfo":
+		return evalNullable(r.CommitInfo)
 	case "Status":
 		return evalNullable(r.Status)
 	case "OutputMessage":

@@ -1725,6 +1725,7 @@ Content-Type: application/json; charset=utf-8
   "TurnIndex": int,
   "Prompt": "string",
   "PreviousResponseID": "*string",
+  "CommitInfo": {}
   "BaselineCommitHash": "*string",
   "LastCommitHash": "*string",
   "Status": "string",
@@ -1736,21 +1737,31 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-| Field              | Type    | Description                                                                                                                                                             |
-|--------------------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| TenantID           | string  | The ID of the tenant that owns the turn.                                                                                                                                |
-| TaskID             | string  | The ID of the task the turn belongs to.                                                                                                                                 |
-| TurnIndex          | int     | The index of the turn. This is the next index in the sequence (i.e. latest turn index + 1).                                                                             |
-| Prompt             | string  | The prompt used for the turn.                                                                                                                                           |
-| PreviousResponseID | *string | The ID of the previous response for the turn. Used to enable AI to resume with the context of the previous turn.                                                        |
-| BaselineCommitHash | *string | The baseline commit hash of the task.                                                                                                                                   |
-| LastCommitHash     | *string | The last commit hash of the task.                                                                                                                                       |
-| Status             | string  | The status of the turn. This may be arbtirary text set by the agent while it runs. The values "Succeeded", and "Failed" are used to idetnify when turns have completed. |
-| OutputMessage      | *string | The output message from the agent. This is the final response from the agent after it has completed its work.                                                           |
-| ErrorMessage       | *string | The error message from the agent, if any. This is set if Status == `Failed`.                                                                                            |
-| CreatedAt          | string  | The timestamp when the turn was created, in ISO 8601 format.                                                                                                            |
-| UpdatedAt          | string  | The timestamp when the turn was last updated, in ISO 8601 format.                                                                                                       |
-| Version            | int     | The version of the turn. This is incremented every time the turn is updated.                                                                                            |
+| Field              | Type                                     | Description                                                                                                                                                             |
+|--------------------|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| TenantID           | string                                   | The ID of the tenant that owns the turn.                                                                                                                                |
+| TaskID             | string                                   | The ID of the task the turn belongs to.                                                                                                                                 |
+| TurnIndex          | int                                      | The index of the turn. This is the next index in the sequence (i.e. latest turn index + 1).                                                                             |
+| Prompt             | string                                   | The prompt used for the turn.                                                                                                                                           |
+| PreviousResponseID | *string                                  | The ID of the previous response for the turn. Used to enable AI to resume with the context of the previous turn.                                                        |
+| CommitInfo         | map[string][CommitInfo](#233-commitinfo) | A map of "org/repo" to commit hash info for that repo.                                                                                                                  |  
+| BaselineCommitHash | *string                                  | The baseline commit hash of the task.                                                                                                                                   |
+| LastCommitHash     | *string                                  | The last commit hash of the task.                                                                                                                                       |
+| Status             | string                                   | The status of the turn. This may be arbtirary text set by the agent while it runs. The values "Succeeded", and "Failed" are used to idetnify when turns have completed. |
+| OutputMessage      | *string                                  | The output message from the agent. This is the final response from the agent after it has completed its work.                                                           |
+| ErrorMessage       | *string                                  | The error message from the agent, if any. This is set if Status == `Failed`.                                                                                            |
+| CreatedAt          | string                                   | The timestamp when the turn was created, in ISO 8601 format.                                                                                                            |
+| UpdatedAt          | string                                   | The timestamp when the turn was last updated, in ISO 8601 format.                                                                                                       |
+| Version            | int                                      | The version of the turn. This is incremented every time the turn is updated.                                                                                            |
+
+## 23.3 CommitInfo
+
+```json
+{
+  "BaselineCommitHash": "*string",
+  "LastCommitHash": "*string"
+}
+```
 
 # 24. ListTurns
 The ListTurns API is used to list all turns for a task.
@@ -1833,8 +1844,7 @@ Content-Type: application/json; charset=utf-8
   "TurnIndex": int,
   "Prompt": "string",
   "PreviousResponseID": "*string",
-  "BaselineCommitHash": "*string",
-  "LastCommitHash": "*string",
+  "CommitInfo": {}
   "Status": "string",
   "OutputMessage": "*string", 
   "ErrorMessage": "*string"
@@ -1884,8 +1894,7 @@ Content-Type: application/json; charset=utf-8
   "TurnIndex": int,
   "Prompt": "string",
   "PreviousResponseID": "*string",
-  "BaselineCommitHash": "*string",
-  "LastCommitHash": "*string",
+  "CommitInfo": {},
   "Status": "string",
   "OutputMessage": "*string", 
   "ErrorMessage": "*string"
@@ -1914,29 +1923,27 @@ If-Match: <version>
 
 {
     "PreviousResponseID": "*string",
-    "BaselineCommitHash": "*string",
-    "LastCommitHash": "*string",    
+    "CommitInfo": {},    
     "Status": "*string",
     "OutputMessage": "*string", 
     "ErrorMessage": "*string"
 }
 ```
 
-| Parameter                                | Location | Type    | Description                                                                                                                                          |
-|------------------------------------------|----------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to update the turn for.                                                                                                         |
-| task_id                                  | path     | string  | The ID of the task to update the turn for.                                                                                                           |
-| turnIndex                                | path     | int     | The index of the turn to update.                                                                                                                     |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                                                            |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                               |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                  |
-| version                                  | header   | string  | The version of the turn to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
-| PreviousResponseID                       | body     | *string | If set, update the turn's previous response ID.                                                                                                      |
-| BaselineCommitHash                       | body     | *string | If set, update the turn's baseline commit hash.                                                                                                      |
-| LastCommitHash                           | body     | *string | If set, update the turn's last commit hash.                                                                                                          |
-| Status                                   | body     | *string | If set, update the turn's status.                                                                                                                    |
-| OutputMessage                            | body     | *string | If set, update the turn's output message.                                                                                                            |
-| ErrorMessage                             | body     | *string | If set, update the turn's error message.                                                                                                             |
+| Parameter                                | Location | Type                                      | Description                                                                                                                                          |
+|------------------------------------------|----------|-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                                    | The ID of the tenant to update the turn for.                                                                                                         |
+| task_id                                  | path     | string                                    | The ID of the task to update the turn for.                                                                                                           |
+| turnIndex                                | path     | int                                       | The index of the turn to update.                                                                                                                     |
+| Authorization                            | header   | string                                    | The authorization header for the request.                                                                                                            |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                                   | The authorization header for the delegating principal.                                                                                               |
+| X-Event-Horizon-Signed-Headers           | header   | *string                                   | The signed headers for the request, when authenticating with Sigv4.                                                                                  |
+| version                                  | header   | string                                    | The version of the turn to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| PreviousResponseID                       | body     | *string                                   | If set, update the turn's previous response ID.                                                                                                      |
+| CommitInfo                               | body     | *map[string][CommitInfo](#233-commitinfo) | If set, update the turn's commit info. This is a map of "org/repo" to commit hash info for that repo.                                                |
+| Status                                   | body     | *string                                   | If set, update the turn's status.                                                                                                                    |
+| OutputMessage                            | body     | *string                                   | If set, update the turn's output message.                                                                                                            |
+| ErrorMessage                             | body     | *string                                   | If set, update the turn's error message.                                                                                                             |
 
 ## 26.2 Response
 
@@ -1952,8 +1959,7 @@ Content-Type: application/json; charset=utf-8
   "TurnIndex": int,
   "Prompt": "string",
   "PreviousResponseID": "*string",
-  "BaselineCommitHash": "*string",
-  "LastCommitHash": "*string",
+  "CommitInfo": {},
   "Status": "string",
   "OutputMessage": "*string", 
   "ErrorMessage": "*string"
