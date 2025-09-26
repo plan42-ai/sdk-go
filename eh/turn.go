@@ -18,7 +18,7 @@ type Turn struct {
 	TurnIndex          int                   `json:"TurnIndex"`
 	Prompt             string                `json:"Prompt"`
 	PreviousResponseID *string               `json:"PreviousResponseID,omitempty"`
-	CommitInfo         map[string]CommitInfo `json:"CommitInfo,omitempty"`
+	CommitInfo         map[string]CommitInfo `json:"CommitInfo"`
 	Status             string                `json:"Status"`
 	OutputMessage      *string               `json:"OutputMessage,omitempty"`
 	ErrorMessage       *string               `json:"ErrorMessage,omitempty"`
