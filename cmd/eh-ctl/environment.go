@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strings"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/google/uuid"
@@ -54,6 +55,7 @@ func (o *CreateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	if err != nil {
 		return err
 	}
+	maskSecrets(env, s)
 	return printJSON(env)
 }
 
@@ -80,6 +82,7 @@ func (o *GetEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error
 	if err != nil {
 		return err
 	}
+	maskSecrets(env, s)
 	return printJSON(env)
 }
 
@@ -181,6 +184,7 @@ func (o *ListEnvironmentsOptions) Run(ctx context.Context, s *SharedOptions) err
 			return err
 		}
 		for _, env := range resp.Environments {
+			maskSecrets(&env, s)
 			if err := printJSON(env); err != nil {
 				return err
 			}
@@ -191,4 +195,15 @@ func (o *ListEnvironmentsOptions) Run(ctx context.Context, s *SharedOptions) err
 		token = resp.NextToken
 	}
 	return nil
+}
+
+func maskSecrets(e *eh.Environment, s *SharedOptions) {
+	if s.ShowSecrets {
+		return
+	}
+	for i := range e.EnvVars {
+		if e.EnvVars[i].IsSecret {
+			e.EnvVars[i].Value = strings.Repeat("*", len(e.EnvVars[i].Value))
+		}
+	}
 }

@@ -27,6 +27,7 @@ type SharedOptions struct {
 	DelegatedAuthType *string    `help:"The delegated auth type to use." optional:""`
 	DelegatedToken    *string    `help:"The delegated JWT token to use." optional:""`
 	FeatureFlags      *string    `help:"The JSON file containing feature flag overrides." name:"feature-flags" short:"F" optional:""`
+	ShowSecrets       bool       `help:"Don't mask secrets in command output." short:"s"`
 	Client            *eh.Client `kong:"-"`
 }
 
