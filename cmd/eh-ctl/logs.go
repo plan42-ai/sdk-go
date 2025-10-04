@@ -30,7 +30,7 @@ func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	ls := eh.NewLogStream(s.Client, o.TenantID, o.TaskID, o.TurnIndex, 1000, pointer(o.IncludeDeleted), flags.FeatureFlags)
+	ls := eh.NewLogStream(s.Client, o.TenantID, o.TaskID, o.TurnIndex, 1000, eh.WithIncludeDeleted(o.IncludeDeleted), eh.WithFeatureFlags(flags.FeatureFlags))
 	defer ls.Close()
 
 	enc := json.NewEncoder(os.Stdout)

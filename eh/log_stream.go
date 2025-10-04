@@ -22,50 +22,57 @@ type LogStream struct {
 	tenantID       string
 	taskID         string
 	turnIndex      int
-	includeDeleted *bool
+	includeDeleted bool
+	featureFlags   map[string]bool
+	delegatedAuth  DelegatedAuthInfo
+	logs           chan TurnLog
+	lastID         int
+	retry          time.Duration
+	backoff        *util.Backoff
+}
 
-	featureFlags map[string]bool
+type LogStreamOption func(s *LogStream)
 
-	logs chan TurnLog
+func WithIncludeDeleted(value bool) LogStreamOption {
+	return func(s *LogStream) {
+		s.includeDeleted = value
+	}
+}
 
-	lastID int
-	retry  time.Duration
+func WithFeatureFlags(flags map[string]bool) LogStreamOption {
+	return func(s *LogStream) {
+		s.featureFlags = flags
+	}
+}
 
-	backoff *util.Backoff
+func WithLastID(lastID int) LogStreamOption {
+	return func(s *LogStream) {
+		s.lastID = lastID
+	}
+}
+
+func WithDelegatedAuth(delegatedAuth DelegatedAuthInfo) LogStreamOption {
+	return func(s *LogStream) {
+		s.delegatedAuth = delegatedAuth
+	}
 }
 
 // NewLogStream creates and starts a LogStream.
-func NewLogStream(client *Client, tenantID, taskID string, turnIndex int, buffer int, includeDeleted *bool, featureFlags map[string]bool) *LogStream {
+func NewLogStream(client *Client, tenantID, taskID string, turnIndex int, buffer int, options ...LogStreamOption) *LogStream {
 	ls := &LogStream{
-		cg:             concurrency.NewContextGroup(),
-		client:         client,
-		tenantID:       tenantID,
-		taskID:         taskID,
-		turnIndex:      turnIndex,
-		includeDeleted: includeDeleted,
-		featureFlags:   featureFlags,
-		logs:           make(chan TurnLog, buffer),
-		backoff:        util.NewBackoff(100*time.Millisecond, 2*time.Second),
+		cg:        concurrency.NewContextGroup(),
+		client:    client,
+		tenantID:  tenantID,
+		taskID:    taskID,
+		turnIndex: turnIndex,
+		logs:      make(chan TurnLog, buffer),
+		backoff:   util.NewBackoff(100*time.Millisecond, 2*time.Second),
 	}
-	ls.cg.Add(1)
-	ls.cg.Init()
-	go ls.run()
-	return ls
-}
 
-func NewLogStreamWithLastID(client *Client, tenantID, taskID string, turnIndex int, buffer int, includeDeleted *bool, featureFlags map[string]bool, lastID int) *LogStream {
-	ls := &LogStream{
-		cg:             concurrency.NewContextGroup(),
-		client:         client,
-		tenantID:       tenantID,
-		taskID:         taskID,
-		turnIndex:      turnIndex,
-		includeDeleted: includeDeleted,
-		featureFlags:   featureFlags,
-		logs:           make(chan TurnLog, buffer),
-		backoff:        util.NewBackoff(100*time.Millisecond, 2*time.Second),
-		lastID:         lastID,
+	for _, opt := range options {
+		opt(ls)
 	}
+
 	ls.cg.Add(1)
 	ls.cg.Init()
 	go ls.run()
@@ -113,10 +120,14 @@ func (l *LogStream) run() {
 
 func (l *LogStream) connectAndStream(ctx context.Context) error {
 	req := &StreamTurnLogsRequest{
-		TenantID:       l.tenantID,
-		TaskID:         l.taskID,
-		TurnIndex:      l.turnIndex,
-		IncludeDeleted: l.includeDeleted,
+		FeatureFlags: FeatureFlags{
+			FeatureFlags: l.featureFlags,
+		},
+		DelegatedAuthInfo: l.delegatedAuth,
+		TenantID:          l.tenantID,
+		TaskID:            l.taskID,
+		TurnIndex:         l.turnIndex,
+		IncludeDeleted:    util.Pointer(l.includeDeleted),
 	}
 	if l.lastID != 0 {
 		req.LastEventID = &l.lastID
