@@ -38,7 +38,7 @@ func TestLogStream(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	ls := eh.NewLogStream(client, "ten", "task", 0, 10, nil, nil)
+	ls := eh.NewLogStream(client, "ten", "task", 0, 10)
 	defer ls.Close()
 
 	var logs []eh.TurnLog
@@ -69,7 +69,7 @@ func TestLogStreamCloseDuringRead(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	ls := eh.NewLogStream(client, "ten", "task", 0, 1, nil, nil)
+	ls := eh.NewLogStream(client, "ten", "task", 0, 1)
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -99,7 +99,7 @@ func TestLogStreamWithLastID_UsesHeader(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	ls := eh.NewLogStreamWithLastID(client, "ten", "task", 0, 1, nil, nil, 42)
+	ls := eh.NewLogStream(client, "ten", "task", 0, 1, eh.WithLastID(42))
 
 	var logs []eh.TurnLog
 	var wg sync.WaitGroup
@@ -139,7 +139,7 @@ func TestLogStreamWithLastID_UpdatesLastID(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	ls := eh.NewLogStreamWithLastID(client, "ten", "task", 0, 1, nil, nil, 99)
+	ls := eh.NewLogStream(client, "ten", "task", 0, 1, eh.WithLastID(99))
 
 	var logs []eh.TurnLog
 	var wg sync.WaitGroup
