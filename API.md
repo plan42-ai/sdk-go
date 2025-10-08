@@ -3450,7 +3450,7 @@ Content-Type: application/json; charset=utf-8
 | WorkstreamID      | string | The ID of the workstream the short name is associated with. |
 | WorkstreamVersion | int    | The version of the workstream.                              |
  
-## 60. MoveTask
+# 60. MoveTask
 
 The MoveTask API moves a task from one workstream to another.
 
@@ -3545,5 +3545,84 @@ Content-Type: application/json; charset=utf-8
 | Field                 | Type                        | Description                                        |
 |-----------------------|-----------------------------|----------------------------------------------------|
 | Task                  | [Task](#183-response)       | The updated task after the move.                   |
+| SourceWorkstream      | [Workstream](#352-response) | The updated source workstream after the move.      |
+| DestinationWorkstream | [Workstream](#352-response) | The updated destination workstream after the move. |
+
+# 61. MoveShortName
+The MoveShortName API moves a short name from one workstream to another.
+
+## 61.1 Request
+
+```http request
+POST /v1/tenants/{tenant_id}/shortnames/{name}/move HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "SourceWorkstreamID": "string",
+    "DestinationWorkstreamID": "string",
+    "SourceWorkstreamVersion": int,
+    "DestinationWorkstreamVersion": int,
+    "ReplacementName": "*string"
+    "SetDefaultOnDestination": "bool"
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                 |
+|------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the short name.                                                                                                              |
+| name                                     | path     | string  | The short name to move.                                                                                                                                     |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                   |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                      |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
+| SourceWorkstreamID                       | body     | string  | The ID of the workstream to move the short name from.                                                                                                       |
+| DestinationWorkstreamID                  | body     | string  | The ID of the workstream to move the short name to.                                                                                                         |
+| SourceWorkstreamVersion                  | body     | int     | The version of the source workstream. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned      |
+| DestinationWorkstreamVersion             | body     | int     | The version of the destination workstream. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+| ReplacementName                          | body     | *string | Optional. A short name to add to the source workstream to replace the moved name. If not provided, no replacement is added.                                 |
+| SetDefaultOnDestination                  | body     | bool    | If true, set the moved short name as the default short name on the destination workstream.                                                                  |
+
+## 61.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "SourceWorkstream": {
+        "WorkstreamID": "string",
+        "TenantID": "string",
+        "Name": "string",
+        "Description": "string",
+        "CreatedAt": "string",
+        "UpdatedAt": "string",
+        "Version": int,
+        "Paused": bool,
+        "Deleted": bool,
+        "DefaultShortName": "string",
+        "TaskCounter": int,
+    },
+    "DestinationWorkstream": {
+        "WorkstreamID": "string",
+        "TenantID": "string",
+        "Name": "string",
+        "Description": "string",
+        "CreatedAt": "string",
+        "UpdatedAt": "string",
+        "Version": int,
+        "Paused": bool,
+        "Deleted": bool,
+        "DefaultShortName": "string",
+        "TaskCounter": int
+    }
+}
+```
+
+| Field                 | Type                        | Description                                        |
+|-----------------------|-----------------------------|----------------------------------------------------|
 | SourceWorkstream      | [Workstream](#352-response) | The updated source workstream after the move.      |
 | DestinationWorkstream | [Workstream](#352-response) | The updated destination workstream after the move. |
