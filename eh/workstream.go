@@ -193,6 +193,91 @@ func (c *Client) UpdateWorkstream(ctx context.Context, req *UpdateWorkstreamRequ
 	return &out, nil
 }
 
+// ListWorkstreamsRequest is the request for ListWorkstreams.
+type ListWorkstreamsRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID       string
+	MaxResults     *int
+	Token          *string
+	IncludeDeleted *bool
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *ListWorkstreamsRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "MaxResults":
+		return evalNullable(r.MaxResults)
+	case "Token":
+		return evalNullable(r.Token)
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
+// ListWorkstreamsResponse is the response from ListWorkstreams.
+type ListWorkstreamsResponse struct {
+	Workstreams []Workstream `json:"Workstreams"`
+	NextToken   *string      `json:"NextToken"`
+}
+
+// ListWorkstreams lists the workstreams for a tenant.
+// nolint:dupl
+func (c *Client) ListWorkstreams(ctx context.Context, req *ListWorkstreamsRequest) (*ListWorkstreamsResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "workstreams")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out ListWorkstreamsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // CreateWorkstreamRequest is the request payload for CreateWorkstream.
 type CreateWorkstreamRequest struct {
 	FeatureFlags
