@@ -302,7 +302,7 @@ func init() {
 		ActionGetTenantGithubCreds,      // 0x04_000_000_000
 		ActionUpdateTenantGithubCreds,   // 0x08_000_000_000
 		ActionFindGithubUser,            // 0x10_000_000_000
-		ActionCreateWorkstream,          // 0x20_000_000_000 (next bit)
+		ActionCreateWorkstream,          // 0x20_000_000_000
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
