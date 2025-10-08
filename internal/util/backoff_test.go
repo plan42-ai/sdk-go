@@ -1,13 +1,15 @@
-package util
+package util_test
 
 import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/debugging-sucks/event-horizon-sdk-go/internal/util"
 )
 
 func TestBackoffBasic(t *testing.T) {
-	b := NewBackoff(10*time.Millisecond, 40*time.Millisecond)
+	b := util.NewBackoff(10*time.Millisecond, 40*time.Millisecond)
 
 	// Wait should return immediately when current is 0
 	start := time.Now()
@@ -53,7 +55,7 @@ func TestBackoffBasic(t *testing.T) {
 }
 
 func TestBackoffContextCancel(t *testing.T) {
-	b := NewBackoff(5*time.Millisecond, 10*time.Millisecond)
+	b := util.NewBackoff(5*time.Millisecond, 10*time.Millisecond)
 	b.Backoff() // set current to min
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -63,7 +65,7 @@ func TestBackoffContextCancel(t *testing.T) {
 }
 
 func TestBackoffWaitAtLeast(t *testing.T) {
-	b := NewBackoff(5*time.Millisecond, 20*time.Millisecond)
+	b := util.NewBackoff(5*time.Millisecond, 20*time.Millisecond)
 
 	start := time.Now()
 	if err := b.WaitAtLeast(context.Background(), 10*time.Millisecond); err != nil {

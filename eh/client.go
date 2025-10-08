@@ -258,6 +258,7 @@ const (
 	ObjectTypeTenantGithubOrg      ObjectType = "TenantGithubOrg"
 	ObjectTypeFeatureFlag          ObjectType = "FeatureFlag"
 	ObjectTypeFeatureFlagOverride  ObjectType = "FeatureFlagOverride"
+	ObjectTypeWorkstream           ObjectType = "Workstream"
 )
 
 type ConflictObj interface {
