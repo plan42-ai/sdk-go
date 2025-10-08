@@ -1419,7 +1419,8 @@ Content-Type: application/json; charset=utf-8
   "CreatedAt": "string",
   "UpdatedAt": "string",
   "Deleted": bool,
-  "Version": int
+  "Version": int,
+  "TaskNumber": int
 }
 ```
 
@@ -1442,6 +1443,7 @@ Content-Type: application/json; charset=utf-8
 | UpdatedAt          | string                                  | The timestamp when the task was last updated, in ISO 8601 format.                                                                                                     |
 | Deleted            | bool                                    | Whether the task has been deleted.                                                                                                                                    |
 | Version            | int                                     | The version of the task. This is incremented every time the task is updated.                                                                                          |
+| TaskNumber         | *int                                    | The number of the task within the workstream. This is a sequential number assigned when the task is created. Is nil if the task is not part of a workstream.          |
 
 ## 18.5 RepoInfo
 
@@ -1477,6 +1479,7 @@ TaskState is an enum that defines the current state of a task.
 | Executing            |
 | Awaiting Code Review |
 | Completed            |
+| Failed               |
 
 # 19. ListTasks
 
@@ -1638,7 +1641,8 @@ Content-Type: application/json; charset=utf-8
   "CreatedAt": "string",
   "UpdatedAt": "string",
   "Deleted": bool,
-  "Version": int
+  "Version": int,
+  "TaskNumber": int
 }
 ```
 See [CreateTask](#183-response) for details on the response fields.
@@ -1734,6 +1738,7 @@ Content-Type: application/json; charset=utf-8
   "CreatedAt": "string",
   "UpdatedAt": "string",
   "Version": int
+  "CompletedAt": "*string"
 }
 ```
 
@@ -1753,6 +1758,7 @@ Content-Type: application/json; charset=utf-8
 | CreatedAt          | string                                   | The timestamp when the turn was created, in ISO 8601 format.                                                                                                            |
 | UpdatedAt          | string                                   | The timestamp when the turn was last updated, in ISO 8601 format.                                                                                                       |
 | Version            | int                                      | The version of the turn. This is incremented every time the turn is updated.                                                                                            |
+| CompletedAt        | *string                                  | The timestamp when the turn was completed, in ISO 8601 format. This is set when the turn's status is set to "Succeeded" or "Failed".                                    |
 
 ## 23.3 CommitInfo
 
@@ -1850,7 +1856,8 @@ Content-Type: application/json; charset=utf-8
   "ErrorMessage": "*string"
   "CreatedAt": "string",
   "UpdatedAt": "string",
-  "Version": int
+  "Version": int,
+  "CompletedAt": "*string"S
 }
 ```
 
@@ -1900,7 +1907,8 @@ Content-Type: application/json; charset=utf-8
   "ErrorMessage": "*string"
   "CreatedAt": "string",
   "UpdatedAt": "string",
-  "Version": int
+  "Version": int,
+  "CompletedAt": "*string"
 }
 ```
 
@@ -1965,7 +1973,8 @@ Content-Type: application/json; charset=utf-8
   "ErrorMessage": "*string"
   "CreatedAt": "string",
   "UpdatedAt": "string",
-  "Version": int
+  "Version": int,
+  "CompletedAt": "*string"
 }
 ```
 See [CreateTurn](#232-response) for details on the response fields.
@@ -2397,19 +2406,21 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 {
     "Name": "string",
-    "Description": "*string"
+    "Description": "string"
+    "DefaultShortName": "string",
 }
 ```
 
-| Parameter                                | Location | Type    | Description                                                         |
-|------------------------------------------|----------|---------|---------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to create the workstream for.                  |
-| workstream_id                            | path     | string  | The ID of the workstream to create. This must be a v4 UUID.         |
-| Authorization                            | header   | string  | The authorization header for the request.                           |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
-| Name                                     | body     | string  | The name of the workstream.                                         |
-| Description                              | body     | string  | The description of the workstream.                                  |
+| Parameter                                | Location | Type    | Description                                                                 |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to create the workstream for.                          |
+| workstream_id                            | path     | string  | The ID of the workstream to create. This must be a v4 UUID.                 |
+| Authorization                            | header   | string  | The authorization header for the request.                                   |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                      |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.         |
+| Name                                     | body     | string  | The name of the workstream.                                                 |
+| Description                              | body     | string  | The description of the workstream.                                          |
+| DefaultShortName                         | body     | string  | Optional. A default short name to use for tasks created in this workstream. |
 
 ## 35.2 Response
 On success a 201 CREATED is returned with the following JSON body:
@@ -2427,21 +2438,25 @@ Content-Type: application/json; charset=utf-8
   "UpdatedAt": "string",
   "Version": int,
   "Paused": bool,
-  "Deleted": bool
+  "Deleted": bool,
+  "DefaultShortName": "string",
+  "TaskCounter": int,
 }
 ```
 
-| Field        | Type   | Description                                                                              |
-|--------------|--------|------------------------------------------------------------------------------------------|
-| WorkstreamID | string | The ID of the workstream.                                                                |
-| TenantID     | string | The ID of the tenant that owns the workstream.                                           |
-| Name         | string | The name of the workstream.                                                              |
-| Description  | string | The description of the workstream.                                                       |
-| CreatedAt    | string | The timestamp when the workstream was created, in ISO 8601 format.                       |
-| UpdatedAt    | string | The timestamp when the workstream was last updated, in ISO 8601 format.                  |
-| Version      | int    | The version of the workstream. This is incremented every time the workstream is updated. |
-| Paused       | bool   | Whether the workstream is paused. Defaults to true for new workstreams.                  |
-| Deleted      | bool   | Whether the workstream has been deleted.                                                 |
+| Field            | Type   | Description                                                                              |
+|------------------|--------|------------------------------------------------------------------------------------------|
+| WorkstreamID     | string | The ID of the workstream.                                                                |
+| TenantID         | string | The ID of the tenant that owns the workstream.                                           |
+| Name             | string | The name of the workstream.                                                              |
+| Description      | string | The description of the workstream.                                                       |
+| CreatedAt        | string | The timestamp when the workstream was created, in ISO 8601 format.                       |
+| UpdatedAt        | string | The timestamp when the workstream was last updated, in ISO 8601 format.                  |
+| Version          | int    | The version of the workstream. This is incremented every time the workstream is updated. |
+| Paused           | bool   | Whether the workstream is paused. Defaults to true for new workstreams.                  |
+| Deleted          | bool   | Whether the workstream has been deleted.                                                 |
+| DefaultShortName | string | The default short name to use for tasks created in this workstream.                      |
+| TaskCounter      | int    | The counter used to generate unique short names for tasks in this workstream.            |
 
 # 36. ListWorkstreams
 
@@ -2525,7 +2540,9 @@ Content-Type: application/json; charset=utf-8
   "UpdatedAt": "string",
   "Version": int,
   "Paused": bool,
-  "Deleted": bool
+  "Deleted": bool,
+  "DefaultShortName": "string",
+  "TaskCounter": int
 }
 ```
 
@@ -2549,7 +2566,8 @@ If-Match: <version>
     "Name": "*string",
     "Description": "*string",
     "Paused": "*bool",
-    "Deleted": "*bool"
+    "Deleted": "*bool",
+    "DefaultShortName": "*string"
 }
 ```
 
@@ -2565,6 +2583,7 @@ If-Match: <version>
 | Description                              | body     | *string | If set, update the description of the workstream.                                                                                                         |
 | Paused                                   | body     | *bool   | If set, update whether the workstream is paused.                                                                                                          |
 | Deleted                                  | body     | *bool   | If set to false, undelete the workstream.                                                                                                                 |
+| DefaultShortName                         | body     | *string | If set, update the default short name to use for tasks created in this workstream.                                                                        |
 
 ## 38.2 Response
 
@@ -3316,3 +3335,215 @@ Content-Type: application/json; charset=utf-8
 |-----------|-------------------------|------------------------------------------------------------------------------------------------|
 | NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
 | Users     | [][User](#542-response) | A list of users that match the search criteria.                                                |
+
+# 57. AddWorkstreamShortName
+
+The AddWorkstreamShortName API adds a short name to a workstream.
+
+## 57.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/workstreams/{workstream_id}/shortnames/{name} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                               |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the workstream.                                                                                                            |
+| workstream_id                            | path     | string  | The ID of the workstream to add the short name to.                                                                                                        |
+| name                                     | path     | string  | The short name to add to the workstream.                                                                                                                  |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                 |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                    |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                       |
+| version                                  | header   | string  | The version of the workstream to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+
+## 57.2 Response
+
+On success a 204 NO CONTENT is returned with no body.
+
+# 58. DeleteWorkstreamShortName
+
+The DeleteWorkstreamShortName API hard deletes a short name from a workstream.
+
+## 58.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/workstreams/{workstream_id}/shortnames/{name} HTTP/1.1
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                               |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the workstream.                                                                                                            |
+| workstream_id                            | path     | string  | The ID of the workstream to delete the short name from.                                                                                                   |
+| name                                     | path     | string  | The short name to delete from the workstream.                                                                                                             |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                 |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                    |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                       |
+| version                                  | header   | string  | The version of the workstream to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+
+## 58.2 Response
+On success a 204 NO CONTENT is returned with no body.
+
+# 59. ListWorkstreamShortNames
+The ListWorkstreamShortNames API lists short names.
+
+## 59.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/shortnames?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted}&workstreaID={workstreamID} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to list short names for.                                                                   |
+| maxResults                               | query    | *int    | Optional. The maximum number of short names to return. Default is 500. Must be >=1 and <= 500.                  |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted short names in the results.                                            |
+| workstreamID                             | query    | *string | Optional. If set, only return short names for the given workstream ID.                                          |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 59.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "ShortNames": [],
+  "NextToken": "*string"
+}
+```
+
+| Field      | Type                                              | Description                                                                                    |
+|------------|---------------------------------------------------|------------------------------------------------------------------------------------------------|
+| ShortNames | [][WorkstreamShortName](#593-WorkstreamShortName) | A list of short names.                                                                         |
+| NextToken  | *string                                           | A token to retrieve the next page of results. If there are no more results, this will be null. |
+
+## 59.3 WorkstreamShortName
+
+```json
+{
+  "Name": "string",
+  "WorkstreamID": "string",
+  "WorkstreamVersion": int,
+}
+```
+
+| Field             | Type   | Description                                                 |
+|-------------------|--------|-------------------------------------------------------------|
+| Name              | string | The short name.                                             |
+| WorkstreamID      | string | The ID of the workstream the short name is associated with. |
+| WorkstreamVersion | int    | The version of the workstream.                              |
+ 
+## 60. MoveTask
+
+The MoveTask API moves a task from one workstream to another.
+
+## 60.1 Request
+
+```http request
+POST /v1/tenants/{tenant_id}/tasks/{task_id}/move HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "DestinationWorkstreamID": "string"
+    "TaskVersion": int,
+    "SourceWorkstreamVersion": int,
+    "DestinationWorkstreamVersion": int
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                  |
+|------------------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the task.                                                                                                                     |
+| task_id                                  | path     | string  | The ID of the task to move.                                                                                                                                  |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                    |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                       |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                          |
+| DestinationWorkstreamID                  | body     | string  | The ID of the workstream to move the task to.                                                                                                                |
+| TaskVersion                              | body     | int     | The version of the task to move. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.           |
+| SourceWorkstreamVersion                  | body     | int     | The version of the source workstream. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.      |
+| DestinationWorkstreamVersion             | body     | int     | The version of the destination workstream. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+
+## 60.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "Task": {
+        "TenantID": "string",
+        "WorkstreamID": "*string",  
+        "TaskID": "string", 
+        "Title": "string",
+        "EnvironmentID": "string",
+        "Prompt": "string",
+        "AfterTaskID": "string",
+        "Parallel": bool,
+        "Model": "ModelType",
+        "AssignedToTenantID": "*string",
+        "AssignedToAI" : bool,  
+        "RepoInfo: {},
+        "State": "TaskState",
+        "CreatedAt": "string",
+        "UpdatedAt": "string",
+        "Deleted": bool,
+        "Version": int,
+        "TaskNumber": int
+    },
+    "SourceWorkstream": {
+        "WorkstreamID": "string",
+        "TenantID": "string",
+        "Name": "string",
+        "Description": "string",
+        "CreatedAt": "string",
+        "UpdatedAt": "string",
+        "Version": int,
+        "Paused": bool,
+        "Deleted": bool,
+        "DefaultShortName": "string",
+        "TaskCounter": int,
+    },
+    "DestinationWorkstream": {
+        "WorkstreamID": "string",
+        "TenantID": "string",
+        "Name": "string",
+        "Description": "string",
+        "CreatedAt": "string",
+        "UpdatedAt": "string",
+        "Version": int,
+        "Paused": bool,
+        "Deleted": bool,
+        "DefaultShortName": "string",
+        "TaskCounter": int
+    }
+}
+```
+
+| Field                 | Type                        | Description                                        |
+|-----------------------|-----------------------------|----------------------------------------------------|
+| Task                  | [Task](#183-response)       | The updated task after the move.                   |
+| SourceWorkstream      | [Workstream](#352-response) | The updated source workstream after the move.      |
+| DestinationWorkstream | [Workstream](#352-response) | The updated destination workstream after the move. |
