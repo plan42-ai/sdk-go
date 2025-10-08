@@ -118,6 +118,7 @@ const (
 	ActionDeleteWorkstream          Action = "DeleteWorkstream"
 	ActionAddWorkstreamShortName    Action = "AddWorkstreamShortName"
 	ActionListWorkstreamShortNames  Action = "ListWorkstreamShortNames"
+	ActionDeleteWorkstreamShortName Action = "DeleteWorkstreamShortName"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -315,6 +316,7 @@ func init() {
 		ActionDeleteWorkstream,          // 0x0000_2000_0000_0000
 		ActionAddWorkstreamShortName,    // 0x0000_4000_0000_0000
 		ActionListWorkstreamShortNames,  // 0x0000_8000_0000_0000
+		ActionDeleteWorkstreamShortName, // 0x0001_0000_0000_0000
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
