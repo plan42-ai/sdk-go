@@ -24,7 +24,9 @@ type Turn struct {
 	ErrorMessage       *string               `json:"ErrorMessage,omitempty"`
 	CreatedAt          time.Time             `json:"CreatedAt"`
 	UpdatedAt          time.Time             `json:"UpdatedAt"`
-	Version            int                   `json:"Version"`
+	// CompletedAt indicates the time the turn finished processing.
+	CompletedAt *time.Time `json:"CompletedAt,omitempty"`
+	Version     int        `json:"Version"`
 }
 
 // ObjectType returns the object type for ConflictError handling.
@@ -276,6 +278,7 @@ type UpdateTurnRequest struct {
 	Status             *string                `json:"Status,omitempty"`
 	OutputMessage      *string                `json:"OutputMessage,omitempty"`
 	ErrorMessage       *string                `json:"ErrorMessage,omitempty"`
+	CompletedAt        *time.Time             `json:"CompletedAt,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -300,6 +303,8 @@ func (r *UpdateTurnRequest) GetField(name string) (any, bool) {
 		return evalNullable(r.OutputMessage)
 	case "ErrorMessage":
 		return evalNullable(r.ErrorMessage)
+	case "CompletedAt":
+		return evalNullable(r.CompletedAt)
 	default:
 		return nil, false
 	}
