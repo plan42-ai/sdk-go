@@ -20,6 +20,7 @@ type WorkstreamOptions struct {
 	AddShortName    AddWorkstreamShortNameOptions    `cmd:""`
 	ListShortNames  ListWorkstreamShortNamesOptions  `cmd:""`
 	DeleteShortName DeleteWorkstreamShortNameOptions `cmd:""`
+	MoveShortName   MoveShortNameOptions             `cmd:""`
 }
 
 // CreateWorkstreamOptions contains the flags for the `workstream create` command.
@@ -67,6 +68,97 @@ func (o *CreateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 
 	return printJSON(ws)
+}
+
+// MoveShortNameOptions contains the flags for the `workstream move-short-name` command.
+type MoveShortNameOptions struct {
+	TenantID      string  `help:"The id of the tenant to move the short name in." name:"tenant-id" short:"i" required:""`
+	WorkstreamID  string  `help:"The id of the workstream to move the short name to." name:"workstream-id" short:"w" required:""`
+	ShortName     string  `help:"The short name to move." name:"short-name" short:"S" required:""`
+	NewSourceName *string `help:"Optional string indicating a new short name to add to the source workstream (e.g. Archive-1234)." name:"new-source-name"`
+}
+
+func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error {
+	// Prepare a request to list all short names so we can determine the source workstream
+	listReq := &eh.ListWorkstreamShortNamesRequest{
+		TenantID:       o.TenantID,
+		IncludeDeleted: pointer(true), // include deleted to be safe
+	}
+
+	if err := loadFeatureFlags(s, &listReq.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &listReq.DelegatedAuthInfo)
+
+	var (
+		sourceWorkstreamID  string
+		sourceWorkstreamVer int
+		found               bool
+	)
+
+	var token *string
+	for {
+		listReq.Token = token
+		resp, err := s.Client.ListWorkstreamShortNames(ctx, listReq)
+		if err != nil {
+			return err
+		}
+
+		for _, sn := range resp.ShortNames {
+			if sn.Name == o.ShortName {
+				sourceWorkstreamID = sn.WorkstreamID
+				sourceWorkstreamVer = sn.WorkstreamVersion
+				found = true
+				break
+			}
+		}
+
+		if found || resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+
+	if !found {
+		return fmt.Errorf("short name %q not found in tenant %q", o.ShortName, o.TenantID)
+	}
+
+	// Fetch destination workstream to get its current version
+	getDestReq := &eh.GetWorkstreamRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: o.WorkstreamID,
+	}
+	getDestReq.FeatureFlags = listReq.FeatureFlags
+	processDelegatedAuth(s, &getDestReq.DelegatedAuthInfo)
+
+	destWs, err := s.Client.GetWorkstream(ctx, getDestReq)
+	if err != nil {
+		return err
+	}
+
+	moveReq := eh.MoveShortNameRequest{
+		TenantID:                     o.TenantID,
+		Name:                         o.ShortName,
+		SourceWorkstreamID:           sourceWorkstreamID,
+		DestinationWorkstreamID:      o.WorkstreamID,
+		SourceWorkstreamVersion:      sourceWorkstreamVer,
+		DestinationWorkstreamVersion: destWs.Version,
+		SetDefaultOnDestination:      false,
+	}
+
+	if o.NewSourceName != nil && *o.NewSourceName != "" {
+		moveReq.ReplacementName = o.NewSourceName
+	}
+
+	moveReq.FeatureFlags = getDestReq.FeatureFlags
+	processDelegatedAuth(s, &moveReq.DelegatedAuthInfo)
+
+	resp, err := s.Client.MoveShortName(ctx, &moveReq)
+	if err != nil {
+		return err
+	}
+
+	return printJSON(resp)
 }
 
 // DeleteWorkstreamShortNameOptions contains the flags for the `workstream delete-short-name` command.
