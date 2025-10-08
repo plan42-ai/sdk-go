@@ -44,23 +44,26 @@ type RepoInfo struct {
 
 // Task represents a task returned by the API.
 type Task struct {
-	TenantID           string               `json:"TenantId"`
-	WorkstreamID       *string              `json:"WorkstreamId,omitempty"`
-	TaskID             string               `json:"TaskId"`
-	Title              string               `json:"Title"`
-	EnvironmentID      string               `json:"EnvironmentId"`
-	Prompt             string               `json:"Prompt"`
-	AfterTaskID        *string              `json:"AfterTaskId,omitempty"`
-	Parallel           bool                 `json:"Parallel"`
-	Model              ModelType            `json:"Model"`
-	AssignedToTenantID *string              `json:"AssignedToTenantId,omitempty"`
-	AssignedToAI       bool                 `json:"AssignedToAI"`
-	RepoInfo           map[string]*RepoInfo `json:"RepoInfo"`
-	State              TaskState            `json:"State"`
-	CreatedAt          time.Time            `json:"CreatedAt"`
-	UpdatedAt          time.Time            `json:"UpdatedAt"`
-	Deleted            bool                 `json:"Deleted"`
-	Version            int                  `json:"Version"`
+	TenantID           string    `json:"TenantId"`
+	WorkstreamID       *string   `json:"WorkstreamId,omitempty"`
+	TaskID             string    `json:"TaskId"`
+	Title              string    `json:"Title"`
+	EnvironmentID      string    `json:"EnvironmentId"`
+	Prompt             string    `json:"Prompt"`
+	AfterTaskID        *string   `json:"AfterTaskId,omitempty"`
+	Parallel           bool      `json:"Parallel"`
+	Model              ModelType `json:"Model"`
+	AssignedToTenantID *string   `json:"AssignedToTenantId,omitempty"`
+	AssignedToAI       bool      `json:"AssignedToAI"`
+	// TaskNumber is a server assigned sequence number that is unique within a workstream.
+	// It is read-only and therefore excluded from create/update request payloads.
+	TaskNumber *int                 `json:"TaskNumber,omitempty"`
+	RepoInfo   map[string]*RepoInfo `json:"RepoInfo"`
+	State      TaskState            `json:"State"`
+	CreatedAt  time.Time            `json:"CreatedAt"`
+	UpdatedAt  time.Time            `json:"UpdatedAt"`
+	Deleted    bool                 `json:"Deleted"`
+	Version    int                  `json:"Version"`
 }
 
 // ObjectType returns the object type for ConflictError handling.
