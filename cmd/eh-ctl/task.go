@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
@@ -15,6 +16,81 @@ type TaskOptions struct {
 	Delete DeleteTaskOptions `cmd:""`
 	List   ListTasksOptions  `cmd:""`
 	Get    GetTaskOptions    `cmd:""`
+	Move   MoveTaskOptions   `cmd:""`
+}
+
+// MoveTaskOptions contains the flags for the `task move` command.
+type MoveTaskOptions struct {
+	TenantID     string `help:"The id of the tenant to move the task in." name:"tenant-id" short:"i" required:""`
+	TaskID       string `help:"The id of the task to move." name:"task-id" short:"t" required:""`
+	WorkstreamID string `help:"The id of the workstream to move the task to." name:"workstream-id" short:"w" required:""`
+}
+
+func (o *MoveTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	// Retrieve the task to obtain its current version and source workstream.
+	getTaskReq := &eh.GetTaskRequest{
+		TenantID: o.TenantID,
+		TaskID:   o.TaskID,
+	}
+
+	if err := loadFeatureFlags(s, &getTaskReq.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &getTaskReq.DelegatedAuthInfo)
+
+	task, err := s.Client.GetTask(ctx, getTaskReq)
+	if err != nil {
+		return err
+	}
+
+	if task.WorkstreamID == nil {
+		return fmt.Errorf("task %s is not associated with a workstream", o.TaskID)
+	}
+
+	sourceWSID := *task.WorkstreamID
+
+	// Fetch versions for source and destination workstreams.
+	getSourceWSReq := &eh.GetWorkstreamRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: sourceWSID,
+	}
+	getSourceWSReq.FeatureFlags = getTaskReq.FeatureFlags
+	processDelegatedAuth(s, &getSourceWSReq.DelegatedAuthInfo)
+
+	sourceWS, err := s.Client.GetWorkstream(ctx, getSourceWSReq)
+	if err != nil {
+		return err
+	}
+
+	getDestWSReq := &eh.GetWorkstreamRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: o.WorkstreamID,
+	}
+	getDestWSReq.FeatureFlags = getTaskReq.FeatureFlags
+	processDelegatedAuth(s, &getDestWSReq.DelegatedAuthInfo)
+
+	destWS, err := s.Client.GetWorkstream(ctx, getDestWSReq)
+	if err != nil {
+		return err
+	}
+
+	moveReq := &eh.MoveTaskRequest{
+		TenantID:                     o.TenantID,
+		TaskID:                       o.TaskID,
+		DestinationWorkstreamID:      o.WorkstreamID,
+		TaskVersion:                  task.Version,
+		SourceWorkstreamVersion:      sourceWS.Version,
+		DestinationWorkstreamVersion: destWS.Version,
+	}
+	moveReq.FeatureFlags = getTaskReq.FeatureFlags
+	processDelegatedAuth(s, &moveReq.DelegatedAuthInfo)
+
+	resp, err := s.Client.MoveTask(ctx, moveReq)
+	if err != nil {
+		return err
+	}
+
+	return printJSON(resp)
 }
 
 type CreateTaskOptions struct {
