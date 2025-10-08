@@ -112,6 +112,7 @@ const (
 	ActionUpdateTenantGithubCreds   Action = "UpdateTenantGithubCreds" // #nosec G101: This is not a credential.
 	ActionFindGithubUser            Action = "FindGithubUser"
 	ActionCreateWorkstream          Action = "CreateWorkstream"
+	ActionGetWorkstream             Action = "GetWorkstream"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -303,6 +304,7 @@ func init() {
 		ActionUpdateTenantGithubCreds,   // 0x08_000_000_000
 		ActionFindGithubUser,            // 0x10_000_000_000
 		ActionCreateWorkstream,          // 0x20_000_000_000
+		ActionGetWorkstream,             // 0x40_000_000_000
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
