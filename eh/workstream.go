@@ -466,6 +466,107 @@ type DeleteWorkstreamShortNameRequest struct {
 	Version      int    `json:"-"`
 }
 
+// MoveShortNameRequest is the request payload for MoveShortName.
+type MoveShortNameRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID                     string  `json:"-"`
+	Name                         string  `json:"-"`
+	SourceWorkstreamID           string  `json:"SourceWorkstreamID"`
+	DestinationWorkstreamID      string  `json:"DestinationWorkstreamID"`
+	SourceWorkstreamVersion      int     `json:"SourceWorkstreamVersion"`
+	DestinationWorkstreamVersion int     `json:"DestinationWorkstreamVersion"`
+	ReplacementName              *string `json:"ReplacementName,omitempty"`
+	SetDefaultOnDestination      bool    `json:"SetDefaultOnDestination"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *MoveShortNameRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "Name":
+		return r.Name, true
+	case "SourceWorkstreamID":
+		return r.SourceWorkstreamID, true
+	case "DestinationWorkstreamID":
+		return r.DestinationWorkstreamID, true
+	case "SourceWorkstreamVersion":
+		return r.SourceWorkstreamVersion, true
+	case "DestinationWorkstreamVersion":
+		return r.DestinationWorkstreamVersion, true
+	case "ReplacementName":
+		return evalNullable(r.ReplacementName)
+	case "SetDefaultOnDestination":
+		return r.SetDefaultOnDestination, true
+	default:
+		return nil, false
+	}
+}
+
+// MoveShortNameResponse is the response payload for MoveShortName.
+type MoveShortNameResponse struct {
+	SourceWorkstream      Workstream `json:"SourceWorkstream"`
+	DestinationWorkstream Workstream `json:"DestinationWorkstream"`
+}
+
+// MoveShortName moves a short name from one workstream to another.
+func (c *Client) MoveShortName(ctx context.Context, req *MoveShortNameRequest) (*MoveShortNameResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.Name == "" {
+		return nil, fmt.Errorf("name is required")
+	}
+	if req.SourceWorkstreamID == "" {
+		return nil, fmt.Errorf("source workstream id is required")
+	}
+	if req.DestinationWorkstreamID == "" {
+		return nil, fmt.Errorf("destination workstream id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "shortnames", url.PathEscape(req.Name), "move")
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out MoveShortNameResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *DeleteWorkstreamShortNameRequest) GetField(name string) (any, bool) {
