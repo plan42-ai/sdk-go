@@ -193,7 +193,6 @@ func (c *Client) UpdateWorkstream(ctx context.Context, req *UpdateWorkstreamRequ
 	return &out, nil
 }
 
-
 // ListWorkstreamsRequest is the request for ListWorkstreams.
 type ListWorkstreamsRequest struct {
 	FeatureFlags
