@@ -278,6 +278,71 @@ func (c *Client) ListWorkstreams(ctx context.Context, req *ListWorkstreamsReques
 	return &out, nil
 }
 
+// DeleteWorkstreamRequest is the request payload for DeleteWorkstream.
+type DeleteWorkstreamRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID     string `json:"-"`
+	WorkstreamID string `json:"-"`
+	Version      int    `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteWorkstreamRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "WorkstreamID":
+		return r.WorkstreamID, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteWorkstream soft-deletes a workstream.
+// nolint: dupl
+func (c *Client) DeleteWorkstream(ctx context.Context, req *DeleteWorkstreamRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.WorkstreamID == "" {
+		return fmt.Errorf("workstream id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "workstreams", url.PathEscape(req.WorkstreamID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+	return nil
+}
+
 // CreateWorkstreamRequest is the request payload for CreateWorkstream.
 type CreateWorkstreamRequest struct {
 	FeatureFlags
