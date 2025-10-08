@@ -61,6 +61,7 @@ func (r *CreateWorkstreamRequest) GetField(name string) (any, bool) {
 }
 
 // CreateWorkstream creates a new workstream for a tenant.
+// nolint: dupl
 func (c *Client) CreateWorkstream(ctx context.Context, req *CreateWorkstreamRequest) (*Workstream, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
