@@ -216,6 +216,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Workstream.Delete.Run(options.Ctx, &options.SharedOptions)
 	case "workstream list":
 		return options.Workstream.List.Run(options.Ctx, &options.SharedOptions)
+	case "workstream update":
+		return options.Workstream.Update.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
