@@ -14,6 +14,7 @@ type WorkstreamOptions struct {
 	Create CreateWorkstreamOptions `cmd:""`
 	Get    GetWorkstreamOptions    `cmd:""`
 	Delete DeleteWorkstreamOptions `cmd:""`
+	List   ListWorkstreamsOptions  `cmd:""`
 }
 
 // CreateWorkstreamOptions contains the flags for the `workstream create` command.
@@ -61,6 +62,50 @@ func (o *CreateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 
 	return printJSON(ws)
+}
+
+// ListWorkstreamsOptions contains the flags for the `workstream list` command.
+type ListWorkstreamsOptions struct {
+	TenantID       string `help:"The id of the tenant to list workstreams for." name:"tenant-id" short:"i" required:""`
+	IncludeDeleted bool   `help:"When set, include deleted workstreams in the list." short:"d" optional:""`
+}
+
+// Run executes the `workstream list` command.
+func (o *ListWorkstreamsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.ListWorkstreamsRequest{
+		TenantID:       o.TenantID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+
+	var token *string
+	for {
+		req.Token = token
+
+		processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+		resp, err := s.Client.ListWorkstreams(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, ws := range resp.Workstreams {
+			if err := printJSON(ws); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		token = resp.NextToken
+	}
+
+	return nil
 }
 
 // GetWorkstreamOptions contains the flags for the `workstream get` command.
