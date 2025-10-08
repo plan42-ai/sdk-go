@@ -11,11 +11,12 @@ import (
 
 // WorkstreamOptions is the root for all workstream related sub-commands.
 type WorkstreamOptions struct {
-	Create CreateWorkstreamOptions `cmd:""`
-	Get    GetWorkstreamOptions    `cmd:""`
-	Delete DeleteWorkstreamOptions `cmd:""`
-	List   ListWorkstreamsOptions  `cmd:""`
-	Update UpdateWorkstreamOptions `cmd:""`
+	Create       CreateWorkstreamOptions       `cmd:""`
+	Get          GetWorkstreamOptions          `cmd:""`
+	Delete       DeleteWorkstreamOptions       `cmd:""`
+	List         ListWorkstreamsOptions        `cmd:""`
+	Update       UpdateWorkstreamOptions       `cmd:""`
+	AddShortName AddWorkstreamShortNameOptions `cmd:""`
 }
 
 // CreateWorkstreamOptions contains the flags for the `workstream create` command.
@@ -239,4 +240,45 @@ func (o *DeleteWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 	processDelegatedAuth(s, &delReq.DelegatedAuthInfo)
 
 	return s.Client.DeleteWorkstream(ctx, delReq)
+}
+
+// AddWorkstreamShortNameOptions contains the flags for the `workstream add-short-name` command.
+type AddWorkstreamShortNameOptions struct {
+	TenantID     string `help:"The id of the tenant to add the short name to." name:"tenant-id" short:"i" required:""`
+	WorkstreamID string `help:"The id of the workstream to add the short name to." name:"workstream-id" short:"w" required:""`
+	ShortName    string `help:"The short name to add." name:"short-name" short:"S" required:""`
+}
+
+func (o *AddWorkstreamShortNameOptions) Run(ctx context.Context, s *SharedOptions) error {
+	// Retrieve the current version of the workstream first so that we can set
+	// the correct If-Match header when adding the short name.
+
+	getReq := &eh.GetWorkstreamRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: o.WorkstreamID,
+	}
+
+	// Load feature flags (if any) so they are applied to subsequent requests.
+	if err := loadFeatureFlags(s, &getReq.FeatureFlags); err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	ws, err := s.Client.GetWorkstream(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req := eh.AddWorkstreamShortNameRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: o.WorkstreamID,
+		Name:         o.ShortName,
+		Version:      ws.Version,
+		FeatureFlags: getReq.FeatureFlags,
+	}
+
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	return s.Client.AddWorkstreamShortName(ctx, &req)
 }
