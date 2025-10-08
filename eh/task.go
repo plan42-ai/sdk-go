@@ -477,3 +477,96 @@ func (c *Client) ListTasks(ctx context.Context, req *ListTasksRequest) (*ListTas
 	}
 	return &out, nil
 }
+
+// MoveTaskRequest is the request payload for MoveTask.
+type MoveTaskRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID                     string `json:"-"`
+	TaskID                       string `json:"-"`
+	DestinationWorkstreamID      string `json:"DestinationWorkstreamID"`
+	TaskVersion                  int    `json:"TaskVersion"`
+	SourceWorkstreamVersion      int    `json:"SourceWorkstreamVersion"`
+	DestinationWorkstreamVersion int    `json:"DestinationWorkstreamVersion"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *MoveTaskRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "DestinationWorkstreamID":
+		return r.DestinationWorkstreamID, true
+	case "TaskVersion":
+		return r.TaskVersion, true
+	case "SourceWorkstreamVersion":
+		return r.SourceWorkstreamVersion, true
+	case "DestinationWorkstreamVersion":
+		return r.DestinationWorkstreamVersion, true
+	default:
+		return nil, false
+	}
+}
+
+// MoveTaskResponse is the response payload for MoveTask.
+type MoveTaskResponse struct {
+	Task                  Task       `json:"Task"`
+	SourceWorkstream      Workstream `json:"SourceWorkstream"`
+	DestinationWorkstream Workstream `json:"DestinationWorkstream"`
+}
+
+// MoveTask moves a task from one workstream to another.
+func (c *Client) MoveTask(ctx context.Context, req *MoveTaskRequest) (*MoveTaskResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+	if req.DestinationWorkstreamID == "" {
+		return nil, fmt.Errorf("destination workstream id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "move")
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out MoveTaskResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
