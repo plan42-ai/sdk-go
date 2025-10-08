@@ -354,6 +354,107 @@ type AddWorkstreamShortNameRequest struct {
 	Version      int    `json:"-"`
 }
 
+// WorkstreamShortName represents a short name for a workstream.
+type WorkstreamShortName struct {
+	Name              string `json:"Name"`
+	WorkstreamID      string `json:"WorkstreamID"`
+	WorkstreamVersion int    `json:"WorkstreamVersion"`
+}
+
+// ObjectType returns the object type for ConflictError handling.
+func (WorkstreamShortName) ObjectType() ObjectType { return ObjectTypeWorkstream }
+
+// ListWorkstreamShortNamesRequest is the request for ListWorkstreamShortNames.
+type ListWorkstreamShortNamesRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID       string
+	MaxResults     *int
+	Token          *string
+	IncludeDeleted *bool
+	WorkstreamID   *string
+}
+
+// GetField retrieves the value of a field by name.
+// nolint:goconst
+func (r *ListWorkstreamShortNamesRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "MaxResults":
+		return evalNullable(r.MaxResults)
+	case "Token":
+		return evalNullable(r.Token)
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	case "WorkstreamID":
+		return evalNullable(r.WorkstreamID)
+	default:
+		return nil, false
+	}
+}
+
+// ListWorkstreamShortNamesResponse is the response from ListWorkstreamShortNames.
+type ListWorkstreamShortNamesResponse struct {
+	ShortNames []WorkstreamShortName `json:"ShortNames"`
+	NextToken  *string               `json:"NextToken"`
+}
+
+// ListWorkstreamShortNames lists short names for a tenant (optionally filtered by workstream).
+// nolint:dupl
+func (c *Client) ListWorkstreamShortNames(ctx context.Context, req *ListWorkstreamShortNamesRequest) (*ListWorkstreamShortNamesResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "shortnames")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	if req.WorkstreamID != nil {
+		q.Set("workstreamID", *req.WorkstreamID)
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out ListWorkstreamShortNamesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *AddWorkstreamShortNameRequest) GetField(name string) (any, bool) {
