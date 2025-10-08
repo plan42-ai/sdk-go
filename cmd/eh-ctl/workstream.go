@@ -13,6 +13,7 @@ import (
 type WorkstreamOptions struct {
 	Create CreateWorkstreamOptions `cmd:""`
 	Get    GetWorkstreamOptions    `cmd:""`
+	Delete DeleteWorkstreamOptions `cmd:""`
 }
 
 // CreateWorkstreamOptions contains the flags for the `workstream create` command.
@@ -88,4 +89,42 @@ func (o *GetWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) error 
 	}
 
 	return printJSON(ws)
+}
+
+// DeleteWorkstreamOptions contains the flags for the `workstream delete` command.
+type DeleteWorkstreamOptions struct {
+	TenantID     string `help:"The id of the tenant to delete the workstream from." name:"tenant-id" short:"i" required:""`
+	WorkstreamID string `help:"The id of the workstream to delete." name:"workstream-id" short:"w" required:""`
+}
+
+func (o *DeleteWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) error {
+	// Build a GetWorkstream request to fetch the current version so we can pass
+	// the appropriate If-Match header in the delete call.
+	getReq := &eh.GetWorkstreamRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: o.WorkstreamID,
+	}
+
+	// Load feature flags from shared options (if any).
+	if err := loadFeatureFlags(s, &getReq.FeatureFlags); err != nil {
+		return err
+	}
+
+	// Attach delegated auth info if provided.
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	ws, err := s.Client.GetWorkstream(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	delReq := &eh.DeleteWorkstreamRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: o.WorkstreamID,
+		Version:      ws.Version,
+	}
+	delReq.FeatureFlags = getReq.FeatureFlags
+	processDelegatedAuth(s, &delReq.DelegatedAuthInfo)
+
+	return s.Client.DeleteWorkstream(ctx, delReq)
 }
