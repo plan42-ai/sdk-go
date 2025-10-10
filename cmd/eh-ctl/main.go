@@ -100,6 +100,7 @@ type Options struct {
 	Turn        TurnOptions        `cmd:""`
 	Logs        LogsOptions        `cmd:""`
 	FeatureFlag FeatureFlagOptions `cmd:""`
+	Workstream  WorkstreamOptions  `cmd:""`
 	Ctx         context.Context    `kong:"-"`
 }
 
@@ -207,6 +208,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.FeatureFlag.DeleteOverride.Run(options.Ctx, &options.SharedOptions)
 	case "feature-flag list-overrides":
 		return options.FeatureFlag.ListOverrides.Run(options.Ctx, &options.SharedOptions)
+	case "workstream create":
+		return options.Workstream.Create.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
