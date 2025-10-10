@@ -18,7 +18,7 @@ const (
 	ModelTypeCodexMini     ModelType = "Codex Mini"
 	ModelTypeO3            ModelType = "O3"
 	ModelTypeO3Pro         ModelType = "O3 Pro"
-	ModelTypeGpt5Thinking  ModelType = "GPT-5 Thinking"
+	ModelTypeGpt5          ModelType = "GPT-5"
 	ModelTypeClaude4Opus   ModelType = "Claude 4 Opus"
 	ModelTypeClaude4Sonnet ModelType = "Claude 4 Sonnet"
 )
