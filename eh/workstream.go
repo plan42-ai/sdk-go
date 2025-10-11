@@ -202,6 +202,7 @@ type ListWorkstreamsRequest struct {
 	MaxResults     *int
 	Token          *string
 	IncludeDeleted *bool
+	ShortName      *string
 }
 
 // GetField retrieves the value of a field by name.
@@ -247,6 +248,9 @@ func (c *Client) ListWorkstreams(ctx context.Context, req *ListWorkstreamsReques
 	}
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	if req.ShortName != nil {
+		q.Set("shortName", *req.ShortName)
 	}
 	u.RawQuery = q.Encode()
 

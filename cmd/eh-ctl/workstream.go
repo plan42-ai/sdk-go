@@ -79,10 +79,10 @@ type MoveShortNameOptions struct {
 }
 
 func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error {
-	// Prepare a request to list all short names so we can determine the source workstream
-	listReq := &eh.ListWorkstreamShortNamesRequest{
+	listReq := &eh.ListWorkstreamsRequest{
 		TenantID:       o.TenantID,
-		IncludeDeleted: pointer(true), // include deleted to be safe
+		IncludeDeleted: pointer(true),
+		ShortName:      pointer(o.ShortName),
 	}
 
 	if err := loadFeatureFlags(s, &listReq.FeatureFlags); err != nil {
@@ -90,43 +90,20 @@ func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error 
 	}
 	processDelegatedAuth(s, &listReq.DelegatedAuthInfo)
 
-	var (
-		sourceWorkstreamID  string
-		sourceWorkstreamVer int
-		found               bool
-	)
-
-	var token *string
-	for {
-		listReq.Token = token
-		resp, err := s.Client.ListWorkstreamShortNames(ctx, listReq)
-		if err != nil {
-			return err
-		}
-
-		for _, sn := range resp.ShortNames {
-			if sn.Name == o.ShortName {
-				sourceWorkstreamID = sn.WorkstreamID
-				sourceWorkstreamVer = sn.WorkstreamVersion
-				found = true
-				break
-			}
-		}
-
-		if found || resp.NextToken == nil {
-			break
-		}
-		token = resp.NextToken
+	srcResp, err := s.Client.ListWorkstreams(ctx, listReq)
+	if err != nil {
+		return err
 	}
 
-	if !found {
+	if len(srcResp.Workstreams) == 0 {
 		return fmt.Errorf("short name %q not found in tenant %q", o.ShortName, o.TenantID)
 	}
 
 	// Fetch destination workstream to get its current version
 	getDestReq := &eh.GetWorkstreamRequest{
-		TenantID:     o.TenantID,
-		WorkstreamID: o.WorkstreamID,
+		TenantID:       o.TenantID,
+		WorkstreamID:   o.WorkstreamID,
+		IncludeDeleted: pointer(true),
 	}
 	getDestReq.FeatureFlags = listReq.FeatureFlags
 	processDelegatedAuth(s, &getDestReq.DelegatedAuthInfo)
@@ -139,9 +116,9 @@ func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error 
 	moveReq := eh.MoveShortNameRequest{
 		TenantID:                     o.TenantID,
 		Name:                         o.ShortName,
-		SourceWorkstreamID:           sourceWorkstreamID,
+		SourceWorkstreamID:           srcResp.Workstreams[0].WorkstreamID,
 		DestinationWorkstreamID:      o.WorkstreamID,
-		SourceWorkstreamVersion:      sourceWorkstreamVer,
+		SourceWorkstreamVersion:      srcResp.Workstreams[0].Version,
 		DestinationWorkstreamVersion: destWs.Version,
 		SetDefaultOnDestination:      false,
 	}
@@ -153,12 +130,12 @@ func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error 
 	moveReq.FeatureFlags = getDestReq.FeatureFlags
 	processDelegatedAuth(s, &moveReq.DelegatedAuthInfo)
 
-	resp, err := s.Client.MoveShortName(ctx, &moveReq)
+	moveResp, err := s.Client.MoveShortName(ctx, &moveReq)
 	if err != nil {
 		return err
 	}
 
-	return printJSON(resp)
+	return printJSON(moveResp)
 }
 
 // DeleteWorkstreamShortNameOptions contains the flags for the `workstream delete-short-name` command.
@@ -318,8 +295,9 @@ func (o *UpdateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 
 // ListWorkstreamsOptions contains the flags for the `workstream list` command.
 type ListWorkstreamsOptions struct {
-	TenantID       string `help:"The id of the tenant to list workstreams for." name:"tenant-id" short:"i" required:""`
-	IncludeDeleted bool   `help:"When set, include deleted workstreams in the list." short:"d" optional:""`
+	TenantID       string  `help:"The id of the tenant to list workstreams for." name:"tenant-id" short:"i" required:""`
+	IncludeDeleted bool    `help:"When set, include deleted workstreams in the list." short:"d" optional:""`
+	ShortName      *string `help:"When set, filter workstreams based on short name." name:"short-name" short:"S" optional:""`
 }
 
 // Run executes the `workstream list` command.
@@ -327,6 +305,7 @@ func (o *ListWorkstreamsOptions) Run(ctx context.Context, s *SharedOptions) erro
 	req := &eh.ListWorkstreamsRequest{
 		TenantID:       o.TenantID,
 		IncludeDeleted: pointer(o.IncludeDeleted),
+		ShortName:      o.ShortName,
 	}
 
 	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
