@@ -204,7 +204,7 @@ func (o *DeleteWorkstreamShortNameOptions) Run(ctx context.Context, s *SharedOpt
 // `workstream list-short-names` command.
 type ListWorkstreamShortNamesOptions struct {
 	TenantID     string  `help:"The id of the tenant to list short names for." name:"tenant-id" short:"i" required:""`
-	WorkstreamID *string `help:"The id of the workstream to list short names for." name:"workstream-id" short:"w" optional:""`
+	WorkstreamID *string `help:"Optional. When set, filter short names based on workstream." name:"workstream-id" short:"w" optional:""`
 }
 
 // Run executes the `workstream list-short-names` command.
@@ -238,7 +238,7 @@ func (o *ListWorkstreamShortNamesOptions) Run(ctx context.Context, s *SharedOpti
 
 		// Print each short name on its own line.
 		for _, sn := range resp.ShortNames {
-			fmt.Println(sn.Name)
+			_ = printJSON(sn)
 		}
 
 		if resp.NextToken == nil {
