@@ -259,6 +259,7 @@ const (
 	ObjectTypeFeatureFlag          ObjectType = "FeatureFlag"
 	ObjectTypeFeatureFlagOverride  ObjectType = "FeatureFlagOverride"
 	ObjectTypeWorkstream           ObjectType = "Workstream"
+	ObjectTypeWorkstreamShortName  ObjectType = "WorkstreamShortName"
 )
 
 type ConflictObj interface {
@@ -320,6 +321,10 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &FeatureFlag{}
 		case ObjectTypeFeatureFlagOverride:
 			current = &FeatureFlagOverride{}
+		case ObjectTypeWorkstream:
+			current = &Workstream{}
+		case ObjectTypeWorkstreamShortName:
+			current = &WorkstreamShortName{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
@@ -370,6 +375,7 @@ func coalesce[T comparable](values ...T) T {
 func decodeError(resp *http.Response) error {
 	decoder := json.NewDecoder(resp.Body)
 	var err error
+
 	switch resp.StatusCode {
 	case http.StatusConflict:
 		err = &ConflictError{}
