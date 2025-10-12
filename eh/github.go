@@ -141,6 +141,8 @@ type TenantGithubCreds struct {
 	TenantVersion   int        `json:"TenantVersion"`
 }
 
+func (TenantGithubCreds) ObjectType() ObjectType { return ObjectTypeTenantGithubCreds }
+
 // UpdateTenantGithubCredsRequest is the request payload for UpdateTenantGithubCreds.
 // All fields are optional and, when set, will be updated. Fields left as nil are not modified.
 // The Version field is supplied via the If-Match header to implement optimistic concurrency.

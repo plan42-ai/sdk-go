@@ -255,11 +255,11 @@ const (
 	ObjectTypeTurn                 ObjectType = "Turn"
 	ObjectTypeTask                 ObjectType = "Task"
 	ObjectTypeGithubOrg            ObjectType = "GithubOrg"
-	ObjectTypeTenantGithubOrg      ObjectType = "TenantGithubOrg"
 	ObjectTypeFeatureFlag          ObjectType = "FeatureFlag"
 	ObjectTypeFeatureFlagOverride  ObjectType = "FeatureFlagOverride"
 	ObjectTypeWorkstream           ObjectType = "Workstream"
 	ObjectTypeWorkstreamShortName  ObjectType = "WorkstreamShortName"
+	ObjectTypeTenantGithubCreds    ObjectType = "TenantGithubCreds" // #nosec: G101: This is not a hard coded credential, it's an enum member that contains the work "cred".
 )
 
 type ConflictObj interface {
@@ -325,6 +325,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Workstream{}
 		case ObjectTypeWorkstreamShortName:
 			current = &WorkstreamShortName{}
+		case ObjectTypeTenantGithubCreds:
+			current = &TenantGithubCreds{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
