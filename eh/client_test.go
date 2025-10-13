@@ -902,7 +902,6 @@ func TestCreateTask(t *testing.T) {
 		Title:         "title",
 		EnvironmentID: "env",
 		Prompt:        "do",
-		AssignedToAI:  true,
 		Model:         &model,
 		RepoInfo:      map[string]*eh.RepoInfo{},
 	})
@@ -921,7 +920,6 @@ func TestCreateTaskError(t *testing.T) {
 		Title:         "title",
 		EnvironmentID: "env",
 		Prompt:        "do",
-		AssignedToAI:  true,
 		Model:         &model,
 		RepoInfo:      map[string]*eh.RepoInfo{},
 	})
@@ -943,7 +941,6 @@ func TestCreateTaskConflictError(t *testing.T) {
 		Title:         "title",
 		EnvironmentID: "env",
 		Prompt:        "do",
-		AssignedToAI:  true,
 		Model:         &model,
 		RepoInfo:      map[string]*eh.RepoInfo{},
 	})
@@ -976,7 +973,6 @@ func TestCreateTaskPathEscaping(t *testing.T) {
 		Title:         "title",
 		EnvironmentID: "env",
 		Prompt:        "do",
-		AssignedToAI:  true,
 		Model:         &model,
 		RepoInfo:      map[string]*eh.RepoInfo{},
 	})

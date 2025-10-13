@@ -145,18 +145,16 @@ func (c *Client) GetTask(ctx context.Context, req *GetTaskRequest) (*Task, error
 type CreateTaskRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID           string               `json:"-"`
-	TaskID             string               `json:"-"`
-	WorkstreamID       *string              `json:"WorkstreamId,omitempty"`
-	Title              string               `json:"Title"`
-	EnvironmentID      string               `json:"EnvironmentId"`
-	Prompt             string               `json:"Prompt"`
-	AfterTaskID        *string              `json:"AfterTaskId,omitempty"`
-	Parallel           bool                 `json:"Parallel"`
-	Model              *ModelType           `json:"Model,omitempty"`
-	AssignedToTenantID *string              `json:"AssignedToTenantId,omitempty"`
-	AssignedToAI       bool                 `json:"AssignedToAI"`
-	RepoInfo           map[string]*RepoInfo `json:"RepoInfo"`
+	TenantID      string               `json:"-"`
+	TaskID        string               `json:"-"`
+	WorkstreamID  *string              `json:"WorkstreamId,omitempty"`
+	Title         string               `json:"Title"`
+	EnvironmentID string               `json:"EnvironmentId"`
+	Prompt        string               `json:"Prompt"`
+	AfterTaskID   *string              `json:"AfterTaskId,omitempty"`
+	Parallel      bool                 `json:"Parallel"`
+	Model         *ModelType           `json:"Model,omitempty"`
+	RepoInfo      map[string]*RepoInfo `json:"RepoInfo"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -181,10 +179,6 @@ func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 		return r.Parallel, true
 	case "Model":
 		return evalNullable(r.Model)
-	case "AssignedToTenantID":
-		return evalNullable(r.AssignedToTenantID)
-	case "AssignedToAI":
-		return r.AssignedToAI, true
 	case "RepoInfo":
 		return r.RepoInfo, true
 	default:
