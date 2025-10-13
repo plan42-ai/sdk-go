@@ -210,6 +210,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.FeatureFlag.ListOverrides.Run(options.Ctx, &options.SharedOptions)
 	case "workstream create":
 		return options.Workstream.Create.Run(options.Ctx, &options.SharedOptions)
+	case "workstream get":
+		return options.Workstream.Get.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
