@@ -15,6 +15,7 @@ type WorkstreamOptions struct {
 	Get    GetWorkstreamOptions    `cmd:""`
 	Delete DeleteWorkstreamOptions `cmd:""`
 	List   ListWorkstreamsOptions  `cmd:""`
+	Update UpdateWorkstreamOptions `cmd:""`
 }
 
 // CreateWorkstreamOptions contains the flags for the `workstream create` command.
@@ -62,6 +63,72 @@ func (o *CreateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 
 	return printJSON(ws)
+}
+
+// UpdateWorkstreamOptions contains the flags for the `workstream update` command.
+type UpdateWorkstreamOptions struct {
+	TenantID     string `help:"The id of the tenant that owns the workstream." name:"tenant-id" short:"i" required:""`
+	WorkstreamID string `help:"The id of the workstream to update." name:"workstream-id" short:"w" required:""`
+	JSON         string `help:"The file containing the workstream JSON. Use '-' to read from stdin." short:"j" default:"-"`
+}
+
+// Run executes the `workstream update` command.
+// nolint: dupl
+func (o *UpdateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
+
+	var reader *os.File
+	if o.JSON == "-" {
+		reader = os.Stdin
+	} else {
+		f, err := os.Open(o.JSON)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		reader = f
+	}
+
+	var req eh.UpdateWorkstreamRequest
+	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+		return err
+	}
+
+	// Load feature flags overrides after JSON so CLI overrides win.
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+
+	// Populate path parameters
+	req.TenantID = o.TenantID
+	req.WorkstreamID = o.WorkstreamID
+
+	// Retrieve current workstream to get its version for concurrency control.
+	getReq := &eh.GetWorkstreamRequest{
+		TenantID:       o.TenantID,
+		WorkstreamID:   o.WorkstreamID,
+		IncludeDeleted: pointer(true),
+	}
+	getReq.FeatureFlags = req.FeatureFlags
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	ws, err := s.Client.GetWorkstream(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req.Version = ws.Version
+	req.FeatureFlags = getReq.FeatureFlags
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateWorkstream(ctx, &req)
+	if err != nil {
+		return err
+	}
+
+	return printJSON(updated)
 }
 
 // ListWorkstreamsOptions contains the flags for the `workstream list` command.
