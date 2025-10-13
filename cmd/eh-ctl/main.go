@@ -224,6 +224,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Workstream.ListShortNames.Run(options.Ctx, &options.SharedOptions)
 	case "workstream delete-short-name":
 		return options.Workstream.DeleteShortName.Run(options.Ctx, &options.SharedOptions)
+	case "workstream move-short-name":
+		return options.Workstream.MoveShortName.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
