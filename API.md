@@ -2465,7 +2465,7 @@ ListWorkstreams lists all workstreams for a given tenant.
 ## 36.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/workstreams?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+GET /v1/tenants/{tenant_id}/workstreams?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted}&shortName={shortName} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -2478,6 +2478,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | maxResults                               | query    | *int    | Optional. The maximum number of workstreams to return. Default is 500. Must be >=1 and <= 500.                  |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted workstreams in the results.                                            |
+| shortName                                | query    | *string | Optional. Searches for the workstream with the provides short name.                                             |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                       |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
