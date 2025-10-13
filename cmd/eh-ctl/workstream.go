@@ -12,13 +12,14 @@ import (
 
 // WorkstreamOptions is the root for all workstream related sub-commands.
 type WorkstreamOptions struct {
-	Create         CreateWorkstreamOptions         `cmd:""`
-	Get            GetWorkstreamOptions            `cmd:""`
-	Delete         DeleteWorkstreamOptions         `cmd:""`
-	List           ListWorkstreamsOptions          `cmd:""`
-	Update         UpdateWorkstreamOptions         `cmd:""`
-	AddShortName   AddWorkstreamShortNameOptions   `cmd:""`
-	ListShortNames ListWorkstreamShortNamesOptions `cmd:""`
+	Create          CreateWorkstreamOptions          `cmd:""`
+	Get             GetWorkstreamOptions             `cmd:""`
+	Delete          DeleteWorkstreamOptions          `cmd:""`
+	List            ListWorkstreamsOptions           `cmd:""`
+	Update          UpdateWorkstreamOptions          `cmd:""`
+	AddShortName    AddWorkstreamShortNameOptions    `cmd:""`
+	ListShortNames  ListWorkstreamShortNamesOptions  `cmd:""`
+	DeleteShortName DeleteWorkstreamShortNameOptions `cmd:""`
 }
 
 // CreateWorkstreamOptions contains the flags for the `workstream create` command.
@@ -66,6 +67,45 @@ func (o *CreateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 
 	return printJSON(ws)
+}
+
+// DeleteWorkstreamShortNameOptions contains the flags for the `workstream delete-short-name` command.
+type DeleteWorkstreamShortNameOptions struct {
+	TenantID     string `help:"The id of the tenant to delete the short name from." name:"tenant-id" short:"i" required:""`
+	WorkstreamID string `help:"The id of the workstream to delete the short name from." name:"workstream-id" short:"w" required:""`
+	ShortName    string `help:"The short name to delete." name:"short-name" short:"S" required:""`
+}
+
+func (o *DeleteWorkstreamShortNameOptions) Run(ctx context.Context, s *SharedOptions) error {
+	// First, retrieve the workstream so we can obtain its current version for optimistic locking.
+
+	getReq := &eh.GetWorkstreamRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: o.WorkstreamID,
+	}
+
+	if err := loadFeatureFlags(s, &getReq.FeatureFlags); err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	ws, err := s.Client.GetWorkstream(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req := &eh.DeleteWorkstreamShortNameRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: o.WorkstreamID,
+		Name:         o.ShortName,
+		Version:      ws.Version,
+	}
+
+	req.FeatureFlags = getReq.FeatureFlags
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	return s.Client.DeleteWorkstreamShortName(ctx, req)
 }
 
 // ListWorkstreamShortNamesOptions contains the flags for the
