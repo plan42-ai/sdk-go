@@ -348,10 +348,10 @@ type AddWorkstreamShortNameRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID     string `json:"-"`
-	WorkstreamID string `json:"-"`
-	Name         string `json:"-"`
-	Version      int    `json:"-"`
+	TenantID          string `json:"-"`
+	WorkstreamID      string `json:"-"`
+	Name              string `json:"-"`
+	WorkstreamVersion int    `json:"-"`
 }
 
 // WorkstreamShortName represents a short name for a workstream.
@@ -594,8 +594,8 @@ func (r *AddWorkstreamShortNameRequest) GetField(name string) (any, bool) {
 		return r.WorkstreamID, true
 	case "Name":
 		return r.Name, true
-	case "Version":
-		return r.Version, true
+	case "WorkstreamVersion":
+		return r.WorkstreamVersion, true
 	default:
 		return nil, false
 	}
@@ -625,7 +625,7 @@ func (c *Client) AddWorkstreamShortName(ctx context.Context, req *AddWorkstreamS
 	}
 
 	httpReq.Header.Set("Accept", "application/json")
-	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.WorkstreamVersion))
 
 	processFeatureFlags(httpReq, req.FeatureFlags)
 

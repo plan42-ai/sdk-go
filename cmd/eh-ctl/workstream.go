@@ -455,11 +455,11 @@ func (o *AddWorkstreamShortNameOptions) Run(ctx context.Context, s *SharedOption
 	}
 
 	req := eh.AddWorkstreamShortNameRequest{
-		TenantID:     o.TenantID,
-		WorkstreamID: o.WorkstreamID,
-		Name:         o.ShortName,
-		Version:      ws.Version,
-		FeatureFlags: getReq.FeatureFlags,
+		TenantID:          o.TenantID,
+		WorkstreamID:      o.WorkstreamID,
+		Name:              o.ShortName,
+		WorkstreamVersion: ws.Version,
+		FeatureFlags:      getReq.FeatureFlags,
 	}
 
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
