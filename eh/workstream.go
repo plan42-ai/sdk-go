@@ -362,7 +362,7 @@ type WorkstreamShortName struct {
 }
 
 // ObjectType returns the object type for ConflictError handling.
-func (WorkstreamShortName) ObjectType() ObjectType { return ObjectTypeWorkstream }
+func (WorkstreamShortName) ObjectType() ObjectType { return ObjectTypeWorkstreamShortName }
 
 // ListWorkstreamShortNamesRequest is the request for ListWorkstreamShortNames.
 type ListWorkstreamShortNamesRequest struct {
