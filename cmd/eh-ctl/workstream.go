@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
@@ -11,12 +12,13 @@ import (
 
 // WorkstreamOptions is the root for all workstream related sub-commands.
 type WorkstreamOptions struct {
-	Create       CreateWorkstreamOptions       `cmd:""`
-	Get          GetWorkstreamOptions          `cmd:""`
-	Delete       DeleteWorkstreamOptions       `cmd:""`
-	List         ListWorkstreamsOptions        `cmd:""`
-	Update       UpdateWorkstreamOptions       `cmd:""`
-	AddShortName AddWorkstreamShortNameOptions `cmd:""`
+	Create         CreateWorkstreamOptions         `cmd:""`
+	Get            GetWorkstreamOptions            `cmd:""`
+	Delete         DeleteWorkstreamOptions         `cmd:""`
+	List           ListWorkstreamsOptions          `cmd:""`
+	Update         UpdateWorkstreamOptions         `cmd:""`
+	AddShortName   AddWorkstreamShortNameOptions   `cmd:""`
+	ListShortNames ListWorkstreamShortNamesOptions `cmd:""`
 }
 
 // CreateWorkstreamOptions contains the flags for the `workstream create` command.
@@ -64,6 +66,56 @@ func (o *CreateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 
 	return printJSON(ws)
+}
+
+// ListWorkstreamShortNamesOptions contains the flags for the
+// `workstream list-short-names` command.
+type ListWorkstreamShortNamesOptions struct {
+	TenantID     string  `help:"The id of the tenant to list short names for." name:"tenant-id" short:"i" required:""`
+	WorkstreamID *string `help:"The id of the workstream to list short names for." name:"workstream-id" short:"w" optional:""`
+}
+
+// Run executes the `workstream list-short-names` command.
+func (o *ListWorkstreamShortNamesOptions) Run(ctx context.Context, s *SharedOptions) error {
+	// Build the initial request.
+	req := &eh.ListWorkstreamShortNamesRequest{
+		TenantID: o.TenantID,
+	}
+
+	// Load feature flag overrides, if any were provided at the CLI level.
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+
+	// Apply optional workstream filter.
+	if o.WorkstreamID != nil {
+		req.WorkstreamID = o.WorkstreamID
+	}
+
+	var token *string
+	for {
+		req.Token = token
+
+		// Apply delegated auth, if configured.
+		processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+		resp, err := s.Client.ListWorkstreamShortNames(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		// Print each short name on its own line.
+		for _, sn := range resp.ShortNames {
+			fmt.Println(sn.Name)
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+
+	return nil
 }
 
 // UpdateWorkstreamOptions contains the flags for the `workstream update` command.

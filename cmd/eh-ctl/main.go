@@ -220,6 +220,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Workstream.Update.Run(options.Ctx, &options.SharedOptions)
 	case "workstream add-short-name":
 		return options.Workstream.AddShortName.Run(options.Ctx, &options.SharedOptions)
+	case "workstream list-short-names":
+		return options.Workstream.ListShortNames.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
