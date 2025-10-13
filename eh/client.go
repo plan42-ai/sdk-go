@@ -303,7 +303,7 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 	}
 
 	var current ConflictObj
-	if tmp.Current != nil {
+	if tmp.Current != nil && tmp.CurrentType != "" {
 		switch tmp.CurrentType {
 		case ObjectTypeTenant:
 			current = &Tenant{}

@@ -48,7 +48,7 @@ type Task struct {
 	WorkstreamID       *string   `json:"WorkstreamId,omitempty"`
 	TaskID             string    `json:"TaskId"`
 	Title              string    `json:"Title"`
-	EnvironmentID      string    `json:"EnvironmentId"`
+	EnvironmentID      *string   `json:"EnvironmentId"`
 	Prompt             string    `json:"Prompt"`
 	AfterTaskID        *string   `json:"AfterTaskId,omitempty"`
 	Parallel           bool      `json:"Parallel"`
@@ -149,7 +149,7 @@ type CreateTaskRequest struct {
 	TaskID        string               `json:"-"`
 	WorkstreamID  *string              `json:"WorkstreamId,omitempty"`
 	Title         string               `json:"Title"`
-	EnvironmentID string               `json:"EnvironmentId"`
+	EnvironmentID *string              `json:"EnvironmentId,omitempty"`
 	Prompt        string               `json:"Prompt"`
 	AfterTaskID   *string              `json:"AfterTaskId,omitempty"`
 	Parallel      bool                 `json:"Parallel"`
