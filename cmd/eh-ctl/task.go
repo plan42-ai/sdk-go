@@ -221,18 +221,17 @@ func (o *ListTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TenantID:       o.TenantID,
 		IncludeDeleted: pointer(o.IncludeDeleted),
 	}
+	if o.WorkstreamID != nil {
+		req.WorkstreamID = o.WorkstreamID
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
 		return err
 	}
-	var token *string
-	for {
-		req.Token = token
-		if o.WorkstreamID != nil {
-			req.WorkstreamID = o.WorkstreamID
-		}
-		processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
+	for {
 		resp, err := s.Client.ListTasks(ctx, req)
 		if err != nil {
 			return err
@@ -245,7 +244,7 @@ func (o *ListTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
 		if resp.NextToken == nil {
 			break
 		}
-		token = resp.NextToken
+		req.Token = resp.NextToken
 	}
 	return nil
 }
