@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ type TenantOptions struct {
 	CreateUser  CreateUserOptions     `cmd:""`
 	CurrentUser GetCurrentUserOptions `cmd:""`
 	Get         GetTenantOptions      `cmd:""`
+	List        ListTenantsOptions    `cmd:""`
 }
 
 type CreateUserOptions struct {
@@ -80,4 +82,36 @@ func (o *GetTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	return printJSON(t)
+}
+
+type ListTenantsOptions struct{}
+
+func (o *ListTenantsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "tenant list")
+	}
+	if err := ensureNoFeatureFlags(s, "tenant list"); err != nil {
+		return err
+	}
+
+	var token *string
+	for {
+		req := &eh.ListTenantsRequest{Token: token}
+
+		resp, err := s.Client.ListTenants(ctx, req)
+		if err != nil {
+			return err
+		}
+		for _, tenant := range resp.Tenants {
+			if err := printJSON(tenant); err != nil {
+				return err
+			}
+		}
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+
+	return nil
 }
