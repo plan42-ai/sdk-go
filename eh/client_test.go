@@ -184,6 +184,40 @@ func TestGetCurrentUserError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestListTenants(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants", r.URL.Path)
+		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListTenantsResponse{Tenants: []eh.Tenant{{TenantID: "abc"}}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	maxResults := 123
+	resp, err := client.ListTenants(context.Background(), &eh.ListTenantsRequest{MaxResults: &maxResults, Token: util.Pointer(tokenID)})
+	require.NoError(t, err)
+	require.Len(t, resp.Tenants, 1)
+	require.Equal(t, "abc", resp.Tenants[0].TenantID)
+}
+
+func TestListTenantsError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListTenants(context.Background(), &eh.ListTenantsRequest{})
+	require.Error(t, err)
+}
+
 func TestCreateTenantPathEscaping(t *testing.T) {
 	t.Parallel()
 

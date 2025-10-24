@@ -220,6 +220,31 @@ func (t Tenant) ObjectType() ObjectType {
 	return ObjectTypeTenant
 }
 
+// ListTenantsRequest is the request for ListTenants.
+type ListTenantsRequest struct {
+	MaxResults *int
+	Token      *string
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *ListTenantsRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "MaxResults":
+		return evalNullable(r.MaxResults)
+	case "Token":
+		return evalNullable(r.Token)
+	default:
+		return nil, false
+	}
+}
+
+// ListTenantsResponse is the response from ListTenants.
+type ListTenantsResponse struct {
+	Tenants   []Tenant `json:"Tenants"`
+	NextToken *string  `json:"NextToken"`
+}
+
 type HTTPError interface {
 	error
 	Code() int
@@ -504,6 +529,49 @@ func (c *Client) GetCurrentUser(ctx context.Context, req *GetCurrentUserRequest)
 		return nil, err
 	}
 	return &tenant, nil
+}
+
+// ListTenants lists tenants in the service.
+func (c *Client) ListTenants(ctx context.Context, req *ListTenantsRequest) (*ListTenantsResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+
+	if err := c.authenticate(DelegatedAuthInfo{}, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out ListTenantsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // GetTenantFeatureFlagsRequest is the request for GetTenantFeatureFlags.
