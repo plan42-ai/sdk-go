@@ -3627,3 +3627,41 @@ Content-Type: application/json; charset=utf-8
 |-----------------------|-----------------------------|----------------------------------------------------|
 | SourceWorkstream      | [Workstream](#352-response) | The updated source workstream after the move.      |
 | DestinationWorkstream | [Workstream](#352-response) | The updated destination workstream after the move. |
+
+# 62. ListTenants
+
+ListTenants is an admin api that lists all tenants in the system.
+
+## 62.1 Request
+
+```http request
+GET /v1/tenants?maxResults={maxResults}&token={token} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                     |
+|--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| maxResults                     | query    | *int    | Optional. The maximum number of tenants to return. Default is 500. Must be >=1 and <= 500.                      |
+| token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 62.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextToken": "*string",
+    "Tenants": []
+}
+```
+
+| Field     | Type                     | Description                                                                                    |
+|-----------|--------------------------|------------------------------------------------------------------------------------------------|
+| NextToken | *string                  | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Tenants   | [][Tenant](#32-response) | A list of tenants.                                                                             |
