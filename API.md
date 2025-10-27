@@ -1359,18 +1359,18 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 }
 ```
 
-| Parameter                                | Location | Type                                  | Description                                                                                                               |
-|------------------------------------------|----------|---------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string                                | The ID of the tenant to create the task for.                                                                              |
-| task_id                                  | path     | string                                | The ID of the task to create. This must be a v4 UUID.                                                                     |
-| Authorization                            | header   | string                                | The authorization header for the request.                                                                                 |
-| X-Event-Horizon-Delegating-Authorization | header   | *string                               | The authorization header for the delegating principal.                                                                    |
-| X-Event-Horizon-Signed-Headers           | header   | *string                               | The signed headers for the request, when authenticating with Sigv4.                                                       |
-| Title                                    | body     | string                                | The title of the task.                                                                                                    |
-| EnvironmentID                            | body     | string                                | The ID of the environment to execute the task in.                                                                         |
-| Prompt                                   | body     | string                                | The prompt to use for the task.                                                                                           |
-| Model                                    | body     | [ModelType](#182-modeltype)           | The model to use for the task. Required if the task is not assigned to a human.                                           |
-| RepoInfo                                 | body     | map[string][*RepoInfo](#185-repoinfo) | A map of "org/repo" to repo info.                                                                                         |
+| Parameter                                | Location | Type                                  | Description                                                                     |
+|------------------------------------------|----------|---------------------------------------|---------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                                | The ID of the tenant to create the task for.                                    |
+| task_id                                  | path     | string                                | The ID of the task to create. This must be a v4 UUID.                           |
+| Authorization                            | header   | string                                | The authorization header for the request.                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                               | The authorization header for the delegating principal.                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string                               | The signed headers for the request, when authenticating with Sigv4.             |
+| Title                                    | body     | string                                | The title of the task.                                                          |
+| EnvironmentID                            | body     | string                                | The ID of the environment to execute the task in.                               |
+| Prompt                                   | body     | string                                | The prompt to use for the task.                                                 |
+| Model                                    | body     | [ModelType](#182-modeltype)           | The model to use for the task. Required if the task is not assigned to a human. |
+| RepoInfo                                 | body     | map[string][*RepoInfo](#185-repoinfo) | A map of "org/repo" to repo info.                                               |
 
 ## 18.2 ModelType
 
@@ -1397,7 +1397,7 @@ Content-Type: application/json; charset=utf-8
   "WorkstreamID": "*string",  
   "TaskID": "string", 
   "Title": "string",
-  "EnvironmentID": "string",
+  "EnvironmentID": "*string",
   "Prompt": "string",
   "AfterTaskID": "string",
   "Parallel": bool,
@@ -1420,7 +1420,7 @@ Content-Type: application/json; charset=utf-8
 | WorkstreamID       | *string                                 | The ID of the workstream the task is a member. Is null if the task is not associated with a workstream.                                                               |
 | TaskID             | string                                  | The ID of the task.                                                                                                                                                   |
 | Title              | string                                  | The title of the task.                                                                                                                                                |
-| EnvironmentID      | string                                  | The ID of the environment the task is executed in.                                                                                                                    |
+| EnvironmentID      | *string                                 | The ID of the environment the task is executed in.                                                                                                                    |
 | Prompt             | string                                  | The prompt / description of the task.                                                                                                                                 |
 | AfterTaskID        | *string                                 | The ID of the task this one is sequenced after, if any. Required if the task is part of a workstream, null otherwise.                                                 |
 | Parallel           | bool                                    | If true, the task can be executed in parallel with other tasks in the same workstream. Can only be true if the task is part of a workstream.                          |
@@ -1549,7 +1549,7 @@ Content-Type: application/json; charset=utf-8
   "WorkstreamID": "*string",  
   "TaskID": "string", 
   "Title": "string",
-  "EnvironmentID": "string",
+  "EnvironmentID": "*string",
   "Prompt": "string",
   "AfterTaskID": "string",
   "Parallel": bool,
@@ -1618,7 +1618,7 @@ Content-Type: application/json; charset=utf-8
   "WorkstreamID": "*string",  
   "TaskID": "string", 
   "Title": "string",
-  "EnvironmentID": "string",
+  "EnvironmentID": "*string",
   "Prompt": "string",
   "AfterTaskID": "string",
   "Parallel": bool,
