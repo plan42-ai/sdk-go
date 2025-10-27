@@ -94,9 +94,8 @@ func (o *MoveTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type CreateTaskOptions struct {
-	TenantID     string  `help:"The id of the tenant owning the task to create." short:"i" required:""`
-	WorkstreamID *string `help:"Optional id of the workstream to create the task in." name:"workstream-id" short:"w"`
-	JSON         string  `help:"The json file to load the task from" short:"j" default:"-"`
+	TenantID string `help:"The id of the tenant owning the task to create." short:"i" required:""`
+	JSON     string `help:"The json file to load the task from" short:"j" default:"-"`
 }
 
 func (o *CreateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -125,7 +124,6 @@ func (o *CreateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 	req.TenantID = o.TenantID
 	req.TaskID = uuid.NewString()
-	req.WorkstreamID = o.WorkstreamID
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	task, err := s.Client.CreateTask(ctx, &req)

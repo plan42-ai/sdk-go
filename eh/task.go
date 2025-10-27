@@ -45,26 +45,23 @@ type RepoInfo struct {
 
 // Task represents a task returned by the API.
 type Task struct {
-	TenantID           string    `json:"TenantId"`
-	WorkstreamID       *string   `json:"WorkstreamId,omitempty"`
-	TaskID             string    `json:"TaskId"`
-	Title              string    `json:"Title"`
-	EnvironmentID      *string   `json:"EnvironmentId"`
-	Prompt             string    `json:"Prompt"`
-	AfterTaskID        *string   `json:"AfterTaskId,omitempty"`
-	Parallel           bool      `json:"Parallel"`
-	Model              ModelType `json:"Model"`
-	AssignedToTenantID *string   `json:"AssignedToTenantId,omitempty"`
-	AssignedToAI       bool      `json:"AssignedToAI"`
-	// TaskNumber is a server assigned sequence number that is unique within a workstream.
-	// It is read-only and therefore excluded from create/update request payloads.
-	TaskNumber *int                 `json:"TaskNumber,omitempty"`
-	RepoInfo   map[string]*RepoInfo `json:"RepoInfo"`
-	State      TaskState            `json:"State"`
-	CreatedAt  time.Time            `json:"CreatedAt"`
-	UpdatedAt  time.Time            `json:"UpdatedAt"`
-	Deleted    bool                 `json:"Deleted"`
-	Version    int                  `json:"Version"`
+	TenantID           string               `json:"TenantId"`
+	WorkstreamID       *string              `json:"WorkstreamId,omitempty"`
+	TaskID             string               `json:"TaskId"`
+	Title              string               `json:"Title"`
+	EnvironmentID      *string              `json:"EnvironmentId"`
+	Prompt             string               `json:"Prompt"`
+	Parallel           bool                 `json:"Parallel"`
+	Model              ModelType            `json:"Model"`
+	AssignedToTenantID *string              `json:"AssignedToTenantId,omitempty"`
+	AssignedToAI       bool                 `json:"AssignedToAI"`
+	TaskNumber         *int                 `json:"TaskNumber,omitempty"`
+	RepoInfo           map[string]*RepoInfo `json:"RepoInfo"`
+	State              TaskState            `json:"State"`
+	CreatedAt          time.Time            `json:"CreatedAt"`
+	UpdatedAt          time.Time            `json:"UpdatedAt"`
+	Deleted            bool                 `json:"Deleted"`
+	Version            int                  `json:"Version"`
 }
 
 // ObjectType returns the object type for ConflictError handling.
@@ -148,12 +145,9 @@ type CreateTaskRequest struct {
 	DelegatedAuthInfo
 	TenantID      string               `json:"-"`
 	TaskID        string               `json:"-"`
-	WorkstreamID  *string              `json:"WorkstreamId,omitempty"`
 	Title         string               `json:"Title"`
 	EnvironmentID *string              `json:"EnvironmentId,omitempty"`
 	Prompt        string               `json:"Prompt"`
-	AfterTaskID   *string              `json:"AfterTaskId,omitempty"`
-	Parallel      bool                 `json:"Parallel"`
 	Model         *ModelType           `json:"Model,omitempty"`
 	RepoInfo      map[string]*RepoInfo `json:"RepoInfo"`
 }
@@ -166,18 +160,12 @@ func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "TaskID":
 		return r.TaskID, true
-	case "WorkstreamID":
-		return evalNullable(r.WorkstreamID)
 	case "Title":
 		return r.Title, true
 	case "EnvironmentID":
 		return r.EnvironmentID, true
 	case "Prompt":
 		return r.Prompt, true
-	case "AfterTaskID":
-		return evalNullable(r.AfterTaskID)
-	case "Parallel":
-		return r.Parallel, true
 	case "Model":
 		return evalNullable(r.Model)
 	case "RepoInfo":
