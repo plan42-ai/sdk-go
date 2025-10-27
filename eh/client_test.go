@@ -719,6 +719,7 @@ func TestGetEnvironmentPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// nolint: dupl
 func TestListEnvironments(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1683,12 +1684,12 @@ func TestUploadTurnLogsPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// nolint: dupl
 func TestListTasks(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
 		require.Equal(t, "/v1/tenants/abc/tasks", r.URL.Path)
-		require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
 		require.Equal(t, "123", r.URL.Query().Get("maxResults"))
 		require.Equal(t, tokenID, r.URL.Query().Get("token"))
 		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
@@ -1704,10 +1705,8 @@ func TestListTasks(t *testing.T) {
 	client := eh.NewClient(srv.URL)
 	maxResults := 123
 	includeDeleted := true
-	ws := "ws"
 	resp, err := client.ListTasks(context.Background(), &eh.ListTasksRequest{
 		TenantID:       "abc",
-		WorkstreamID:   &ws,
 		MaxResults:     &maxResults,
 		Token:          util.Pointer(tokenID),
 		IncludeDeleted: &includeDeleted,

@@ -209,9 +209,8 @@ func (o *DeleteTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type ListTasksOptions struct {
-	TenantID       string  `help:"The ID of the tenant to list tasks for." short:"i" required:""`
-	WorkstreamID   *string `help:"Optional workstream ID. When specified tasks in that workstream are returned." short:"w" optional:""`
-	IncludeDeleted bool    `help:"When set, includes deleted tasks in the results." short:"d" optional:""`
+	TenantID       string `help:"The ID of the tenant to list tasks for." short:"i" required:""`
+	IncludeDeleted bool   `help:"When set, includes deleted tasks in the results." short:"d" optional:""`
 }
 
 func (o *ListTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -219,9 +218,7 @@ func (o *ListTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TenantID:       o.TenantID,
 		IncludeDeleted: pointer(o.IncludeDeleted),
 	}
-	if o.WorkstreamID != nil {
-		req.WorkstreamID = o.WorkstreamID
-	}
+
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	err := loadFeatureFlags(s, &req.FeatureFlags)

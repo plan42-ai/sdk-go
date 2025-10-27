@@ -377,7 +377,6 @@ type ListTasksRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 	TenantID       string
-	WorkstreamID   *string
 	MaxResults     *int
 	Token          *string
 	IncludeDeleted *bool
@@ -389,8 +388,6 @@ func (r *ListTasksRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
 		return r.TenantID, true
-	case "WorkstreamID":
-		return evalNullable(r.WorkstreamID)
 	case "MaxResults":
 		return evalNullable(r.MaxResults)
 	case "Token":
@@ -409,6 +406,7 @@ type ListTasksResponse struct {
 }
 
 // ListTasks retrieves the tasks for a tenant.
+// nolint: dupl
 func (c *Client) ListTasks(ctx context.Context, req *ListTasksRequest) (*ListTasksResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
@@ -419,9 +417,7 @@ func (c *Client) ListTasks(ctx context.Context, req *ListTasksRequest) (*ListTas
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks")
 	q := u.Query()
-	if req.WorkstreamID != nil {
-		q.Set("workstreamID", *req.WorkstreamID)
-	}
+
 	if req.MaxResults != nil {
 		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
 	}
