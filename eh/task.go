@@ -52,7 +52,7 @@ type Task struct {
 	EnvironmentID      *string              `json:"EnvironmentId"`
 	Prompt             string               `json:"Prompt"`
 	Parallel           bool                 `json:"Parallel"`
-	Model              ModelType            `json:"Model"`
+	Model              *ModelType           `json:"Model"`
 	AssignedToTenantID *string              `json:"AssignedToTenantId,omitempty"`
 	AssignedToAI       bool                 `json:"AssignedToAI"`
 	TaskNumber         *int                 `json:"TaskNumber,omitempty"`

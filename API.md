@@ -520,12 +520,6 @@ MemberRole is an enum that defines the role of a user in an organization or ente
 | Owner  |
 | Member |
 
-## 6.9 DSQL Schema
-
-```postgresql
-
-```
-
 # 7. Default Global Policies
 
 The policies below are defined globally (on either the null tenant or the "*" tenant) and apply to all tenants.
@@ -1399,9 +1393,8 @@ Content-Type: application/json; charset=utf-8
   "Title": "string",
   "EnvironmentID": "*string",
   "Prompt": "string",
-  "AfterTaskID": "string",
   "Parallel": bool,
-  "Model": "ModelType",
+  "Model": "*ModelType",
   "AssignedToTenantID": "*string",
   "AssignedToAI" : bool,  
   "RepoInfo: {},
@@ -1422,7 +1415,6 @@ Content-Type: application/json; charset=utf-8
 | Title              | string                                  | The title of the task.                                                                                                                                                |
 | EnvironmentID      | *string                                 | The ID of the environment the task is executed in.                                                                                                                    |
 | Prompt             | string                                  | The prompt / description of the task.                                                                                                                                 |
-| AfterTaskID        | *string                                 | The ID of the task this one is sequenced after, if any. Required if the task is part of a workstream, null otherwise.                                                 |
 | Parallel           | bool                                    | If true, the task can be executed in parallel with other tasks in the same workstream. Can only be true if the task is part of a workstream.                          |
 | Model              | [ModelType](#182-modeltype)             | The model to use for the task. Required if the task is not assigned to a human.                                                                                       |
 | AssignedToTenantID | *string                                 | The ID of the human user the task is assigned to. Only valid if the task is part of a workstream.                                                                     |
@@ -1551,7 +1543,6 @@ Content-Type: application/json; charset=utf-8
   "Title": "string",
   "EnvironmentID": "*string",
   "Prompt": "string",
-  "AfterTaskID": "string",
   "Parallel": bool,
   "Model": "ModelType",
   "AssignedToTenantID": "*string",
@@ -1620,9 +1611,8 @@ Content-Type: application/json; charset=utf-8
   "Title": "string",
   "EnvironmentID": "*string",
   "Prompt": "string",
-  "AfterTaskID": "string",
   "Parallel": bool,
-  "Model": "ModelType",
+  "Model": "*ModelType",
   "AssignedToTenantID": "*string",
   "AssignedToAI" : bool,  
   "RepoInfo: {},
@@ -3488,11 +3478,10 @@ Content-Type: application/json; charset=utf-8
         "WorkstreamID": "*string",  
         "TaskID": "string", 
         "Title": "string",
-        "EnvironmentID": "string",
+        "EnvironmentID": "*string",
         "Prompt": "string",
-        "AfterTaskID": "string",
         "Parallel": bool,
-        "Model": "ModelType",
+        "Model": "*ModelType",
         "AssignedToTenantID": "*string",
         "AssignedToAI" : bool,  
         "RepoInfo: {},
@@ -3654,3 +3643,180 @@ Content-Type: application/json; charset=utf-8
 |-----------|--------------------------|------------------------------------------------------------------------------------------------|
 | NextToken | *string                  | A token to retrieve the next page of results. If there are no more results, this will be null. |
 | Tenants   | [][Tenant](#32-response) | A list of tenants.                                                                             |
+
+
+# 63. CreateWorkstreamTask
+
+The CreateWorkstreamTask API creates a new task in a workstream. Workstream tasks are different form "ordinary" tasks
+in a few ways:
+
+1. "Normal" tasks are always executed by AI, and execute immediately when created. They must be fully configured to 
+   be created.
+ 
+2. Workstream tasks can be assigned to either AI or a human, or may even be unassigned.
+
+   We only execute tasks that are assigned to AI. Human / unassigned tasks are managed manually by users.
+
+3. Workstream tasks are ordered, and run in sequence by default. 
+
+   All tasks in a workstream are ordered. By default, they execute sequentially in the order specified. A sequential
+   AI task will automatically run when all the tasks above it in the list have completed. 
+
+4. Editing one workstream task could cause many tasks to start executing. 
+
+   Tasks can also be marked as parallel. This allows a group of "parallel" AI tasks stacked on top of each other
+   to start simultaneously once any sequential tasks above them have completed. 
+
+   For example, there may be a "write API specs" task assigned to a human, followed by three "implement API X" tasks
+   below it. Once the human marks their task as completed, the AI tasks that depend on it can start.
+
+5. We assume workstream tasks are not fully configured when created.
+
+   Workstreams are collections of related tasks that will be worked on over time via some combination of AI and human
+   effort. They are kind of like "mini-sprints". Getting a workstream setup correctly is similar to sprint planning or
+   backlog grooming.
+
+   It takes a lot of edits to get a sprint ready to be executed. All the tasks have to be created, they have
+   to be ordered properly to manage dependencies, assigned to the right people (or AI), details have to be filled in
+   etc. We want an intuitive interface so we allow tasks to be created in an incomplete state, and then edited
+   iteratively until they are ready.
+
+   We try hard to make sure that users can't make edits that have massively unintended consequences (like spinning up
+   a massive number of AI tasks that aren't actually fully defined yet).
+
+   When created, Workstreams start in a paused state, and task don't start executing until the workstream is "unpaused".
+
+   This gives the humans planning a sprint the chance to get everything in the right state, review, then click "go"
+   before AI agents start executing tasks.
+
+6. Workstream tasks are never executed immediately upon creation.
+
+   If a newly created workstream task would be executable, we pause the workstream automatically to prevent them from
+   executing.
+
+   Anything that looks like a mini replanning session will automatically pause the workstream until a human
+   clicks the "unpause" button. This includes changes like:
+
+   * Adding a new AI assigned task the workstream.
+   * Re-ordering tasks in the sprint.
+   * Assigning a task to AI that was previously assigned to a human or unassigned.
+   * Re-assigning (or un-assigning) a task that was previously assigned to AI.
+   * Undeleting a task that was previously deleted.
+   * Manual edits to AI tasks.
+
+   As a result, we allow UpdateWorkstreamTask to edit a bunch of fields that UpdateTask is not allowed to. We also
+   make many parameters to CreateWorkstreamTask optional that are required in CreateTask.
+
+7. Workstream tasks have "task-numbers" assigned to them. 
+
+   This allows us to use work stream short names + the task number to refer to a task (like "API-1234"). 
+
+
+## 63.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks/{task_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "Title": "string",
+    "EnvironmentID": "*string",
+    "Prompt": "*string",
+    "Parallel": "bool",
+    "Model": "*ModelType",
+    "AssignedToTenantID": "string",
+    "AssignedToAI": "bool",
+    "RepoInfo": {},
+    "State": "*TaskState"
+}
+```
+
+| Parameter                                | Location | Type                         | Description                                                                                             |
+|------------------------------------------|----------|------------------------------|---------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                       | The ID of the tenant that owns the workstream.                                                          |
+| workstream_id                            | path     | string                       | The ID of the workstream to create the task in.                                                         |
+| task_id                                  | path     | string                       | The ID of the new task to create.                                                                       |
+| Authorization                            | header   | string                       | The authorization header for the request.                                                               |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                      | The authorization header for the delegating principal.                                                  |
+| X-Event-Horizon-Signed-Headers           | header   | *string                      | The signed headers for the request, when authenticating with Sigv4.                                     |
+| Title                                    | body     | string                       | The title of the task.                                                                                  |
+| EnvironmentID                            | body     | *string                      | Optional. The ID of the environment the task should run in. If not provided, the workstream is not set. |
+| Prompt                                   | body     | *string                      | Optional. The prompt to use for the task.                                                               |
+| Parallel                                 | body     | bool                         | Optional. If set to true, the task is marked as parallel.                                               |
+| Model                                    | body     | *[ModelType](#182-modeltype) | Optional. The model to use for the task.                                                                |
+| AssignedToTenantID                       | body     | *string                      | Optional. The ID of the tenant the task is assigned to.                                                 |
+| AssignedToAI                             | body     | bool                         | Whether the task is assigned to AI.                                                                     |
+| RepoInfo                                 | body     | [RepoInfo](#185-repoinfo)    | Optional. Information about the repository associated with the task.                                    |
+| State                                    | body     | [TaskState](#186-taskstate)  | Optional. The state of the task. If not specified, will default to "Pending".                           |
+
+## 63.2 Validation / Semantics
+
+1. Model should only be set if AssignedToAI is true.
+2. RepoInfo should only be set if AssignedToAI is true.
+3. AssignedToAI can only be true if AssignedToTenantID is null.
+4. AssignedToTenantID can only be not null if AssignedToAI is false
+5. Currently, AssignedToTenantID must either be null or equal to the workstream's tenant.
+   
+   Eventually we will add support for organizations. When we do, for workstreams in an organization AssignedToTenantID
+   can be assigned to any tenant that is a member of the organization. Currently, however, we only support single user
+   tenants. Which means the states we allow are "unassigned", "assigned to the workstream's tenant", or "assigned to AI".
+   We will need to change this later, but for now we should validate that AssignedToTenantID is either null or equal to
+   the workstream's tenant.
+
+6. If a new tasks is assigned to AI, the workstream will be paused automatically.
+7. The new task needs a task number assigned to it.
+
+   This should be done by incrementing the workstream's task counter and using the new value for the tasks number. 
+   This also means creating a new workstream tasks always requires updating the workstream row. That implies that
+   concurrent calls to CreateTask or UpdateTask can generate 409 CONFLICT errors. Clients that edit workstreams will
+   need to add retry logic to handle this.
+
+8. The new task will need `rank_generation` and `rank` fields assigned
+
+   Those fields are used to order tasks in a workstream. We use a schema similar to Jira's LexoRank. See docs/RANKING.md
+   for details on how ranking works. We always insert new workstream tasks at the bottom of the list, so the new task's
+   rank should be computed accordingly.
+
+   When implementing this in the API, you should add `RankGenration` and `Rank` as fields in the `daoTask` struct.
+   These fields are not exposed via the API, but they need to be stored in the database. Make sure to configure the fields
+   to be excluded from JSON serialization. 
+   
+   When generating new rank generations, make sure to update the min_gen and max_gen fields in the Workstream table.
+   Add MinGeneration and MaxGeneration fields to the daoWorkstream struct. Make sure to configure them to be excluded from
+   JSON serialization.
+
+   Tasks can be re-ordered after creation by calling the UpdateWorkstreamTask API and settings either BeforeTaskID or
+   AfterTaskID.
+
+## 63.3 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "WorkstreamID": "*string",  
+    "TaskID": "string", 
+    "Title": "string",
+    "EnvironmentID": "*string",
+    "Prompt": "string",
+    "Parallel": bool,
+    "Model": "*ModelType",
+    "AssignedToTenantID": "*string",
+    "AssignedToAI" : bool,  
+    "RepoInfo: {},
+    "State": "TaskState",
+    "CreatedAt": "string",
+    "UpdatedAt": "string",
+    "Deleted": bool,
+    "Version": int,
+    "TaskNumber": int
+}
+```
