@@ -223,6 +223,120 @@ func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task,
 	return &out, nil
 }
 
+// CreateWorkstreamTaskRequest is the request payload for CreateWorkstreamTask.
+type CreateWorkstreamTaskRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID           string               `json:"-"`
+	WorkstreamID       string               `json:"-"`
+	TaskID             string               `json:"-"`
+	Title              string               `json:"Title"`
+	EnvironmentID      *string              `json:"EnvironmentId,omitempty"`
+	Prompt             *string              `json:"Prompt,omitempty"`
+	Parallel           *bool                `json:"Parallel,omitempty"`
+	Model              *ModelType           `json:"Model,omitempty"`
+	AssignedToTenantID *string              `json:"AssignedToTenantId,omitempty"`
+	AssignedToAI       bool                 `json:"AssignedToAI"`
+	RepoInfo           map[string]*RepoInfo `json:"RepoInfo,omitempty"`
+	State              *TaskState           `json:"State,omitempty"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *CreateWorkstreamTaskRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "WorkstreamID":
+		return r.WorkstreamID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "Title":
+		return r.Title, true
+	case "EnvironmentID":
+		return evalNullable(r.EnvironmentID)
+	case "Prompt":
+		return evalNullable(r.Prompt)
+	case "Parallel":
+		return evalNullable(r.Parallel)
+	case "Model":
+		return evalNullable(r.Model)
+	case "AssignedToTenantID":
+		return evalNullable(r.AssignedToTenantID)
+	case "AssignedToAI":
+		return r.AssignedToAI, true
+	case "RepoInfo":
+		return r.RepoInfo, true
+	case "State":
+		return evalNullable(r.State)
+	default:
+		return nil, false
+	}
+}
+
+// CreateWorkstreamTask creates a new task inside a workstream.
+func (c *Client) CreateWorkstreamTask(ctx context.Context, req *CreateWorkstreamTaskRequest) (*Task, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.WorkstreamID == "" {
+		return nil, fmt.Errorf("workstream id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"workstreams",
+		url.PathEscape(req.WorkstreamID),
+		"tasks",
+		url.PathEscape(req.TaskID),
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out Task
+	err = json.NewDecoder(resp.Body).Decode(&out)
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // UpdateTaskRequest is the request payload for UpdateTask.
 type UpdateTaskRequest struct {
 	FeatureFlags
