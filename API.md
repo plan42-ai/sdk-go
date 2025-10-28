@@ -1351,15 +1351,10 @@ X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
 
 {
-  "WorkstreamID": "*string",
   "Title": "string",
   "EnvironmentID": "string",
   "Prompt": "string",
-  "AfterTaskID": "string",
-  "Parallel": bool,
   "Model": "*ModelType",
-  "AssignedToTenantID": "*string",
-  "AssignedToAI" : bool,
   "RepoInfo" : {}
 }
 ```
@@ -1371,15 +1366,10 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Authorization                            | header   | string                                | The authorization header for the request.                                                                                 |
 | X-Event-Horizon-Delegating-Authorization | header   | *string                               | The authorization header for the delegating principal.                                                                    |
 | X-Event-Horizon-Signed-Headers           | header   | *string                               | The signed headers for the request, when authenticating with Sigv4.                                                       |
-| WorkstreamID                             | body     | *string                               | Optional. The ID of the workstream to create the task in.  If not provided, the task is not associated with a workstream. |
 | Title                                    | body     | string                                | The title of the task.                                                                                                    |
 | EnvironmentID                            | body     | string                                | The ID of the environment to execute the task in.                                                                         |
 | Prompt                                   | body     | string                                | The prompt to use for the task.                                                                                           |
-| AfterTaskID                              | body     | *string                               | Optional. Within a workstream identifies the task this one is sequenced after.                                            |
-| Parallel                                 | body     | bool                                  | If true, the task can be executed in parallel with other tasks in the same workstream. Defaults to false.                 |
 | Model                                    | body     | [ModelType](#182-modeltype)           | The model to use for the task. Required if the task is not assigned to a human.                                           |
-| AssignedToTenantID                       | body     | *string                               | Optional. The ID of the tenant to assign the task to. If not provided, the task is not assigned to a human.               |
-| AssignedToAI                             | body     | bool                                  | If true, the task is assigned to an AI agent. If false and AssignedToTenantID is null, the task is unassigned.            |
 | RepoInfo                                 | body     | map[string][*RepoInfo](#185-repoinfo) | A map of "org/repo" to repo info.                                                                                         |
 
 ## 18.2 ModelType
@@ -1498,7 +1488,6 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Parameter                                | Location | Type    | Description                                                                                                                       |
 |------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant to list tasks for.                                                                                           |
-| workstreamID                             | query    | *string | Optional. The ID of the workstream to filter tasks by. If not provided, only tasks not associated with a workstream are returned. |
 | maxResults                               | query    | *int    | Optional. The maximum number of tasks to return. Default is 500. Must be >=1 and <= 500.                                          |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned.                   |
 | includeDeleted                           | query    | *bool   | Optional. Whether to include deleted tasks in the results. Default is false.                                                      |
