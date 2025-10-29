@@ -562,7 +562,10 @@ func serveTaskConflict() (*httptest.Server, *eh.Client) {
 			ResponseCode: http.StatusConflict,
 			Message:      "exists",
 			ErrorType:    "Conflict",
-			Current:      &eh.Task{TaskID: "task"},
+			Current: &eh.WorkstreamTaskConflict{
+				Task:       &eh.Task{TaskID: "task"},
+				Workstream: &eh.Workstream{WorkstreamID: "ws"},
+			},
 		})
 	})
 
@@ -578,10 +581,13 @@ func verifyTaskConflict(t *testing.T, err error) {
 	require.Equal(t, "exists", clientErr.Message)
 	require.Equal(t, "Conflict", clientErr.ErrorType)
 	require.NotNil(t, clientErr.Current)
-	require.Equal(t, eh.ObjectTypeTask, clientErr.Current.ObjectType())
-	task, ok := clientErr.Current.(*eh.Task)
-	require.True(t, ok, "Expected Current to be of type *eh.Task")
-	require.Equal(t, eh.Task{TaskID: "task"}, *task)
+	require.Equal(t, eh.ObjectTypeWorkstreamTaskConflict, clientErr.Current.ObjectType())
+	conflict, ok := clientErr.Current.(*eh.WorkstreamTaskConflict)
+	require.True(t, ok, "Expected Current to be of type *eh.WorkstreamTaskConflict")
+	require.NotNil(t, conflict.Task)
+	require.Equal(t, "task", conflict.Task.TaskID)
+	require.NotNil(t, conflict.Workstream)
+	require.Equal(t, "ws", conflict.Workstream.WorkstreamID)
 }
 
 func serveGithubOrgConflict() (*httptest.Server, *eh.Client) {
