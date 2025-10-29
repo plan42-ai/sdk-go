@@ -36,6 +36,8 @@ const (
 	escapedEnvironmentID             = "env%2F..%2F..%2Fid"
 	taskIDThatNeedsEscaping          = "task/../../id"
 	escapedTaskID                    = "task%2F..%2F..%2Fid"
+	workstreamIDThatNeedsEscaping    = "ws/../../id"
+	escapedWorkstreamID              = "ws%2F..%2F..%2Fid"
 	githubOrgIDThatNeedsEscaping     = "org/../../id"
 	escapedGithubOrgID               = "org%2F..%2F..%2Fid"
 	featureFlagNameThatNeedsEscaping = "flag/../../name"
@@ -942,6 +944,135 @@ func TestCreateTask(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "task", task.TaskID)
+}
+
+func TestCreateWorkstreamTask(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/workstreams/ws/tasks/task", r.URL.Path)
+
+		var reqBody eh.CreateWorkstreamTaskRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, "title", reqBody.Title)
+		require.NotNil(t, reqBody.EnvironmentID)
+		require.Equal(t, "env", *reqBody.EnvironmentID)
+		require.NotNil(t, reqBody.Prompt)
+		require.Equal(t, "do", *reqBody.Prompt)
+		require.NotNil(t, reqBody.Parallel)
+		require.True(t, *reqBody.Parallel)
+		require.NotNil(t, reqBody.Model)
+		require.Equal(t, eh.ModelTypeCodexMini, *reqBody.Model)
+		require.Nil(t, reqBody.AssignedToTenantID)
+		require.True(t, reqBody.AssignedToAI)
+		require.NotNil(t, reqBody.State)
+		require.Equal(t, eh.TaskStatePending, *reqBody.State)
+		require.Contains(t, reqBody.RepoInfo, "repo")
+		repo := reqBody.RepoInfo["repo"]
+		require.NotNil(t, repo)
+		require.Equal(t, "feature", repo.FeatureBranch)
+		require.Equal(t, "main", repo.TargetBranch)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.Task{TenantID: "abc", TaskID: "task"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	model := eh.ModelTypeCodexMini
+	parallel := true
+	state := eh.TaskStatePending
+	task, err := client.CreateWorkstreamTask(context.Background(), &eh.CreateWorkstreamTaskRequest{
+		TenantID:      "abc",
+		WorkstreamID:  "ws",
+		TaskID:        "task",
+		Title:         "title",
+		EnvironmentID: util.Pointer("env"),
+		Prompt:        util.Pointer("do"),
+		Parallel:      &parallel,
+		Model:         &model,
+		AssignedToAI:  true,
+		RepoInfo: map[string]*eh.RepoInfo{
+			"repo": {
+				FeatureBranch: "feature",
+				TargetBranch:  "main",
+			},
+		},
+		State: &state,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "task", task.TaskID)
+}
+
+func TestCreateWorkstreamTaskError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.CreateWorkstreamTask(context.Background(), &eh.CreateWorkstreamTaskRequest{
+		TenantID:     "abc",
+		WorkstreamID: "ws",
+		TaskID:       "task",
+		Title:        "title",
+		AssignedToAI: true,
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestCreateWorkstreamTaskConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveTaskConflict()
+	defer srv.Close()
+
+	_, err := client.CreateWorkstreamTask(context.Background(), &eh.CreateWorkstreamTaskRequest{
+		TenantID:     "abc",
+		WorkstreamID: "ws",
+		TaskID:       "task",
+		Title:        "title",
+		AssignedToAI: true,
+	})
+	verifyTaskConflict(t, err)
+}
+
+func TestCreateWorkstreamTaskPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedWorkstreamID, parts[5], "WorkstreamID not properly escaped in URL path")
+		require.Equal(t, escapedTaskID, parts[7], "TaskID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.Task{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	parallel := true
+	_, err := client.CreateWorkstreamTask(context.Background(), &eh.CreateWorkstreamTaskRequest{
+		TenantID:     tenantIDThatNeedsEscaping,
+		WorkstreamID: workstreamIDThatNeedsEscaping,
+		TaskID:       taskIDThatNeedsEscaping,
+		Title:        "title",
+		Parallel:     &parallel,
+		AssignedToAI: true,
+	})
+	require.NoError(t, err)
 }
 
 func TestCreateTaskError(t *testing.T) {
