@@ -67,6 +67,15 @@ type Task struct {
 // ObjectType returns the object type for ConflictError handling.
 func (Task) ObjectType() ObjectType { return ObjectTypeTask }
 
+// WorkstreamTaskConflict represents a conflict between a workstream task and its parent workstream.
+type WorkstreamTaskConflict struct {
+	Task       *Task       `json:"Task,omitempty"`
+	Workstream *Workstream `json:"Workstream,omitempty"`
+}
+
+// ObjectType returns the object type for ConflictError handling.
+func (WorkstreamTaskConflict) ObjectType() ObjectType { return ObjectTypeWorkstreamTaskConflict }
+
 // GetTaskRequest is the request payload for GetTask.
 type GetTaskRequest struct {
 	FeatureFlags

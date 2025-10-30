@@ -274,17 +274,18 @@ func (e *Error) Unwrap() error {
 type ObjectType string
 
 const (
-	ObjectTypeTenant               ObjectType = "Tenant"
-	ObjectTypeEnvironment          ObjectType = "Environment"
-	ObjectTypeWebUITokenThumbprint ObjectType = "WebUITokenThumbprint"
-	ObjectTypeTurn                 ObjectType = "Turn"
-	ObjectTypeTask                 ObjectType = "Task"
-	ObjectTypeGithubOrg            ObjectType = "GithubOrg"
-	ObjectTypeFeatureFlag          ObjectType = "FeatureFlag"
-	ObjectTypeFeatureFlagOverride  ObjectType = "FeatureFlagOverride"
-	ObjectTypeWorkstream           ObjectType = "Workstream"
-	ObjectTypeWorkstreamShortName  ObjectType = "WorkstreamShortName"
-	ObjectTypeTenantGithubCreds    ObjectType = "TenantGithubCreds" // #nosec: G101: This is not a hard coded credential, it's an enum member that contains the work "cred".
+	ObjectTypeTenant                 ObjectType = "Tenant"
+	ObjectTypeEnvironment            ObjectType = "Environment"
+	ObjectTypeWebUITokenThumbprint   ObjectType = "WebUITokenThumbprint"
+	ObjectTypeTurn                   ObjectType = "Turn"
+	ObjectTypeTask                   ObjectType = "Task"
+	ObjectTypeGithubOrg              ObjectType = "GithubOrg"
+	ObjectTypeFeatureFlag            ObjectType = "FeatureFlag"
+	ObjectTypeFeatureFlagOverride    ObjectType = "FeatureFlagOverride"
+	ObjectTypeWorkstream             ObjectType = "Workstream"
+	ObjectTypeWorkstreamShortName    ObjectType = "WorkstreamShortName"
+	ObjectTypeTenantGithubCreds      ObjectType = "TenantGithubCreds" // #nosec: G101: This is not a hard coded credential, it's an enum member that contains the work "cred".
+	ObjectTypeWorkstreamTaskConflict ObjectType = "WorkstreamTaskConflict"
 )
 
 type ConflictObj interface {
@@ -350,6 +351,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Workstream{}
 		case ObjectTypeWorkstreamShortName:
 			current = &WorkstreamShortName{}
+		case ObjectTypeWorkstreamTaskConflict:
+			current = &WorkstreamTaskConflict{}
 		case ObjectTypeTenantGithubCreds:
 			current = &TenantGithubCreds{}
 		default:
