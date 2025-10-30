@@ -148,6 +148,93 @@ func (c *Client) GetTask(ctx context.Context, req *GetTaskRequest) (*Task, error
 	return &out, nil
 }
 
+// GetWorkstreamTaskRequest is the request payload for GetWorkstreamTask.
+type GetWorkstreamTaskRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID       string `json:"-"`
+	WorkstreamID   string `json:"-"`
+	TaskID         string `json:"-"`
+	IncludeDeleted *bool  `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GetWorkstreamTaskRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "WorkstreamID":
+		return r.WorkstreamID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
+	default:
+		return nil, false
+	}
+}
+
+// GetWorkstreamTask retrieves a task belonging to a workstream by ID.
+// nolint:dupl
+func (c *Client) GetWorkstreamTask(ctx context.Context, req *GetWorkstreamTaskRequest) (*Task, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.WorkstreamID == "" {
+		return nil, fmt.Errorf("workstream id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"workstreams",
+		url.PathEscape(req.WorkstreamID),
+		"tasks",
+		url.PathEscape(req.TaskID),
+	)
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out Task
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // CreateTaskRequest is the request payload for CreateTask.
 type CreateTaskRequest struct {
 	FeatureFlags

@@ -146,6 +146,7 @@ func (r *GetTurnRequest) GetField(name string) (any, bool) {
 }
 
 // GetTurn retrieves a specific turn for a task.
+// nolint:dupl
 func (c *Client) GetTurn(ctx context.Context, req *GetTurnRequest) (*Turn, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
