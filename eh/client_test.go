@@ -1968,6 +1968,75 @@ func TestListTasksPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestListWorkstreamTasks(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/workstreams/ws/tasks", r.URL.Path)
+		require.Equal(t, "100", r.URL.Query().Get("maxResults"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListWorkstreamTasksResponse{Tasks: []eh.Task{{TaskID: "task"}}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	maxResults := 100
+	includeDeleted := true
+	resp, err := client.ListWorkstreamTasks(context.Background(), &eh.ListWorkstreamTasksRequest{
+		TenantID:       "abc",
+		WorkstreamID:   "ws",
+		MaxResults:     &maxResults,
+		Token:          util.Pointer(tokenID),
+		IncludeDeleted: &includeDeleted,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Tasks, 1)
+	require.Equal(t, "task", resp.Tasks[0].TaskID)
+}
+
+func TestListWorkstreamTasksError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListWorkstreamTasks(context.Background(), &eh.ListWorkstreamTasksRequest{TenantID: "abc", WorkstreamID: "ws"})
+	require.Error(t, err)
+}
+
+func TestListWorkstreamTasksPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 7, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedWorkstreamID, parts[5], "WorkstreamID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListWorkstreamTasksResponse{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListWorkstreamTasks(context.Background(), &eh.ListWorkstreamTasksRequest{
+		TenantID:     tenantIDThatNeedsEscaping,
+		WorkstreamID: workstreamIDThatNeedsEscaping,
+	})
+	require.NoError(t, err)
+}
+
 func TestListTurns(t *testing.T) {
 	t.Parallel()
 

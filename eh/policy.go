@@ -123,6 +123,7 @@ const (
 	ActionMoveShortName             Action = "MoveShortName"
 	ActionListTenants               Action = "ListTenants"
 	ActionCreateWorkstreamTask      Action = "CreateWorkstreamTask"
+	ActionListWorkstreamTasks       Action = "ListWorkstreamTasks"
 	ActionDeleteWorkstreamTask      Action = "DeleteWorkstreamTask"
 )
 
@@ -326,7 +327,8 @@ func init() {
 		ActionMoveShortName,             // 0x0004_0000_0000_0000
 		ActionListTenants,               // 0x0008_0000_0000_0000
 		ActionCreateWorkstreamTask,      // 0x0010_0000_0000_0000
-		ActionDeleteWorkstreamTask,      // 0x0020_0000_0000_0000
+		ActionListWorkstreamTasks,       // 0x0020_0000_0000_0000
+		ActionDeleteWorkstreamTask,      // 0x0040_0000_0000_0000
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
