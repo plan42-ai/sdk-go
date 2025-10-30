@@ -398,6 +398,7 @@ type ListTurnsResponse struct {
 }
 
 // ListTurns retrieves the turns for a task.
+// nolint: dupl
 func (c *Client) ListTurns(ctx context.Context, req *ListTurnsRequest) (*ListTurnsResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
