@@ -1081,6 +1081,91 @@ func TestCreateWorkstreamTaskPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestDeleteWorkstreamTask(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/tenants/abc/workstreams/ws/tasks/task", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteWorkstreamTask(context.Background(), &eh.DeleteWorkstreamTaskRequest{
+		TenantID:     "abc",
+		WorkstreamID: "ws",
+		TaskID:       "task",
+		Version:      1,
+	})
+	require.NoError(t, err)
+}
+
+func TestDeleteWorkstreamTaskError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.DeleteWorkstreamTask(context.Background(), &eh.DeleteWorkstreamTaskRequest{
+		TenantID:     "abc",
+		WorkstreamID: "ws",
+		TaskID:       "task",
+		Version:      1,
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestDeleteWorkstreamTaskConflictError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveTaskConflict()
+	defer srv.Close()
+
+	err := client.DeleteWorkstreamTask(context.Background(), &eh.DeleteWorkstreamTaskRequest{
+		TenantID:     "abc",
+		WorkstreamID: "ws",
+		TaskID:       "task",
+		Version:      1,
+	})
+	verifyTaskConflict(t, err)
+}
+
+func TestDeleteWorkstreamTaskPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedWorkstreamID, parts[5], "WorkstreamID not properly escaped in URL path")
+		require.Equal(t, escapedTaskID, parts[7], "TaskID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteWorkstreamTask(context.Background(), &eh.DeleteWorkstreamTaskRequest{
+		TenantID:     tenantIDThatNeedsEscaping,
+		WorkstreamID: workstreamIDThatNeedsEscaping,
+		TaskID:       taskIDThatNeedsEscaping,
+		Version:      1,
+	})
+	require.NoError(t, err)
+}
+
 func TestCreateTaskError(t *testing.T) {
 	t.Parallel()
 	srv, client := serveBadRequest()
@@ -3512,6 +3597,20 @@ func TestFeatureFlagsHeader(t *testing.T) {
 				return c.DeleteTask(context.Background(), &eh.DeleteTaskRequest{
 					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
 					TenantID:     "t",
+					TaskID:       "task",
+					Version:      1,
+				})
+			},
+		},
+		{
+			name:   "DeleteWorkstreamTask",
+			status: http.StatusNoContent,
+			resp:   nil,
+			call: func(c *eh.Client) error {
+				return c.DeleteWorkstreamTask(context.Background(), &eh.DeleteWorkstreamTaskRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					WorkstreamID: "ws",
 					TaskID:       "task",
 					Version:      1,
 				})
