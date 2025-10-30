@@ -346,6 +346,84 @@ func (c *Client) CreateWorkstreamTask(ctx context.Context, req *CreateWorkstream
 	return &out, nil
 }
 
+type DeleteWorkstreamTaskRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID     string `json:"-"`
+	WorkstreamID string `json:"-"`
+	TaskID       string `json:"-"`
+	Version      int    `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteWorkstreamTaskRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "WorkstreamID":
+		return r.WorkstreamID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteWorkstreamTask deletes a task from a workstream.
+// nolint: dupl
+func (c *Client) DeleteWorkstreamTask(ctx context.Context, req *DeleteWorkstreamTaskRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.WorkstreamID == "" {
+		return fmt.Errorf("workstream id is required")
+	}
+	if req.TaskID == "" {
+		return fmt.Errorf("task id is required")
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"workstreams",
+		url.PathEscape(req.WorkstreamID),
+		"tasks",
+		url.PathEscape(req.TaskID),
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+
+	return nil
+}
+
 // UpdateTaskRequest is the request payload for UpdateTask.
 type UpdateTaskRequest struct {
 	FeatureFlags
