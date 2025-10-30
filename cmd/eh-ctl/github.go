@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/debugging-sucks/event-horizon-sdk-go/internal/util"
@@ -176,20 +174,8 @@ func (o *UpdateGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 	if err := ensureNoFeatureFlags(s, "github update-org"); err != nil {
 		return err
 	}
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
 	var req eh.UpdateGithubOrgRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	if err := readJsonFile(o.JSON, &req); err != nil {
 		return err
 	}
 
@@ -263,22 +249,8 @@ func (o *UpdateTenantGithubCredsOptions) Run(ctx context.Context, s *SharedOptio
 	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
 		return err
 	}
-
-	// Read the JSON payload.
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
 	var req eh.UpdateTenantGithubCredsRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	if err := readJsonFile(o.JSON, &req); err != nil {
 		return err
 	}
 
