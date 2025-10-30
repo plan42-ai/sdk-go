@@ -3820,3 +3820,215 @@ Content-Type: application/json; charset=utf-8
     "TaskNumber": int
 }
 ```
+
+# 64. ListWorkstreamTasks
+
+The ListWorkstreamTasks API lists tasks in a workstream. Results are always ordered by increasing rank. To change
+the order of tasks use the UpdateWorkstreamTask API and set one of the BeforeTaskID or AfterTaskID fields.
+
+## 64.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the workstream.                                                                  |
+| workstream_id                            | path     | string  | The ID of the workstream to list tasks for.                                                                     |
+| maxResults                               | query    | *int    | Optional. The maximum number of tasks to return. Default is 500. Must be >=1 and <= 500.                        |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted tasks in the results.                                                  |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 64.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextToken": "*string",
+    "Tasks": []
+}
+```
+
+| Field     | Type                    | Description                                                                                    |
+|-----------|-------------------------|------------------------------------------------------------------------------------------------|
+| NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Tasks     | [][Task](#183-response) | A list of tasks in the workstream.                                                             |
+
+# 65. UpdateWorkstreamTask
+
+The UpdateWorkstreamTask API updates a task in a workstream.
+
+## 65.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks/{task_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "Title": "*string",
+    "EnvironmentID": "**string",
+    "Prompt": "*string",
+    "Parallel": "*bool",
+    "Model": "*ModelType",
+    "AssignedToTenantID": "**string",
+    "AssignedToAI": "*bool",
+    "RepoInfo": "*RepoInfo",
+    "State": "*TaskState",
+    "BeforeTaskID": "*string",
+    "AfterTaskID": "*string",
+    "Deleted": "*bool"
+}
+```
+
+| Parameter                                | Location | Type                         | Description                                                                                                              |
+|------------------------------------------|----------|------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                       | The ID of the tenant that owns the workstream.                                                                           |
+| workstream_id                            | path     | string                       | The ID of the workstream that owns the task.                                                                             |
+| task_id                                  | path     | string                       | The ID of the task to update.                                                                                            |
+| Authorization                            | header   | string                       | The authorization header for the request.                                                                                |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                      | The authorization header for the delegating principal.                                                                   |
+| X-Event-Horizon-Signed-Headers           | header   | *string                      | The signed headers for the request, when authenticating with Sigv4.                                                      |
+| Version                                  | header   | string                       | The expected version of the task. Used for optimistic concurrency control.                                               |
+| Title                                    | body     | *string                      | Optional. When set, updates the task title.                                                                              |
+| EnvironmentID                            | body     | **string                     | Optional. When set, updates the task's environment.                                                                      |
+| Prompt                                   | body     | *string                      | Optional. When                                                                                                           |
+| Parallel                                 | body     | *bool                        | Optional. If set, updates whether the task is marked as parallel.                                                        |
+| Model                                    | body     | *[ModelType](#182-modeltype) | Optional. The new AI model of the task.                                                                                  |
+| AssignedToTenantID                       | body     | **string                     | Optional. When set, updates the tenant the task is assigned to.                                                          |
+| AssignedToAI                             | body     | *bool                        | Optional. When set, updates whether the task is assigned to AI.                                                          |
+| RepoInfo                                 | body     | *[RepoInfo](#185-repoinfo)   | Optional. When set, updates the repository information of the task.                                                      |
+| State                                    | body     | *[TaskState](#186-taskstate) | Optional. When set, updates the state of the task.                                                                       |
+| BeforeTaskID                             | body     | *string                      | Optional. If set, moves the task to be ordered before the given task. Cannot be combined with AfterTaskID.               |
+| AfterTaskID                              | body     | *string                      | Optional. If set, moves the task to be ordered after the given task. Cannot be combined with BeforeTaskID.               |
+| Deleted                                  | body     | *bool                        | Optional. If false, undeletes the task. To delete a task, call the [DeleteWorkstreamTask](#66-deleteworkstreamtask) api. |
+
+## 65.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "WorkstreamID": "*string",  
+    "TaskID": "string", 
+    "Title": "string",
+    "EnvironmentID": "*string",
+    "Prompt": "string",
+    "Parallel": bool,
+    "Model": "*ModelType",
+    "AssignedToTenantID": "*string",
+    "AssignedToAI" : bool,  
+    "RepoInfo: {},
+    "State": "TaskState",
+    "CreatedAt": "string",
+    "UpdatedAt": "string",
+    "Deleted": bool,
+    "Version": int,
+    "TaskNumber": int
+}
+```
+
+See [Task](#183-response) for field descriptions.
+
+# 66. DeleteWorkstreamTask
+
+The DeleteWorkstreamTask API deletes a task in a workstream. Deleted tasks can be undeleted by calling the UpdateWorkstreamTask API
+and setting the Deleted field to false.
+
+## 66.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks/{task_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type    | Description                                                                |
+|------------------------------------------|----------|---------|----------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the workstream.                             |
+| workstream_id                            | path     | string  | The ID of the workstream that owns the task.                               |
+| task_id                                  | path     | string  | The ID of the task to delete.                                              |
+| Authorization                            | header   | string  | The authorization header for the request.                                  |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                     |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.        |
+| Version                                  | header   | string  | The expected version of the task. Used for optimistic concurrency control. |
+
+## 66.2 Response
+On success a 204 NO CONTENT is returned with no body.
+
+# 67. GetWorkstreamTask
+
+The GetWorkstreamTask API retrieves a task in a workstream.
+
+## 67.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks/{task_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                |
+|------------------------------------------|----------|---------|----------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the workstream.                             |
+| workstream_id                            | path     | string  | The ID of the workstream that owns the task.                               |
+| task_id                                  | path     | string  | The ID of the task to retrieve.                                            |
+| Authorization                            | header   | string  | The authorization header for the request.                                  |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                     |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.        |
+
+## 67.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "WorkstreamID": "*string",  
+    "TaskID": "string", 
+    "Title": "string",
+    "EnvironmentID": "*string",
+    "Prompt": "string",
+    "Parallel": bool,
+    "Model": "*ModelType",
+    "AssignedToTenantID": "*string",
+    "AssignedToAI" : bool,
+    "RepoInfo: {},
+    "State": "TaskState",
+    "CreatedAt": "string",
+    "UpdatedAt": "string",
+    "Deleted": bool,
+    "Version": int,
+    "TaskNumber": int
+}
+
+```
+
+See [Task](#183-response) for field descriptions.
+
