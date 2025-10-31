@@ -370,10 +370,18 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 type GetTaskOptions struct {
 	TenantID       string `help:"The ID of the tenant to list tasks for" short:"i" required:""`
 	TaskID         string `help:"The ID of the task to get" short:"t" required:""`
+	WorkstreamID   string `help:"The ID of the workstream to get the task from" name:"workstream-id" short:"w" optional:""`
 	IncludeDeleted bool   `help:"Include deleted tasks" short:"d" optional:""`
 }
 
 func (o *GetTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if o.WorkstreamID != "" {
+		return o.runWorkstream(ctx, s)
+	}
+	return o.runStandalone(ctx, s)
+}
+
+func (o *GetTaskOptions) runStandalone(ctx context.Context, s *SharedOptions) error {
 	req := &eh.GetTaskRequest{
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
@@ -386,6 +394,26 @@ func (o *GetTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	task, err := s.Client.GetTask(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(task)
+}
+
+func (o *GetTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetWorkstreamTaskRequest{
+		TenantID:       o.TenantID,
+		WorkstreamID:   o.WorkstreamID,
+		TaskID:         o.TaskID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	task, err := s.Client.GetWorkstreamTask(ctx, req)
 	if err != nil {
 		return err
 	}
