@@ -241,11 +241,19 @@ func (o *UpdateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type DeleteTaskOptions struct {
-	TenantID string `help:"The ID of the tennant that owns the task to delete." short:"i" required:""`
-	TaskID   string `help:"The ID of the task to delete." short:"t" required:""`
+	TenantID     string `help:"The ID of the tennant that owns the task to delete." short:"i" required:""`
+	TaskID       string `help:"The ID of the task to delete." short:"t" required:""`
+	WorkstreamID string `help:"The ID of the workstream containing the task to delete." name:"workstream-id" short:"w" optional:""`
 }
 
 func (o *DeleteTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if o.WorkstreamID != "" {
+		return o.runWorkstream(ctx, s)
+	}
+	return o.runNonWorkstream(ctx, s)
+}
+
+func (o *DeleteTaskOptions) runNonWorkstream(ctx context.Context, s *SharedOptions) error {
 	getReq := &eh.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID}
 	err := loadFeatureFlags(s, &getReq.FeatureFlags)
 	if err != nil {
@@ -261,6 +269,24 @@ func (o *DeleteTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req.FeatureFlags = getReq.FeatureFlags
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 	return s.Client.DeleteTask(ctx, req)
+}
+
+func (o *DeleteTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetWorkstreamTaskRequest{TenantID: o.TenantID, WorkstreamID: o.WorkstreamID, TaskID: o.TaskID}
+	err := loadFeatureFlags(s, &getReq.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	task, err := s.Client.GetWorkstreamTask(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req := &eh.DeleteWorkstreamTaskRequest{TenantID: o.TenantID, WorkstreamID: o.WorkstreamID, TaskID: o.TaskID, Version: task.Version}
+	req.FeatureFlags = getReq.FeatureFlags
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+	return s.Client.DeleteWorkstreamTask(ctx, req)
 }
 
 type ListTasksOptions struct {
