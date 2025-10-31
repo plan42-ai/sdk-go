@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 )
@@ -154,21 +152,8 @@ func (o *UpdateFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) er
 	if err := ensureNoFeatureFlags(s, "feature-flag update"); err != nil {
 		return err
 	}
-
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
 	var req eh.UpdateFeatureFlagRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	if err := readJsonFile(o.JSON, &req); err != nil {
 		return err
 	}
 

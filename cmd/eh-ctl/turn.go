@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 )
@@ -26,23 +24,12 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
 		return err
 	}
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
 	var req eh.CreateTurnRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	err := readJsonFile(o.JSON, &req)
+	if err != nil {
 		return err
 	}
-	err := loadFeatureFlags(s, &req.FeatureFlags)
+	err = loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
 		return err
 	}
@@ -126,23 +113,12 @@ func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
 		return err
 	}
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
 	var req eh.UpdateTurnRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	err := readJsonFile(o.JSON, &req)
+	if err != nil {
 		return err
 	}
-	err := loadFeatureFlags(s, &req.FeatureFlags)
+	err = loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
 		return err
 	}

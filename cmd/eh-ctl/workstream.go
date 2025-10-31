@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/google/uuid"
@@ -33,27 +31,16 @@ func (o *CreateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
 		return err
 	}
-
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
 	var req eh.CreateWorkstreamRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	err := readJsonFile(o.JSON, &req)
+	if err != nil {
 		return err
 	}
 
 	// Load feature flags after the JSON has been decoded so that CLI overrides
 	// are applied on top.
-	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+	err = loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
 		return err
 	}
 
@@ -240,26 +227,15 @@ func (o *UpdateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
 		return err
 	}
-
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
 	var req eh.UpdateWorkstreamRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	err := readJsonFile(o.JSON, &req)
+	if err != nil {
 		return err
 	}
 
 	// Load feature flags overrides after JSON so CLI overrides win.
-	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+	err = loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
 		return err
 	}
 

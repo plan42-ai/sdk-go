@@ -82,6 +82,21 @@ func loadFeatureFlags(s *SharedOptions, f *eh.FeatureFlags) error {
 	return json.NewDecoder(reader).Decode(&f.FeatureFlags)
 }
 
+//nolint:revive // readJsonFile matches required naming.
+func readJsonFile[T any](fileName string, ptr *T) error {
+	if fileName == "-" {
+		return json.NewDecoder(os.Stdin).Decode(ptr)
+	}
+
+	file, err := os.Open(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return json.NewDecoder(file).Decode(ptr)
+}
+
 func ensureNoFeatureFlags(s *SharedOptions, cmd string) error {
 	if s.FeatureFlags != nil {
 		return fmt.Errorf(featureFlagsNotSupported, cmd)

@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 	"strings"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
@@ -27,20 +25,8 @@ func (o *CreateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
 		return err
 	}
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
 	var req eh.CreateEnvironmentRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	if err := readJsonFile(o.JSON, &req); err != nil {
 		return err
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
@@ -97,20 +83,8 @@ func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
 		return err
 	}
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
-	}
-
 	var req eh.UpdateEnvironmentRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	if err := readJsonFile(o.JSON, &req); err != nil {
 		return err
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)

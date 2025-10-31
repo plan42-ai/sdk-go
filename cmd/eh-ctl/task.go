@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/google/uuid"
@@ -111,18 +109,8 @@ func (o *CreateTaskOptions) runNonWorkstream(ctx context.Context, s *SharedOptio
 	if err != nil {
 		return err
 	}
-	reader, closeFn, err := o.openJSONReader()
-	if err != nil {
-		return err
-	}
-	if closeFn != nil {
-		defer func() {
-			_ = closeFn()
-		}()
-	}
-
 	var req eh.CreateTaskRequest
-	err = json.NewDecoder(reader).Decode(&req)
+	err = readJsonFile(o.JSON, &req)
 	if err != nil {
 		return err
 	}
@@ -146,18 +134,8 @@ func (o *CreateTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions)
 	if err != nil {
 		return err
 	}
-	reader, closeFn, err := o.openJSONReader()
-	if err != nil {
-		return err
-	}
-	if closeFn != nil {
-		defer func() {
-			_ = closeFn()
-		}()
-	}
-
 	var req eh.CreateWorkstreamTaskRequest
-	err = json.NewDecoder(reader).Decode(&req)
+	err = readJsonFile(o.JSON, &req)
 	if err != nil {
 		return err
 	}
@@ -175,17 +153,6 @@ func (o *CreateTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions)
 		return err
 	}
 	return printJSON(task)
-}
-
-func (o *CreateTaskOptions) openJSONReader() (*os.File, func() error, error) {
-	if o.JSON == "-" {
-		return os.Stdin, nil, nil
-	}
-	file, err := os.Open(o.JSON)
-	if err != nil {
-		return nil, nil, err
-	}
-	return file, file.Close, nil
 }
 
 type UpdateTaskOptions struct {
@@ -208,18 +175,8 @@ func (o *UpdateTaskOptions) runNonWorkstream(ctx context.Context, s *SharedOptio
 	if err != nil {
 		return err
 	}
-	reader, closeFn, err := o.openJSONReader()
-	if err != nil {
-		return err
-	}
-	if closeFn != nil {
-		defer func() {
-			_ = closeFn()
-		}()
-	}
-
 	var req eh.UpdateTaskRequest
-	err = json.NewDecoder(reader).Decode(&req)
+	err = readJsonFile(o.JSON, &req)
 	if err != nil {
 		return err
 	}
@@ -254,18 +211,8 @@ func (o *UpdateTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions)
 	if err != nil {
 		return err
 	}
-	reader, closeFn, err := o.openJSONReader()
-	if err != nil {
-		return err
-	}
-	if closeFn != nil {
-		defer func() {
-			_ = closeFn()
-		}()
-	}
-
 	var req eh.UpdateWorkstreamTaskRequest
-	err = json.NewDecoder(reader).Decode(&req)
+	err = readJsonFile(o.JSON, &req)
 	if err != nil {
 		return err
 	}
@@ -298,17 +245,6 @@ func (o *UpdateTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions)
 		return err
 	}
 	return printJSON(updated)
-}
-
-func (o *UpdateTaskOptions) openJSONReader() (*os.File, func() error, error) {
-	if o.JSON == "-" {
-		return os.Stdin, nil, nil
-	}
-	file, err := os.Open(o.JSON)
-	if err != nil {
-		return nil, nil, err
-	}
-	return file, file.Close, nil
 }
 
 type DeleteTaskOptions struct {
