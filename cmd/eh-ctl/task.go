@@ -189,33 +189,41 @@ func (o *CreateTaskOptions) openJSONReader() (*os.File, func() error, error) {
 }
 
 type UpdateTaskOptions struct {
-	TenantID string `help:"The ID of the tenant that owns the task to update." short:"i" required:""`
-	TaskID   string `help:"The ID of the task to update." name:"task-id" short:"t" required:""`
-	JSON     string `help:"The json file containing the updates." short:"j" default:"-"`
+	TenantID     string `help:"The ID of the tenant that owns the task to update." short:"i" required:""`
+	TaskID       string `help:"The ID of the task to update." name:"task-id" short:"t" required:""`
+	JSON         string `help:"The json file containing the updates." short:"j" default:"-"`
+	WorkstreamID string `help:"The id of the workstream containing the task to update." name:"workstream-id" short:"w" optional:""`
+}
+
+func (o *UpdateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if o.WorkstreamID != "" {
+		return o.runWorkstream(ctx, s)
+	}
+	return o.runNonWorkstream(ctx, s)
 }
 
 // nolint: dupl
-func (o *UpdateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
-	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+func (o *UpdateTaskOptions) runNonWorkstream(ctx context.Context, s *SharedOptions) error {
+	err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags)
+	if err != nil {
 		return err
 	}
-	var reader *os.File
-	if o.JSON == "-" {
-		reader = os.Stdin
-	} else {
-		f, err := os.Open(o.JSON)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		reader = f
+	reader, closeFn, err := o.openJSONReader()
+	if err != nil {
+		return err
+	}
+	if closeFn != nil {
+		defer func() {
+			_ = closeFn()
+		}()
 	}
 
 	var req eh.UpdateTaskRequest
-	if err := json.NewDecoder(reader).Decode(&req); err != nil {
+	err = json.NewDecoder(reader).Decode(&req)
+	if err != nil {
 		return err
 	}
-	err := loadFeatureFlags(s, &req.FeatureFlags)
+	err = loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
 		return err
 	}
@@ -238,6 +246,69 @@ func (o *UpdateTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	return printJSON(updated)
+}
+
+// nolint: dupl
+func (o *UpdateTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions) error {
+	err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	reader, closeFn, err := o.openJSONReader()
+	if err != nil {
+		return err
+	}
+	if closeFn != nil {
+		defer func() {
+			_ = closeFn()
+		}()
+	}
+
+	var req eh.UpdateWorkstreamTaskRequest
+	err = json.NewDecoder(reader).Decode(&req)
+	if err != nil {
+		return err
+	}
+	err = loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	req.TenantID = o.TenantID
+	req.WorkstreamID = o.WorkstreamID
+	req.TaskID = o.TaskID
+
+	getReq := &eh.GetWorkstreamTaskRequest{
+		TenantID:       o.TenantID,
+		WorkstreamID:   o.WorkstreamID,
+		TaskID:         o.TaskID,
+		IncludeDeleted: pointer(true),
+	}
+	getReq.FeatureFlags = req.FeatureFlags
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	task, err := s.Client.GetWorkstreamTask(ctx, getReq)
+	if err != nil {
+		return err
+	}
+	req.Version = task.Version
+	req.FeatureFlags = getReq.FeatureFlags
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateWorkstreamTask(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
+}
+
+func (o *UpdateTaskOptions) openJSONReader() (*os.File, func() error, error) {
+	if o.JSON == "-" {
+		return os.Stdin, nil, nil
+	}
+	file, err := os.Open(o.JSON)
+	if err != nil {
+		return nil, nil, err
+	}
+	return file, file.Close, nil
 }
 
 type DeleteTaskOptions struct {
