@@ -1081,6 +1081,160 @@ func TestCreateWorkstreamTaskPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// nolint:dupl
+func TestUpdateWorkstreamTask(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/workstreams/ws/tasks/task", r.URL.Path)
+		require.Equal(t, "3", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateWorkstreamTaskRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.Title)
+		require.Equal(t, taskTitle, *reqBody.Title)
+		require.NotNil(t, reqBody.EnvironmentID)
+		require.NotNil(t, *reqBody.EnvironmentID)
+		require.Equal(t, "env", **reqBody.EnvironmentID)
+		require.NotNil(t, reqBody.Prompt)
+		require.Equal(t, "prompt", *reqBody.Prompt)
+		require.NotNil(t, reqBody.Parallel)
+		require.True(t, *reqBody.Parallel)
+		require.NotNil(t, reqBody.Model)
+		require.Equal(t, eh.ModelTypeCodexMini, *reqBody.Model)
+		require.NotNil(t, reqBody.AssignedToTenantID)
+		require.NotNil(t, *reqBody.AssignedToTenantID)
+		require.Equal(t, "tenant-b", **reqBody.AssignedToTenantID)
+		require.NotNil(t, reqBody.AssignedToAI)
+		require.False(t, *reqBody.AssignedToAI)
+		require.NotNil(t, reqBody.RepoInfo)
+		require.Contains(t, *reqBody.RepoInfo, "repo")
+		repo := (*reqBody.RepoInfo)["repo"]
+		require.NotNil(t, repo)
+		require.Equal(t, "feature", repo.FeatureBranch)
+		require.Equal(t, "main", repo.TargetBranch)
+		require.NotNil(t, reqBody.State)
+		require.Equal(t, eh.TaskStateExecuting, *reqBody.State)
+		require.NotNil(t, reqBody.BeforeTaskID)
+		require.Equal(t, "before", *reqBody.BeforeTaskID)
+		require.Nil(t, reqBody.AfterTaskID)
+		require.NotNil(t, reqBody.Deleted)
+		require.True(t, *reqBody.Deleted)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Task{TenantID: "abc", TaskID: "task"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	title := util.Pointer(taskTitle)
+	env := util.Pointer("env")
+	prompt := util.Pointer("prompt")
+	parallel := true
+	model := eh.ModelTypeCodexMini
+	assignedTenant := util.Pointer("tenant-b")
+	assignedToAI := false
+	repoInfo := map[string]*eh.RepoInfo{
+		"repo": {
+			FeatureBranch: "feature",
+			TargetBranch:  "main",
+		},
+	}
+	state := eh.TaskStateExecuting
+	before := util.Pointer("before")
+	deleted := true
+
+	task, err := client.UpdateWorkstreamTask(context.Background(), &eh.UpdateWorkstreamTaskRequest{
+		TenantID:           "abc",
+		WorkstreamID:       "ws",
+		TaskID:             "task",
+		Version:            3,
+		Title:              title,
+		EnvironmentID:      &env,
+		Prompt:             prompt,
+		Parallel:           &parallel,
+		Model:              &model,
+		AssignedToTenantID: &assignedTenant,
+		AssignedToAI:       util.Pointer(assignedToAI),
+		RepoInfo:           &repoInfo,
+		State:              &state,
+		BeforeTaskID:       before,
+		Deleted:            &deleted,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "task", task.TaskID)
+}
+
+func TestUpdateWorkstreamTaskError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UpdateWorkstreamTask(context.Background(), &eh.UpdateWorkstreamTaskRequest{
+		TenantID:     "abc",
+		WorkstreamID: "ws",
+		TaskID:       "task",
+		Version:      1,
+		Title:        util.Pointer(taskTitle),
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestUpdateWorkstreamTaskConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveTaskConflict()
+	defer srv.Close()
+
+	_, err := client.UpdateWorkstreamTask(context.Background(), &eh.UpdateWorkstreamTaskRequest{
+		TenantID:     "abc",
+		WorkstreamID: "ws",
+		TaskID:       "task",
+		Version:      1,
+		Title:        util.Pointer(taskTitle),
+	})
+	verifyTaskConflict(t, err)
+}
+
+// nolint:dupl
+func TestUpdateWorkstreamTaskPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedWorkstreamID, parts[5], "WorkstreamID not properly escaped in URL path")
+		require.Equal(t, escapedTaskID, parts[7], "TaskID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Task{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UpdateWorkstreamTask(context.Background(), &eh.UpdateWorkstreamTaskRequest{
+		TenantID:     tenantIDThatNeedsEscaping,
+		WorkstreamID: workstreamIDThatNeedsEscaping,
+		TaskID:       taskIDThatNeedsEscaping,
+		Version:      1,
+		Title:        util.Pointer("title"),
+	})
+	require.NoError(t, err)
+}
+
 func TestDeleteWorkstreamTask(t *testing.T) {
 	t.Parallel()
 
