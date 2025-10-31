@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/google/uuid"
@@ -300,6 +301,7 @@ type ListTasksOptions struct {
 	TenantID       string `help:"The ID of the tenant to list tasks for." short:"i" required:""`
 	IncludeDeleted bool   `help:"When set, includes deleted tasks in the results." short:"d" optional:""`
 	WorkstreamID   string `help:"Optional. When set, list tasks in the specified workstream." name:"workstream-id" short:"w" optional:""`
+	MaxElements    *int   `help:"Maximum number of elements to retrieve" short:"m" optional:""`
 }
 
 func (o *ListTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -313,6 +315,7 @@ func (o *ListTasksOptions) run(ctx context.Context, s *SharedOptions) error {
 	req := &eh.ListTasksRequest{
 		TenantID:       o.TenantID,
 		IncludeDeleted: pointer(o.IncludeDeleted),
+		MaxResults:     pointer(10),
 	}
 
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
@@ -321,20 +324,31 @@ func (o *ListTasksOptions) run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
+	remaining := math.MaxInt
+	if o.MaxElements != nil {
+		remaining = *o.MaxElements
+	}
 
-	for {
+	for remaining > 0 {
+		if remaining < *req.MaxResults {
+			req.MaxResults = pointer(remaining)
+		}
 		resp, err := s.Client.ListTasks(ctx, req)
 		if err != nil {
 			return err
 		}
 		for _, task := range resp.Tasks {
+			remaining--
 			err = printJSON(task)
 			if err != nil {
 				return err
 			}
+			if remaining == 0 {
+				return nil
+			}
 		}
 		if resp.NextToken == nil {
-			break
+			return nil
 		}
 		req.Token = resp.NextToken
 	}
@@ -346,6 +360,7 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 		TenantID:       o.TenantID,
 		WorkstreamID:   o.WorkstreamID,
 		IncludeDeleted: pointer(o.IncludeDeleted),
+		MaxResults:     pointer(10),
 	}
 
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
@@ -355,15 +370,27 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 		return err
 	}
 
-	for {
+	remaining := math.MaxInt
+	if o.MaxElements != nil {
+		remaining = *o.MaxElements
+	}
+
+	for remaining > 0 {
+		if remaining < *req.MaxResults {
+			req.MaxResults = pointer(remaining)
+		}
 		resp, err := s.Client.ListWorkstreamTasks(ctx, req)
 		if err != nil {
 			return err
 		}
 		for _, task := range resp.Tasks {
+			remaining--
 			err = printJSON(task)
 			if err != nil {
 				return err
+			}
+			if remaining == 0 {
+				return nil
 			}
 		}
 		if resp.NextToken == nil {
