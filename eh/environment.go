@@ -322,15 +322,9 @@ func (r *ListEnvironmentsRequest) GetField(name string) (any, bool) {
 	}
 }
 
-// ListEnvironmentsResponse is the response from ListEnvironments.
-type ListEnvironmentsResponse struct {
-	Environments []Environment `json:"Environments"`
-	NextToken    *string       `json:"NextToken"`
-}
-
 // ListEnvironments retrieves the environments for a tenant.
 // nolint: dupl
-func (c *Client) ListEnvironments(ctx context.Context, req *ListEnvironmentsRequest) (*ListEnvironmentsResponse, error) {
+func (c *Client) ListEnvironments(ctx context.Context, req *ListEnvironmentsRequest) (*List[Environment], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -371,7 +365,7 @@ func (c *Client) ListEnvironments(ctx context.Context, req *ListEnvironmentsRequ
 		return nil, decodeError(resp)
 	}
 
-	var out ListEnvironmentsResponse
+	var out List[Environment]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}

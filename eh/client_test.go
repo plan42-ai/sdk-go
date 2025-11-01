@@ -738,7 +738,7 @@ func TestListEnvironments(t *testing.T) {
 		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.ListEnvironmentsResponse{Environments: []eh.Environment{{EnvironmentID: "env"}}}
+		resp := eh.List[eh.Environment]{Items: []eh.Environment{{EnvironmentID: "env"}}}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -750,8 +750,8 @@ func TestListEnvironments(t *testing.T) {
 	includeDeleted := true
 	resp, err := client.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{TenantID: "abc", MaxResults: &maxResults, Token: util.Pointer(tokenID), IncludeDeleted: &includeDeleted})
 	require.NoError(t, err)
-	require.Len(t, resp.Environments, 1)
-	require.Equal(t, "env", resp.Environments[0].EnvironmentID)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "env", resp.Items[0].EnvironmentID)
 }
 
 func TestListEnvironmentsError(t *testing.T) {
@@ -771,7 +771,7 @@ func TestListEnvironmentsPathEscaping(t *testing.T) {
 		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.ListEnvironmentsResponse{}
+		resp := eh.List[eh.Environment]{}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -3792,7 +3792,7 @@ func TestFeatureFlagsHeader(t *testing.T) {
 		{
 			name:   "ListEnvironments",
 			status: http.StatusOK,
-			resp:   eh.ListEnvironmentsResponse{},
+			resp:   eh.List[eh.Environment]{},
 			call: func(c *eh.Client) error {
 				_, err := c.ListEnvironments(context.Background(), &eh.ListEnvironmentsRequest{
 					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
