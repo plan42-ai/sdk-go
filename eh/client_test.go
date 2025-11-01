@@ -196,7 +196,7 @@ func TestListTenants(t *testing.T) {
 		require.Equal(t, tokenID, r.URL.Query().Get("token"))
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.ListTenantsResponse{Tenants: []eh.Tenant{{TenantID: "abc"}}}
+		resp := eh.List[eh.Tenant]{Items: []eh.Tenant{{TenantID: "abc"}}}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -207,8 +207,8 @@ func TestListTenants(t *testing.T) {
 	maxResults := 123
 	resp, err := client.ListTenants(context.Background(), &eh.ListTenantsRequest{MaxResults: &maxResults, Token: util.Pointer(tokenID)})
 	require.NoError(t, err)
-	require.Len(t, resp.Tenants, 1)
-	require.Equal(t, "abc", resp.Tenants[0].TenantID)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "abc", resp.Items[0].TenantID)
 }
 
 func TestListTenantsError(t *testing.T) {
