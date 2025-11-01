@@ -2226,7 +2226,7 @@ func TestListWorkstreamTasks(t *testing.T) {
 		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.ListWorkstreamTasksResponse{Tasks: []eh.Task{{TaskID: "task"}}}
+		resp := eh.List[eh.Task]{Items: []eh.Task{{TaskID: "task"}}}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -2244,8 +2244,8 @@ func TestListWorkstreamTasks(t *testing.T) {
 		IncludeDeleted: &includeDeleted,
 	})
 	require.NoError(t, err)
-	require.Len(t, resp.Tasks, 1)
-	require.Equal(t, "task", resp.Tasks[0].TaskID)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "task", resp.Items[0].TaskID)
 }
 
 func TestListWorkstreamTasksError(t *testing.T) {
@@ -2269,7 +2269,7 @@ func TestListWorkstreamTasksPathEscaping(t *testing.T) {
 		require.Equal(t, escapedWorkstreamID, parts[5], "WorkstreamID not properly escaped in URL path")
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.ListWorkstreamTasksResponse{}
+		resp := eh.List[eh.Task]{}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
