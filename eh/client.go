@@ -529,7 +529,7 @@ func (c *Client) GetCurrentUser(ctx context.Context, req *GetCurrentUserRequest)
 }
 
 // ListTenants lists tenants in the service.
-func (c *Client) ListTenants(ctx context.Context, req *ListTenantsRequest) (*List[Tenant], error) {
+func (c *Client) ListTenants(ctx context.Context, req *ListTenantsRequest) (*List[*Tenant], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -564,7 +564,7 @@ func (c *Client) ListTenants(ctx context.Context, req *ListTenantsRequest) (*Lis
 		return nil, decodeError(resp)
 	}
 
-	var out List[Tenant]
+	var out List[*Tenant]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}

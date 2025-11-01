@@ -196,7 +196,7 @@ func TestListTenants(t *testing.T) {
 		require.Equal(t, tokenID, r.URL.Query().Get("token"))
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.List[eh.Tenant]{Items: []eh.Tenant{{TenantID: "abc"}}}
+		resp := eh.List[*eh.Tenant]{Items: []*eh.Tenant{{TenantID: "abc"}}}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
