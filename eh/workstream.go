@@ -409,15 +409,9 @@ func (r *ListWorkstreamShortNamesRequest) GetField(name string) (any, bool) {
 	}
 }
 
-// ListWorkstreamShortNamesResponse is the response from ListWorkstreamShortNames.
-type ListWorkstreamShortNamesResponse struct {
-	ShortNames []WorkstreamShortName `json:"ShortNames"`
-	NextToken  *string               `json:"NextToken"`
-}
-
 // ListWorkstreamShortNames lists short names for a tenant (optionally filtered by workstream).
 // nolint:dupl
-func (c *Client) ListWorkstreamShortNames(ctx context.Context, req *ListWorkstreamShortNamesRequest) (*ListWorkstreamShortNamesResponse, error) {
+func (c *Client) ListWorkstreamShortNames(ctx context.Context, req *ListWorkstreamShortNamesRequest) (*List[*WorkstreamShortName], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -462,7 +456,7 @@ func (c *Client) ListWorkstreamShortNames(ctx context.Context, req *ListWorkstre
 		return nil, decodeError(resp)
 	}
 
-	var out ListWorkstreamShortNamesResponse
+	var out List[*WorkstreamShortName]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}

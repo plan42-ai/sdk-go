@@ -201,7 +201,7 @@ func (o *ListWorkstreamShortNamesOptions) Run(ctx context.Context, s *SharedOpti
 		}
 
 		// Print each short name on its own line.
-		for _, sn := range resp.ShortNames {
+		for _, sn := range resp.Items {
 			_ = printJSON(sn)
 		}
 
