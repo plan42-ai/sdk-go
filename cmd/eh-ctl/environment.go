@@ -157,7 +157,7 @@ func (o *ListEnvironmentsOptions) Run(ctx context.Context, s *SharedOptions) err
 		if err != nil {
 			return err
 		}
-		for _, env := range resp.Environments {
+		for _, env := range resp.Items {
 			maskSecrets(&env, s)
 			if err := printJSON(env); err != nil {
 				return err
