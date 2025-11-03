@@ -36,6 +36,14 @@ type Environment struct {
 	Version       int       `json:"Version"`
 }
 
+func (e *Environment) GetVersion() int {
+	return e.Version
+}
+
+func (e *Environment) IsDeleted() bool {
+	return e.Deleted
+}
+
 // ObjectType returns the object type for ConflictError handling.
 func (Environment) ObjectType() ObjectType { return ObjectTypeEnvironment }
 
@@ -213,6 +221,10 @@ type UpdateEnvironmentRequest struct {
 	Deleted       *bool     `json:"Deleted,omitempty"`
 }
 
+func (r *UpdateEnvironmentRequest) GetVersion() int {
+	return r.Version
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateEnvironmentRequest) GetField(name string) (any, bool) {
@@ -379,6 +391,10 @@ type DeleteEnvironmentRequest struct {
 	TenantID      string `json:"-"`
 	EnvironmentID string `json:"-"`
 	Version       int    `json:"-"`
+}
+
+func (r *DeleteEnvironmentRequest) GetVersion() int {
+	return r.Version
 }
 
 // GetField retrieves the value of a field by name.
