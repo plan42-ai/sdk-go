@@ -102,7 +102,7 @@ func (o *ListTenantsOptions) Run(ctx context.Context, s *SharedOptions) error {
 		if err != nil {
 			return err
 		}
-		for _, tenant := range resp.Tenants {
+		for _, tenant := range resp.Items {
 			if err := printJSON(tenant); err != nil {
 				return err
 			}

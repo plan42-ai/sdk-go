@@ -239,12 +239,6 @@ func (r *ListTenantsRequest) GetField(name string) (any, bool) {
 	}
 }
 
-// ListTenantsResponse is the response from ListTenants.
-type ListTenantsResponse struct {
-	Tenants   []Tenant `json:"Tenants"`
-	NextToken *string  `json:"NextToken"`
-}
-
 type HTTPError interface {
 	error
 	Code() int
@@ -535,7 +529,7 @@ func (c *Client) GetCurrentUser(ctx context.Context, req *GetCurrentUserRequest)
 }
 
 // ListTenants lists tenants in the service.
-func (c *Client) ListTenants(ctx context.Context, req *ListTenantsRequest) (*ListTenantsResponse, error) {
+func (c *Client) ListTenants(ctx context.Context, req *ListTenantsRequest) (*List[Tenant], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -570,7 +564,7 @@ func (c *Client) ListTenants(ctx context.Context, req *ListTenantsRequest) (*Lis
 		return nil, decodeError(resp)
 	}
 
-	var out ListTenantsResponse
+	var out List[Tenant]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
@@ -976,4 +970,9 @@ func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest)
 		return nil, err
 	}
 	return &out, nil
+}
+
+type List[T any] struct {
+	Items     []T     `json:"Items"`
+	NextToken *string `json:"NextToken,omitempty"`
 }
