@@ -462,13 +462,8 @@ func (r *ListWorkstreamTasksRequest) GetField(name string) (any, bool) {
 	}
 }
 
-type ListWorkstreamTasksResponse struct {
-	Tasks     []Task  `json:"Tasks"`
-	NextToken *string `json:"NextToken"`
-}
-
 // nolint: dupl
-func (c *Client) ListWorkstreamTasks(ctx context.Context, req *ListWorkstreamTasksRequest) (*ListWorkstreamTasksResponse, error) {
+func (c *Client) ListWorkstreamTasks(ctx context.Context, req *ListWorkstreamTasksRequest) (*List[Task], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -521,7 +516,7 @@ func (c *Client) ListWorkstreamTasks(ctx context.Context, req *ListWorkstreamTas
 		return nil, decodeError(resp)
 	}
 
-	var out ListWorkstreamTasksResponse
+	var out List[Task]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}

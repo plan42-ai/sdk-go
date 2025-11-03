@@ -383,7 +383,7 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 		if err != nil {
 			return err
 		}
-		for _, task := range resp.Tasks {
+		for _, task := range resp.Items {
 			remaining--
 			err = printJSON(task)
 			if err != nil {
