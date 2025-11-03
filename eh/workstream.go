@@ -26,6 +26,14 @@ type Workstream struct {
 	TaskCounter      int       `json:"TaskCounter"`
 }
 
+func (w *Workstream) IsDeleted() bool {
+	return w.Deleted
+}
+
+func (w *Workstream) GetVersion() int {
+	return w.Version
+}
+
 // ObjectType returns the object type for ConflictError handling.
 func (Workstream) ObjectType() ObjectType { return ObjectTypeWorkstream }
 
@@ -116,6 +124,10 @@ type UpdateWorkstreamRequest struct {
 	Paused           *bool   `json:"Paused,omitempty"`
 	Deleted          *bool   `json:"Deleted,omitempty"`
 	DefaultShortName *string `json:"DefaultShortName,omitempty"`
+}
+
+func (r *UpdateWorkstreamRequest) GetVersion() int {
+	return r.Version
 }
 
 // GetField retrieves the value of a field by name.
@@ -222,15 +234,9 @@ func (r *ListWorkstreamsRequest) GetField(name string) (any, bool) {
 	}
 }
 
-// ListWorkstreamsResponse is the response from ListWorkstreams.
-type ListWorkstreamsResponse struct {
-	Workstreams []Workstream `json:"Workstreams"`
-	NextToken   *string      `json:"NextToken"`
-}
-
 // ListWorkstreams lists the workstreams for a tenant.
 // nolint:dupl
-func (c *Client) ListWorkstreams(ctx context.Context, req *ListWorkstreamsRequest) (*ListWorkstreamsResponse, error) {
+func (c *Client) ListWorkstreams(ctx context.Context, req *ListWorkstreamsRequest) (*List[*Workstream], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -275,7 +281,7 @@ func (c *Client) ListWorkstreams(ctx context.Context, req *ListWorkstreamsReques
 		return nil, decodeError(resp)
 	}
 
-	var out ListWorkstreamsResponse
+	var out List[*Workstream]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
@@ -290,6 +296,10 @@ type DeleteWorkstreamRequest struct {
 	TenantID     string `json:"-"`
 	WorkstreamID string `json:"-"`
 	Version      int    `json:"-"`
+}
+
+func (r *DeleteWorkstreamRequest) GetVersion() int {
+	return r.Version
 }
 
 // GetField retrieves the value of a field by name.

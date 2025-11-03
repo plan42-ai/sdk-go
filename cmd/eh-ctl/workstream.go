@@ -82,7 +82,7 @@ func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error 
 		return err
 	}
 
-	if len(srcResp.Workstreams) == 0 {
+	if len(srcResp.Items) == 0 {
 		return fmt.Errorf("short name %q not found in tenant %q", o.ShortName, o.TenantID)
 	}
 
@@ -103,9 +103,9 @@ func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error 
 	moveReq := eh.MoveShortNameRequest{
 		TenantID:                     o.TenantID,
 		Name:                         o.ShortName,
-		SourceWorkstreamID:           srcResp.Workstreams[0].WorkstreamID,
+		SourceWorkstreamID:           srcResp.Items[0].WorkstreamID,
 		DestinationWorkstreamID:      o.WorkstreamID,
-		SourceWorkstreamVersion:      srcResp.Workstreams[0].Version,
+		SourceWorkstreamVersion:      srcResp.Items[0].Version,
 		DestinationWorkstreamVersion: destWs.Version,
 		SetDefaultOnDestination:      false,
 	}
@@ -299,7 +299,7 @@ func (o *ListWorkstreamsOptions) Run(ctx context.Context, s *SharedOptions) erro
 			return err
 		}
 
-		for _, ws := range resp.Workstreams {
+		for _, ws := range resp.Items {
 			if err := printJSON(ws); err != nil {
 				return err
 			}
