@@ -218,24 +218,28 @@ Content-Type: application/json; charset=utf-8
   "FirstName": "*string",
   "LastName": "*string",
   "PictureURL": "*string",
+  "DefaultRunnerID" : "*string",
+  "DefaultGithubConnectionID": "*string"
 }
 ```
 
-| Field          | Type                         | Description                                                                                                 |
-|----------------|------------------------------|-------------------------------------------------------------------------------------------------------------|
-| TenantID       | string                       | The ID of the tenant that was created. This is a v4 UUID.                                                   |
-| Type           | [TenantType](#33-tenanttype) | The type of tenant that was created. Valid values are "user", "organization", and "enterprise".             |
-| Version        | int                          | The version of the tenant object. Will be 1 on create. This is incremented each time the tenant is updated. |
-| Deleted        | boolean                      | Whether the tenant is deleted. This is false on create.                                                     |
-| CreatedAt      | string                       | The timestamp when the tenant was created, in ISO 8601 format.                                              |
-| UpdatedAt      | string                       | The timestamp when the tenant was last updated, in ISO 8601 format.                                         |
-| FullName       | *string                      | For user tenants: the user's full name.                                                                     |
-| OrgName        | *string                      | For organization tenants: the organization name.                                                            |
-| EnterpriseName | *string                      | For enterprise tenants: the enterprise name.                                                                |
-| Email          | *string                      | For user tenants: the user's email address.                                                                 |
-| FirstName      | *string                      | For user tenants: the user's first name.                                                                    |
-| LastName       | *string                      | For user tenants: the user's last name.                                                                     |
-| PictureURL     | *string                      | The URL of the picture for the tenant. Optional.                                                            |
+| Field                     | Type                         | Description                                                                                                     |
+|---------------------------|------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| TenantID                  | string                       | The ID of the tenant that was created. This is a v4 UUID.                                                       |
+| Type                      | [TenantType](#33-tenanttype) | The type of tenant that was created. Valid values are "user", "organization", and "enterprise".                 |
+| Version                   | int                          | The version of the tenant object. Will be 1 on create. This is incremented each time the tenant is updated.     |
+| Deleted                   | boolean                      | Whether the tenant is deleted. This is false on create.                                                         |
+| CreatedAt                 | string                       | The timestamp when the tenant was created, in ISO 8601 format.                                                  |
+| UpdatedAt                 | string                       | The timestamp when the tenant was last updated, in ISO 8601 format.                                             |
+| FullName                  | *string                      | For user tenants: the user's full name.                                                                         |
+| OrgName                   | *string                      | For organization tenants: the organization name.                                                                |
+| EnterpriseName            | *string                      | For enterprise tenants: the enterprise name.                                                                    |
+| Email                     | *string                      | For user tenants: the user's email address.                                                                     |
+| FirstName                 | *string                      | For user tenants: the user's first name.                                                                        |
+| LastName                  | *string                      | For user tenants: the user's last name.                                                                         |
+| PictureURL                | *string                      | The URL of the picture for the tenant. Optional.                                                                |
+| DefaultRunnerID           | *string                      | The ID of the default runner for the tenant. Will be nil if no default runner is defined.                       |
+| DefaultGithubConnectionID | *string                      | The ID of the default github connection for the tenant. Will be nil if no default github connection is defined. |
 
 See [Error Handling](#2-error-handling) for details on error responses.
 
@@ -309,7 +313,10 @@ Content-Type: application/json; charset=utf-8
   "EnterpriseName": "*string",
   "Email": "*string",
   "FirstName": "*string",
-  "LastName": "*string"
+  "LastName": "*string",
+  "PictureURL": "*string",
+  "DefaultRunnerID" : "*string",
+  "DefaultGithubConnectionID": "*string"  
 }
 ```
 
@@ -960,7 +967,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Parameter                                | Location | Type    | Description                                                                                                                                                                                    |
 |------------------------------------------|----------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant to list policies for. The can be a tenant ID, "*" for global policies that apply to all tenants, or "_" for policies that apply to contexts that do not specify a tenant. |
-| maxResults                               | query    | *int    | The maximum number of policies to return. Optional. Default is 500. Must be >=1 and <= 500.                                                                                                    |
+| maxResults                               | query    | *int    | The maximum number of policies to return. Optional. Default is 10. Must be >=1 and <= 500.                                                                                                     |
 | token                                    | query    | *string | A token to retrieve the next page of results. Optional. If not provided, the first page of results is returned.                                                                                |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                                                                                                      |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                         |
@@ -1057,7 +1064,9 @@ X-Event-Horizon-Signed-Headers: <signed headers>
     "SetupScript": "string",
     "DockerImage": "*string",
     "AllowedHosts": [],
-    "EnvVars": []
+    "EnvVars": [],
+    "RunnerID" : "string",
+    "GithubConnectionID" : "string"
 }
 ```
 
@@ -1076,6 +1085,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | DockerImage                              | body     | *string                 | The Docker image to use for the environment. Optional. Defaults to the latest event horizon agent wrapper image.                                                                                                      |
 | AllowedHosts                             | body     | []string                | A list of outbound hostnames the environment is allowed to connect to. Only TLS connections to hosts with public trusted certs or internal event-horizon oss mirrors are allowed.  At most 50 hosts can be specified. |
 | EnvVars                                  | body     | [][EnvVar](#132-envvar) | A list of environment variables to set in the environment. At most 50 env vars may be specified.                                                                                                                      |
+| RunnerID                                 | body     | string                  | The ID of the runner to use for the environment. Must be the id of a runner or the value "default".                                                                                                                   |
+| GithubConnectionID                       | body     | string                  | The ID of the GitHub connection to use for checking out code when running tasks in this environment.Must be the ID of a Github Connection or the value "default".                                                     |
 
 ## 13.2 EnvVar
 
@@ -1117,25 +1128,29 @@ Content-Type: application/json; charset=utf-8
   "CreatedAt": "string",
   "UpdatedAt": "string",
   "Deleted": bool,
-  "Version": int
+  "Version": int,
+  "RunnerID": "string",
+  "GithubConnectionID": "string"
 }
 ```
-| Field         | Type                    | Description                                                                                                                                                                       |
-|---------------|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| TenantID      | string                  | The ID of the tenant the environment was created for.                                                                                                                             |
-| EnvironmentID | string                  | The ID of the environment that was created. This is a v4 UUID.                                                                                                                    |
-| Name          | string                  | The name of the environment.                                                                                                                                                      |
-| Description   | string                  | A description of the environment.                                                                                                                                                 |
-| Context       | string                  | Context describing the environment to provide to AI agents that use this environment.                                                                                             |
-| Repos         | []string                | A list of repositories to use in the environment, of the form org/repo.                                                                                                           |
-| SetupScript   | string                  | A script to run to set up the environment.                                                                                                                                        |
-| DockerImage   | string                  | The Docker image to use for the environment.                                                                                                                                      |
-| AllowedHosts  | []string                | A list of outbound hostnames the environment is allowed to connect to. Only TLS connections to hosts with public trusted certs or internal event-horizon oss mirrors are allowed. |
-| EnvVars       | [][EnvVar](#132-envvar) | A list of environment variables set in the environment.                                                                                                                           |
-| CreatedAt     | string                  | The timestamp when the environment was created, in ISO 8601 format.                                                                                                               |
-| UpdatedAt     | string                  | The timestamp when the environment was last updated, in ISO 8601 format.                                                                                                          |
-| Deleted       | bool                    | Whether the environment has been deleted.                                                                                                                                         |
-| Version       | int                     | The version of the environment. This is incremented every time the environment is updated.                                                                                        |
+| Field              | Type                    | Description                                                                                                                                                                       |
+|--------------------|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| TenantID           | string                  | The ID of the tenant the environment was created for.                                                                                                                             |
+| EnvironmentID      | string                  | The ID of the environment that was created. This is a v4 UUID.                                                                                                                    |
+| Name               | string                  | The name of the environment.                                                                                                                                                      |
+| Description        | string                  | A description of the environment.                                                                                                                                                 |
+| Context            | string                  | Context describing the environment to provide to AI agents that use this environment.                                                                                             |
+| Repos              | []string                | A list of repositories to use in the environment, of the form org/repo.                                                                                                           |
+| SetupScript        | string                  | A script to run to set up the environment.                                                                                                                                        |
+| DockerImage        | string                  | The Docker image to use for the environment.                                                                                                                                      |
+| AllowedHosts       | []string                | A list of outbound hostnames the environment is allowed to connect to. Only TLS connections to hosts with public trusted certs or internal event-horizon oss mirrors are allowed. |
+| EnvVars            | [][EnvVar](#132-envvar) | A list of environment variables set in the environment.                                                                                                                           |
+| CreatedAt          | string                  | The timestamp when the environment was created, in ISO 8601 format.                                                                                                               |
+| UpdatedAt          | string                  | The timestamp when the environment was last updated, in ISO 8601 format.                                                                                                          |
+| Deleted            | bool                    | Whether the environment has been deleted.                                                                                                                                         |
+| Version            | int                     | The version of the environment. This is incremented every time the environment is updated.                                                                                        |
+| RunnerID           | string                  | The ID of the runner used for the environment.                                                                                                                                    |
+| GithubConnectionID | string                  | The ID of the GitHub connection used for checking out code when running tasks in this environment.                                                                                |
 
 # 14. ListEnvironments
 
@@ -1154,7 +1169,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Parameter                                | Location | Type    | Description                                                                                                     |
 |------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant to list environments for.                                                                  |
-| maxResults                               | query    | *int    | The maximum number of environments to return. Optional. Default is 500. Must be >=1 and <= 500.                 |
+| maxResults                               | query    | *int    | The maximum number of environments to return. Optional. Default is 10. Must be >=1 and <= 500.                  |
 | token                                    | query    | *string | A token to retrieve the next page of results. Optional. If not provided, the first page of results is returned. |
 | includeDeleted                           | query    | *bool   | Whether to include deleted environments in the results. Optional. Default is false.                             |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                       |
@@ -1224,7 +1239,9 @@ Content-Type: application/json; charset=utf-8
   "CreatedAt": "string",
   "UpdatedAt": "string",
   "Deleted": bool,
-  "Version": int
+  "Version": int,
+  "RunnerID": "string",
+  "GithubConnectionID": "string"
 }
 ```
 
@@ -1254,25 +1271,29 @@ If-Match: <version>
     "DockerImage": "string",
     "AllowedHosts": [],
     "EnvVars": [],
-    "Deleted": *bool
+    "Deleted": *bool,
+    "RunnerID" : "*string",
+    "GithubConnectionID" : "*string"
 }
 ```
 
-| Parameter                                | Location | Type      | Description                                                                                                                                                    |
-|------------------------------------------|----------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string    | The ID of the tenant to update the environment for.                                                                                                            |
-| environment_id                           | path     | string    | The ID of the environment to update.                                                                                                                           |
-| Authorization                            | header   | string    | The authorization header for the request.                                                                                                                      |
-| X-Event-Horizon-Delegating-Authorization | header   | *string   | The authorization header for the delegating principal.                                                                                                         |
-| X-Event-Horizon-Signed-Headers           | header   | *string   | The signed headers for the request, when authenticating with Sigv4.                                                                                            |
-| version                                  | header   | string    | The version of the environment to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.    |
-| Name                                     | body     | *string   | If set, update the environment's name                                                                                                                          |
-| Description                              | body     | *string   | If set, update the environment' description.                                                                                                                   |
-| Context                                  | body     | *string   | If set, update the environment's context.                                                                                                                      |
-| Repos                                    | body     | *[]string | If set, update the set of repos associated with the environment. Note that `null` means 'don't update the rpos', where as `[]` means 'set the repos to empty'. |
-| SetupScript                              | body     | *string   | If set, update the setup script used to configure the environment.                                                                                             |
-| DockerImage                              | body     | *string   | If set, update the docker image used by the environment.                                                                                                       |
-| Delete                                   | body     | *bool     | If set to false, undelete the enviornment. May not be set to true. Use DeleteEnvironment instead.                                                              |
+| Parameter                                | Location | Type      | Description                                                                                                                                                              |
+|------------------------------------------|----------|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string    | The ID of the tenant to update the environment for.                                                                                                                      |
+| environment_id                           | path     | string    | The ID of the environment to update.                                                                                                                                     |
+| Authorization                            | header   | string    | The authorization header for the request.                                                                                                                                |
+| X-Event-Horizon-Delegating-Authorization | header   | *string   | The authorization header for the delegating principal.                                                                                                                   |
+| X-Event-Horizon-Signed-Headers           | header   | *string   | The signed headers for the request, when authenticating with Sigv4.                                                                                                      |
+| version                                  | header   | string    | The version of the environment to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.              |
+| Name                                     | body     | *string   | If set, update the environment's name                                                                                                                                    |
+| Description                              | body     | *string   | If set, update the environment' description.                                                                                                                             |
+| Context                                  | body     | *string   | If set, update the environment's context.                                                                                                                                |
+| Repos                                    | body     | *[]string | If set, update the set of repos associated with the environment. Note that `null` means 'don't update the rpos', where as `[]` means 'set the repos to empty'.           |
+| SetupScript                              | body     | *string   | If set, update the setup script used to configure the environment.                                                                                                       |
+| DockerImage                              | body     | *string   | If set, update the docker image used by the environment.                                                                                                                 |
+| Deleted                                  | body     | *bool     | If set to false, undelete the enviornment. May not be set to true. Use DeleteEnvironment instead.                                                                        |
+| RunnerID                                 | body     | *string   | If set, update the ID of the runner used for the environment. Set to "default" to use the default runner.                                                                |
+| GithubConnectionID                       | body     | *string   | If set, update the ID of the GitHub connection used for checking out code when running tasks in this environment. Set to "default" to use the default github connection. |
 
 ## 16.2 Response
 
@@ -1294,7 +1315,9 @@ Content-Type: application/json; charset=utf-8
   "CreatedAt": "string",
   "UpdatedAt": "string",
   "Deleted": bool,
-  "Version": int
+  "Version": int,
+  "RunnerID": "string",
+  "GithubConnectionID": "string"
 }
 ```
 
@@ -1477,15 +1500,15 @@ X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
 ```
 
-| Parameter                                | Location | Type    | Description                                                                                                                       |
-|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to list tasks for.                                                                                           |
-| maxResults                               | query    | *int    | Optional. The maximum number of tasks to return. Default is 500. Must be >=1 and <= 500.                                          |
-| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned.                   |
-| includeDeleted                           | query    | *bool   | Optional. Whether to include deleted tasks in the results. Default is false.                                                      |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                                         |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                            |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                               |
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to list tasks for.                                                                         |
+| maxResults                               | query    | *int    | Optional. The maximum number of tasks to return. Default is 10. Must be >=1 and <= 500.                         |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                           | query    | *bool   | Optional. Whether to include deleted tasks in the results. Default is false.                                    |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 
 ## 19.2 Response
 
@@ -1765,7 +1788,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant to list turns for.                                                                         |
 | task_id                                  | path     | string  | The ID of the task to list turns for.                                                                           |
-| maxResults                               | query    | *int    | Optional. The maximum number of turns to return. Default is 500. Must be >=1 and <= 500.                        |
+| maxResults                               | query    | *int    | Optional. The maximum number of turns to return. Default is 10. Must be >=1 and <= 500.                         |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to return turns for a deleted task.                                                       |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                       |
@@ -2206,7 +2229,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 | Parameter                      | Location | Type    | Description                                                                                                                                      |
 |--------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| maxResults                     | query    | *int    | Optional. The maximum number of orgs to return. Default is 500. Must be >=1 and <= 500.                                                          |
+| maxResults                     | query    | *int    | Optional. The maximum number of orgs to return. Default is 10. Must be >=1 and <= 500.                                                           |
 | token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned.                                  |
 | name                           | query    | *string | Optional. When provided, only the GitHub org whose name matches the value exactly is returned. If no org matches, the response contains no orgs. |
 | includeDeleted                 | query    | *bool   | Optional. Set to true to return deleted orgs.                                                                                                    |
@@ -2454,7 +2477,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Parameter                                | Location | Type    | Description                                                                                                     |
 |------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant to list workstreams for.                                                                   |
-| maxResults                               | query    | *int    | Optional. The maximum number of workstreams to return. Default is 500. Must be >=1 and <= 500.                  |
+| maxResults                               | query    | *int    | Optional. The maximum number of workstreams to return. Default is 10. Must be >=1 and <= 500.                   |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted workstreams in the results.                                            |
 | shortName                                | query    | *string | Optional. Searches for the workstream with the provides short name.                                             |
@@ -2776,7 +2799,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 | Parameter                      | Location | Type    | Description                                                                                                     |
 |--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
-| maxResults                     | query    | *int    | Optional. The maximum number of feature flags to return. Default is 500. Must be >=1 and <= 500.                |
+| maxResults                     | query    | *int    | Optional. The maximum number of feature flags to return. Default is 10. Must be >=1 and <= 500.                 |
 | token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | includeDeleted                 | query    | *bool   | Optional. Set to true to include deleted feature flags in the results.                                          |
 | Authorization                  | header   | string  | The authorization header for the request.                                                                       |
@@ -2930,7 +2953,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Parameter                      | Location | Type    | Description                                                                                                     |
 |--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
 | tenant_id                      | path     | string  | The ID of the tenant to list feature flag overrides for.                                                        |
-| maxResults                     | query    | *int    | Optional. The maximum number of feature flag overrides to return. Default is 500. Must be >=1 and <= 500.       |
+| maxResults                     | query    | *int    | Optional. The maximum number of feature flag overrides to return. Default is 10. Must be >=1 and <= 500.        |
 | token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | includeDeleted                 | query    | *bool   | Optional. Set to true to include deleted feature flag overrides in the results.                                 |
 | Authorization                  | header   | string  | The authorization header for the request.                                                                       |
@@ -3170,157 +3193,11 @@ EOF
 eh-ctl feature-flag get-tenant-flags -t <tenant-id>
 ```
 
-# 54. GetTenantGithubCreds
-
-The GetTenantGithubCreds API retrieves the GitHub credentials and related information for a specific tenant.
-
-## 54.1 Request
-
-```http request
-GET /v1/tenants/{tenant_id}/githubcreds HTTP/1.1
-Accept: application/json
-Authorization: <authorization>
-X-Event-Horizon-Delegating-Authorization: <authorization>
-X-Event-Horizon-Signed-Headers: <signed headers>
-```
-
-| Parameter                                | Location | Type    | Description                                                         |
-|------------------------------------------|----------|---------|---------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to retrieve GitHub credentials for.            |
-| Authorization                            | header   | string  | The authorization header for the request.                           |
-| X-Event-Horizon-Delegating-Authorization | header   |         | *string                                                             | The authorization header for the delegating principal.              |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
-
-## 54.2 Response
-
-On success a 200 OK is returned with the following JSON body:
-
-```http request
-HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-
-{
-  "TenantID": "string",
-  "SkipOnboarding": bool,
-  "OAuthToken": "string",
-  "RefreshToken": "string",
-  "TokenExpiry": "string",
-  "State" : "string",
-  "StateExpiry" : "string",
-  "GithubUserLogin" : "string",
-  "GithubUserID" : int,
-  "TenantVersion": int
-}
-```
-
-| Field           | Type   | Description                                                                      |
-|-----------------|--------|----------------------------------------------------------------------------------|
-| TenantID        | string | The ID of the tenant.                                                            |
-| SkipOnboarding  | bool   | Whether the tenant has chosen to skip the GitHub onboarding process.             |
-| OAuthToken      | string | The OAuth token for accessing the GitHub API.                                    |
-| RefreshToken    | string | The refresh token for obtaining a new OAuth token.                               |
-| TokenExpiry     | string | The expiration time of the OAuth token, in ISO 8601 format.                      |
-| State           | string | The state value used in the OAuth flow to prevent CSRF attacks.                  |
-| StateExpiry     | string | The expiration time of the state value, in ISO 8601 format.                      |
-| GithubUserLogin | string | The GitHub username associated with the OAuth token.                             |
-| GithubUserID    | int    | The GitHub user ID associated with the OAuth token.                              |
-| TenantVersion   | int    | The version of the tenant. This is incremented every time the tenant is updated. |
-
-# 55. UpdateTenantGithubCreds
-
-The UpdateTenantGithubCreds API updates the GitHub credentials and related information for a specific tenant.
-
-## 55.1 Request
-
-```http request
-PATCH /v1/tenants/{tenant_id}/githubcreds HTTP/1.1
-Accept: application/json
-Content-Type: application/json; charset=utf-8
-Authorization: <authorization>
-X-Event-Horizon-Delegating-Authorization: <authorization>
-X-Event-Horizon-Signed-Headers: <signed headers>
-If-Match: <version>
-
-{
-    "SkipOnboarding": "*bool",
-    "OAuthToken": "*string",
-    "RefreshToken": "*string",
-    "TokenExpiry": "*string",
-    "State": "*string",
-    "StateExpiry": "*string",
-    "GithubUserLogin": "*string",
-    "GithubUserID": *int
-}
-```
-
-| Parameter                                | Location | Type    | Description                                                                                                                                            |
-|------------------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to update GitHub credentials for.                                                                                                 |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                                                              |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                 |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                    |
-| version                                  | header   | string  | The version of the tenant to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
-| SkipOnboarding                           | body     | *bool   | If set, update whether the tenant has chosen to skip the GitHub onboarding process.                                                                    |
-| OAuthToken                               | body     | *string | If set, update the OAuth token for accessing the GitHub API.                                                                                           |
-| RefreshToken                             | body     | *string | If set, update the refresh token for obtaining a new OAuth token.                                                                                      |
-| TokenExpiry                              | body     | *string | If set, update the expiration time of the OAuth token, in ISO 8601 format.                                                                             |
-| State                                    | body     | *string | If set, update the state value used in the OAuth flow to prevent CSRF attacks.                                                                         |
-| StateExpiry                              | body     | *string | If set, update the expiration time of the state value, in ISO 8601 format.                                                                             |
-| GithubUserLogin                          | body     |         | *string                                                                                                                                                | If set, update the GitHub username associated with the OAuth token.                                                   |
-| GithubUserID                             | body     | *int    | If set, update the GitHub user ID associated with the OAuth token.                                                                                     |   
-
-# 56. FindGithubUser
-
-The FindGithubUser API searches for users based on either github user id or github login. This results are an array of
-the same objects returned by GetTenantGithubCreds.
-
-This is intended to be used by the github webhook to deal with user renames.
-
-## 56.1 Request
-
-```http request
-GET /v1/users?githubID={githubID}&githubLogin={githubLogin}&maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
-Accept: application/json
-Authorization: <authorization>
-X-Event-Horizon-Signed-Headers: <signed headers>
-```
-
-| Parameter                      | Location | Type    | Description                                                                                                     |
-|--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
-| githubID                       | query    | *int    | Optional. The GitHub user ID to search for.                                                                     |
-| githubLogin                    | query    | *string | Optional. The GitHub username to search for.                                                                    |
-| Authorization                  | header   | string  | The authorization header for the request.                                                                       |
-| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
-| maxResults                     | query    | *int    | Optional. The maximum number of users to return. Default is 500. Must be >=1 and <= 500.                        |
-| token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
-| includeDeleted                 | query    | *bool   | Optional. Set to true to include deleted users in the results.                                                  |
-
-Exactly one of `githubID` or `githubLogin` must be provided. 
-
-## 56.2 Response
-
-On success a 200 OK is returned with the following JSON body:
-
-```http request
-HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-
-{
-    "NextToken": "*string",
-    "Users": []
-}
-```
-
-| Field     | Type                    | Description                                                                                    |
-|-----------|-------------------------|------------------------------------------------------------------------------------------------|
-| NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
-| Users     | [][User](#542-response) | A list of users that match the search criteria.                                                |
-
-# 57. AddWorkstreamShortName
+# 54. AddWorkstreamShortName
 
 The AddWorkstreamShortName API adds a short name to a workstream.
 
-## 57.1 Request
+## 54.1 Request
 
 ```http request
 PUT /v1/tenants/{tenant_id}/workstreams/{workstream_id}/shortnames/{name} HTTP/1.1
@@ -3341,15 +3218,15 @@ If-Match: <version>
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                       |
 | version                                  | header   | string  | The version of the workstream to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
 
-## 57.2 Response
+## 54.2 Response
 
 On success a 204 NO CONTENT is returned with no body.
 
-# 58. DeleteWorkstreamShortName
+# 55. DeleteWorkstreamShortName
 
 The DeleteWorkstreamShortName API hard deletes a short name from a workstream.
 
-## 58.1 Request
+## 55.1 Request
 
 ```http request
 DELETE /v1/tenants/{tenant_id}/workstreams/{workstream_id}/shortnames/{name} HTTP/1.1
@@ -3369,13 +3246,13 @@ If-Match: <version>
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                       |
 | version                                  | header   | string  | The version of the workstream to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
 
-## 58.2 Response
+## 55.2 Response
 On success a 204 NO CONTENT is returned with no body.
 
-# 59. ListWorkstreamShortNames
+# 56. ListWorkstreamShortNames
 The ListWorkstreamShortNames API lists short names.
 
-## 59.1 Request
+## 56.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/shortnames?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted}&workstreaID={workstreamID} HTTP/1.1
@@ -3388,7 +3265,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Parameter                                | Location | Type    | Description                                                                                                     |
 |------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant to list short names for.                                                                   |
-| maxResults                               | query    | *int    | Optional. The maximum number of short names to return. Default is 500. Must be >=1 and <= 500.                  |
+| maxResults                               | query    | *int    | Optional. The maximum number of short names to return. Default is 10. Must be >=1 and <= 500.                   |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted short names in the results.                                            |
 | workstreamID                             | query    | *string | Optional. If set, only return short names for the given workstream ID.                                          |
@@ -3396,7 +3273,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 
-## 59.2 Response
+## 56.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -3411,10 +3288,10 @@ Content-Type: application/json; charset=utf-8
 
 | Field      | Type                                              | Description                                                                                    |
 |------------|---------------------------------------------------|------------------------------------------------------------------------------------------------|
-| ShortNames | [][WorkstreamShortName](#593-WorkstreamShortName) | A list of short names.                                                                         |
+| ShortNames | [][WorkstreamShortName](#563-WorkstreamShortName) | A list of short names.                                                                         |
 | NextToken  | *string                                           | A token to retrieve the next page of results. If there are no more results, this will be null. |
 
-## 59.3 WorkstreamShortName
+## 56.3 WorkstreamShortName
 
 ```json
 {
@@ -3430,11 +3307,11 @@ Content-Type: application/json; charset=utf-8
 | WorkstreamID      | string | The ID of the workstream the short name is associated with. |
 | WorkstreamVersion | int    | The version of the workstream.                              |
  
-# 60. MoveTask
+# 57. MoveTask
 
 The MoveTask API moves a task from one workstream to another.
 
-## 60.1 Request
+## 57.1 Request
 
 ```http request
 POST /v1/tenants/{tenant_id}/tasks/{task_id}/move HTTP/1.1
@@ -3464,7 +3341,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | SourceWorkstreamVersion                  | body     | int     | The version of the source workstream. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.      |
 | DestinationWorkstreamVersion             | body     | int     | The version of the destination workstream. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
 
-## 60.2 Response
+## 57.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -3527,10 +3404,10 @@ Content-Type: application/json; charset=utf-8
 | SourceWorkstream      | [Workstream](#352-response) | The updated source workstream after the move.      |
 | DestinationWorkstream | [Workstream](#352-response) | The updated destination workstream after the move. |
 
-# 61. MoveShortName
+# 58. MoveShortName
 The MoveShortName API moves a short name from one workstream to another.
 
-## 61.1 Request
+## 58.1 Request
 
 ```http request
 POST /v1/tenants/{tenant_id}/shortnames/{name}/move HTTP/1.1
@@ -3563,7 +3440,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | ReplacementName                          | body     | *string | Optional. A short name to add to the source workstream to replace the moved name. If not provided, no replacement is added.                                 |
 | SetDefaultOnDestination                  | body     | bool    | If true, set the moved short name as the default short name on the destination workstream.                                                                  |
 
-## 61.2 Response
+## 58.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -3606,11 +3483,11 @@ Content-Type: application/json; charset=utf-8
 | SourceWorkstream      | [Workstream](#352-response) | The updated source workstream after the move.      |
 | DestinationWorkstream | [Workstream](#352-response) | The updated destination workstream after the move. |
 
-# 62. ListTenants
+# 59. ListTenants
 
 ListTenants is an admin api that lists all tenants in the system.
 
-## 62.1 Request
+## 59.1 Request
 
 ```http request
 GET /v1/tenants?maxResults={maxResults}&token={token} HTTP/1.1
@@ -3621,12 +3498,12 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 | Parameter                      | Location | Type    | Description                                                                                                     |
 |--------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
-| maxResults                     | query    | *int    | Optional. The maximum number of tenants to return. Default is 500. Must be >=1 and <= 500.                      |
+| maxResults                     | query    | *int    | Optional. The maximum number of tenants to return. Default is 10. Must be >=1 and <= 500.                       |
 | token                          | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | Authorization                  | header   | string  | The authorization header for the request.                                                                       |
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 
-## 62.2 Response
+## 59.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -3645,7 +3522,7 @@ Content-Type: application/json; charset=utf-8
 | Tenants   | [][Tenant](#32-response) | A list of tenants.                                                                             |
 
 
-# 63. CreateWorkstreamTask
+# 60. CreateWorkstreamTask
 
 The CreateWorkstreamTask API creates a new task in a workstream. Workstream tasks are different form "ordinary" tasks
 in a few ways:
@@ -3712,7 +3589,7 @@ in a few ways:
    This allows us to use work stream short names + the task number to refer to a task (like "API-1234"). 
 
 
-## 63.1 Request
+## 60.1 Request
 
 ```http request
 PUT /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks/{task_id} HTTP/1.1
@@ -3753,7 +3630,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | RepoInfo                                 | body     | [RepoInfo](#185-repoinfo)    | Optional. Information about the repository associated with the task.                                    |
 | State                                    | body     | [TaskState](#186-taskstate)  | Optional. The state of the task. If not specified, will default to "Pending".                           |
 
-## 63.2 Validation / Semantics
+## 60.2 Validation / Semantics
 
 1. Model should only be set if AssignedToAI is true.
 2. RepoInfo should only be set if AssignedToAI is true.
@@ -3792,7 +3669,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
    Tasks can be re-ordered after creation by calling the UpdateWorkstreamTask API and settings either BeforeTaskID or
    AfterTaskID.
 
-## 63.3 Response
+## 60.3 Response
 
 On success a 201 CREATED is returned with the following JSON body:
 
@@ -3821,12 +3698,12 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-# 64. ListWorkstreamTasks
+# 61. ListWorkstreamTasks
 
 The ListWorkstreamTasks API lists tasks in a workstream. Results are always ordered by increasing rank. To change
 the order of tasks use the UpdateWorkstreamTask API and set one of the BeforeTaskID or AfterTaskID fields.
 
-## 64.1 Request
+## 61.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
@@ -3840,14 +3717,14 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant that owns the workstream.                                                                  |
 | workstream_id                            | path     | string  | The ID of the workstream to list tasks for.                                                                     |
-| maxResults                               | query    | *int    | Optional. The maximum number of tasks to return. Default is 500. Must be >=1 and <= 500.                        |
+| maxResults                               | query    | *int    | Optional. The maximum number of tasks to return. Default is 10. Must be >=1 and <= 500.                         |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted tasks in the results.                                                  |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                       |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 
-## 64.2 Response
+## 61.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -3865,11 +3742,11 @@ Content-Type: application/json; charset=utf-8
 | NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
 | Tasks     | [][Task](#183-response) | A list of tasks in the workstream.                                                             |
 
-# 65. UpdateWorkstreamTask
+# 62. UpdateWorkstreamTask
 
 The UpdateWorkstreamTask API updates a task in a workstream.
 
-## 65.1 Request
+## 62.1 Request
 
 ```http request
 PATCH /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks/{task_id} HTTP/1.1
@@ -3918,7 +3795,7 @@ If-Match: <version>
 | AfterTaskID                              | body     | *string                      | Optional. If set, moves the task to be ordered after the given task. Cannot be combined with BeforeTaskID.               |
 | Deleted                                  | body     | *bool                        | Optional. If false, undeletes the task. To delete a task, call the [DeleteWorkstreamTask](#66-deleteworkstreamtask) api. |
 
-## 65.2 Response
+## 62.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http request
@@ -3948,12 +3825,12 @@ Content-Type: application/json; charset=utf-8
 
 See [Task](#183-response) for field descriptions.
 
-# 66. DeleteWorkstreamTask
+# 63. DeleteWorkstreamTask
 
 The DeleteWorkstreamTask API deletes a task in a workstream. Deleted tasks can be undeleted by calling the UpdateWorkstreamTask API
 and setting the Deleted field to false.
 
-## 66.1 Request
+## 63.1 Request
 
 ```http request
 DELETE /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks/{task_id} HTTP/1.1
@@ -3974,14 +3851,14 @@ If-Match: <version>
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.        |
 | Version                                  | header   | string  | The expected version of the task. Used for optimistic concurrency control. |
 
-## 66.2 Response
+## 63.2 Response
 On success a 204 NO CONTENT is returned with no body.
 
-# 67. GetWorkstreamTask
+# 64. GetWorkstreamTask
 
 The GetWorkstreamTask API retrieves a task in a workstream.
 
-## 67.1 Request
+## 64.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks/{task_id} HTTP/1.1
@@ -4000,7 +3877,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                     |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.        |
 
-## 67.2 Response
+## 64.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -4032,11 +3909,827 @@ Content-Type: application/json; charset=utf-8
 
 See [Task](#183-response) for field descriptions.
 
-# 68. SearchTasks
+# 65. CreateRunner
+
+The CreateRunner API creates a new "runner" associated with a tenant.
+
+## 68.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/runners/{runner_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "Name": "string",
+    "Description": "*string",
+    "IsCloud" : bool,
+    "RunsTasks" : bool,
+    "ProxiesGithub":bool    
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
+| runner_id                                | path     | string  | The ID of the new runner to create.                                 |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+| Name                                     | body     | string  | The name of the runner.                                             |
+| Description                              | body     | *string | Optional. The description of the runner.                            |
+| IsCloud                                  | body     | bool    | Whether the runner is a cloud runner.                               |
+| RunsTasks                                | body     | bool    | Whether the runner is used to execute tasks.                        |
+| ProxiesGithub                            | body     | bool    | Whether the runner proxies access to github.                        |
+
+## 65.2 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "RunnerID": "string",    
+    "Name": "string",
+    "Description": "string",
+    "IsCloud": bool,
+    "RunsTasks": bool,
+    "ProxiesGithub": bool,
+    "CreatedAt": "string",
+    "UpdatedAt": "string",
+    "Version": int
+}
+```
+
+| Field         | Type   | Description                                                         |
+|---------------|--------|---------------------------------------------------------------------|
+| TenantID      | string | The ID of the tenant that owns the runner.                          |
+| RunnerID      | string | The ID of the runner.                                               |
+| Name          | string | The name of the runner.                                             |
+| Description   | string | The description of the runner.                                      |
+| IsCloud       | bool   | Whether the runner is a cloud runner.                               |
+| RunsTasks     | bool   | Whether the runner is used to execute tasks.                        |
+| ProxiesGithub | bool   | Whether the runner proxies access to github.                        |
+| CreatedAt     | string | The timestamp when the runner was created.                          |
+| UpdatedAt     | string | The timestamp when the runner was last updated.                     |
+| Version       | int    | The version of the runner. Used for optimistic concurrency control. |
+
+# 66. ListRunners
+
+The ListRunners API lists runners associated with a tenant.
+
+## 66.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/runners?maxResults={maxResults}&token={token} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runners.                                                                     |
+| maxResults                               | query    | *int    | Optional. The maximum number of runners to return. Default is 10. Must be >=1 and <= 500.                       |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 66.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextToken": "*string",
+    "Items": []
+}
+```
+
+| Field     | Type                      | Description                                                                                    |
+|-----------|---------------------------|------------------------------------------------------------------------------------------------|
+| NextToken | *string                   | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Items     | [][Runner](#652-response) | A list of runners associated with the tenant.                                                  |
+
+# 67. GetRunner
+
+The GetRunner API retrieves a runner associated with a tenant.
+
+## 67.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/runners/{runner_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
+| runner_id                                | path     | string  | The ID of the runner to retrieve.                                   |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 67.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "RunnerID": "string",    
+    "Name": "string",
+    "Description": "string",
+    "IsCloud": bool,
+    "RunsTasks": bool,
+    "ProxiesGithub": bool,
+    "CreatedAt": "string",
+    "UpdatedAt": "string",
+    "Version": int
+}
+```
+
+See [here](662-response) for more details.
+
+# 68. UpdateRunner
+
+The UpdateRunner API updates a runner associated with a tenant.
+
+## 68.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/runners/{runner_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "Name": "*string",
+    "Description": "*string",
+    "IsCloud" : "*bool",
+    "RunsTasks" : "*bool",
+    "ProxiesGithub":*bool    
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                  |
+|------------------------------------------|----------|---------|------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                                   |
+| runner_id                                | path     | string  | The ID of the runner to update.                                              |
+| Authorization                            | header   | string  | The authorization header for the request.                                    |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                       |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.          |
+| Version                                  | header   | string  | The expected version of the runner. Used for optimistic concurrency control. |
+| Name                                     | body     | *string | Optional. When set, updates the name of the runner.                          |
+| Description                              | body     | *string | Optional. When set, updates the description of the runner.                   |
+| IsCloud                                  | body     | *bool   | Optional. When set, updates whether the runner is a cloud runner.            |
+| RunsTasks                                | body     | *bool   | Optional. When set, updates whether the runner is used to execute tasks.     |
+| ProxiesGithub                            | body     | *bool   | Optional. When set, updates whether the runner proxies access to github.     |
+
+## 68.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "RunnerID": "string",    
+    "Name": "string",
+    "Description": "string",
+    "IsCloud": bool,
+    "RunsTasks": bool,
+    "ProxiesGithub": bool,
+    "CreatedAt": "string",
+    "UpdatedAt": "string",
+    "Version": int
+}
+```
+
+See [here](#652-response) for more details.
+
+# 69. DeleteRunner
+
+The DeleteRunner API hard deletes a runner associated with a tenant. 
+
+## 69.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/runners/{runner_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type    | Description                                                                  |
+|------------------------------------------|----------|---------|------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                                   |
+| runner_id                                | path     | string  | The ID of the runner to delete.                                              |
+| Authorization                            | header   | string  | The authorization header for the request.                                    |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                       |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.          |
+| Version                                  | header   | string  | The expected version of the runner. Used for optimistic concurrency control. |
+
+## 69.2 Response
+On success a 204 NO CONTENT is returned with no body.
+
+# 70. CreateGithubConnection
+
+The CreateGithubConnection API creates a new GitHub connection for a tenant.
+
+## 70.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/github-connections/{connection_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+    "Private": bool,
+    "RunnerID" : "*string",
+    "GithubUserLogin" : "*string",
+    "GithubUserID" : *int
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                                     |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                                                                                                                           |
+| connection_id                            | path     | string  | The ID of the new GitHub connection to create.                                                                                                                                  |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                             |
+| Private                                  | body     | bool    | Whether the connection is private.                                                                                                                                              |
+| RunnerID                                 | body     | *string | Optional. The ID of the runner associated with the connection. Required when Private is true.                                                                                   |
+| GithubUserLogin                          | body     | *string | The GitHub user login associated with the connection. Only valid when Private is false. For private github connection, all user information is configured on the remote runner. |
+| GithubUserID                             | body     | *int    | The GitHub user ID associated with the connection. Only valid when Private is false. For private github connection, all user information is configured on the remote runner.    |
+
+## 70.2 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "ConnectionID": "string",
+    "Private": bool,
+    "RunnerID" : "*string",
+    "GithubUserLogin" : "*string",
+    "GithubUserID" : *int,
+    "OAuthToken": "*string",
+    "RefreshToken": "*string",
+    "TokenExpiry": "*string",
+    "State" : "*string",
+    "StateExpiry" : "*string",
+    "CreatedAt": "string",
+    "UpdatedAt": "string",
+    "Version": int
+}
+```
+
+| Field           | Type    | Description                                                             |
+|-----------------|---------|-------------------------------------------------------------------------|
+| TenantID        | string  | The ID of the tenant that owns the GitHub connection.                   |
+| ConnectionID    | string  | The ID of the GitHub connection.                                        |
+| Private         | bool    | Whether the connection is private.                                      |
+| RunnerID        | *string | The ID of the runner associated with the connection.                    |
+| GithubUserLogin | *string | The GitHub user login associated with the connection.                   |
+| GithubUserID    | *int    | The GitHub user ID associated with the connection.                      |
+| OAuthToken      | *string | The OAuth token for the connection.                                     |
+| RefreshToken    | *string | The refresh token for the connection.                                   |
+| TokenExpiry     | *string | The expiry time of the OAuth token.                                     |
+| State           | *string | The state parameter for OAuth flows.                                    |
+| StateExpiry     | *string | The expiry time of the state parameter.                                 |
+| CreatedAt       | string  | The timestamp when the connection was created.                          |
+| UpdatedAt       | string  | The timestamp when the connection was last updated.                     |
+| Version         | int     | The version of the connection. Used for optimistic concurrency control. |
+
+# 71. ListGithubConnections
+
+The ListGithubConnections API lists GitHub connections associated with a tenant.
+
+## 71.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/github-connections?maxResults={maxResults}&token={token} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connections.                                                          |
+| maxResults                               | query    | *int    | Optional. The maximum number of connections to return. Default is 10. Must be >=1 and <= 500.                   |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 71.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextToken": "*string",
+    "Items": []
+}
+```
+
+| Field     | Type                                | Description                                                                                    |
+|-----------|-------------------------------------|------------------------------------------------------------------------------------------------|
+| NextToken | *string                             | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Items     | [][GithubConnection](#702-response) | A list of GitHub connections associated with the tenant.                                       |
+
+# 72. GetGithubConnection
+
+The GetGithubConnection API retrieves a GitHub connection associated with a tenant.
+
+## 72.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/github-connections/{connection_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.               |
+| connection_id                            | path     | string  | The ID of the GitHub connection to retrieve.                        |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 72.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "ConnectionID": "string",
+    "Private": bool,
+    "RunnerID" : "*string",
+    "GithubUserLogin" : "*string",
+    "GithubUserID" : *int,
+    "OAuthToken": "*string",
+    "RefreshToken": "*string",
+    "TokenExpiry": "*string",
+    "State" : "*string",
+    "StateExpiry" : "*string",
+    "CreatedAt": "string",
+    "UpdatedAt": "string",
+    "Version": int
+}
+```
+
+See [here](#702-response) for more details.
+
+# 73. UpdateGithubConnection
+
+The UpdateGithubConnection API updates a GitHub connection associated with a tenant.
+
+## 73.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/github-connections/{connection_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "Private": *bool,
+    "RunnerID" : "*string",
+    "GithubUserLogin" : "*string",
+    "GithubUserID" : *int,
+    "OAuthToken": "*string",
+    "RefreshToken": "*string",
+    "State"  : "*string",
+    "StateExpiry" : "*string"        
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                       |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                                             |
+| connection_id                            | path     | string  | The ID of the GitHub connection to update.                                                        |
+| Authorization                            | header   | string  | The authorization header for the request.                                                         |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                               |
+| Version                                  | header   | string  | The expected version of the connection. Used for optimistic concurrency control.                  |
+| Private                                  | body     | *bool   | Optional. When set, updates whether the connection is private.                                    |
+| RunnerID                                 | body     | *string | Optional. When set, updates the ID of the runner associated with the connection.                  |
+| GithubUserLogin                          | body     | *string | Optional. When set, updates the GitHub user login associated with the connection.                 |
+| GithubUserID                             | body     | *int    | Optional. When set, updates the GitHub user ID associated with the connection.                    |
+| OAuthToken                               | body     | *string | Optional. When set, updates the OAuth token for the connection.                                   |
+| RefreshToken                             | body     | *string | Optional. When set, updates the refresh token for the connection.                                 |
+| State                                    | body     | *string | Optional. When set, updates the state parameter for OAuth flows. Set to "" to clear the value.    |
+| StateExpiry                              | body     | *string | Optional. When set, updates the expiry time of the state parameter. Set to "" to clear the value. |
+
+## 73.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "ConnectionID": "string",
+    "Private": bool,
+    "RunnerID" : "*string",
+    "GithubUserLogin" : "*string",
+    "GithubUserID" : *int,
+    "OAuthToken": "*string",
+    "RefreshToken": "*string",
+    "TokenExpiry": "*string",
+    "State" : "*string",
+    "StateExpiry" : "*string",
+    "CreatedAt": "string",
+    "UpdatedAt": "string",
+    "Version": int
+}
+```
+
+See [here](#702-response) for more details.
+
+# 74. DeleteGithubConnection
+
+The DeleteGithubConnection API hard deletes a GitHub connection associated with a tenant.
+
+## 74.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/github-connections/{connection_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type    | Description                                                                      |
+|------------------------------------------|----------|---------|----------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                            |
+| connection_id                            | path     | string  | The ID of the GitHub connection to delete.                                       |
+| Authorization                            | header   | string  | The authorization header for the request.                                        |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                           |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.              |
+| Version                                  | header   | string  | The expected version of the connection. Used for optimistic concurrency control. |
+
+## 74.2 Response
+
+On success a 204 NO CONTENT is returned with no body.
+
+# 75. GenerateRunnerToken
+
+The GenerateRunnerToken API generates a new token for a runner.
+
+## 75.1 Request
+
+```http request
+POST /v1/tenants/{tenant_id}/runners/{runner_id}/generate-token HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
+| runner_id                                | path     | string  | The ID of the runner to generate a token for.                       |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 75.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TokenID": "string",
+    "Token": "string",
+    "ExpiresAt": "string"
+}
+```
+
+| Field     | Type   | Description                           |
+|-----------|--------|---------------------------------------|
+| TokenID   | string | The ID of the generated token.        |
+| Token     | string | The generated token.                  |
+| ExpiresAt | string | The timestamp when the token expires. |
+
+# 76. ListRunnerTokens
+
+The ListRunnerTokens API returns a list of metadata about tokens for a runner.
+
+## 76.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/runners/{runner_id}/tokens?maxResults={maxResults}&nextPageToken={nextPageToken}&includeRevoked={includeRevoked} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                              |
+|------------------------------------------|----------|---------|------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                                               |
+| runner_id                                | path     | string  | The ID of the runner to list tokens for.                                                 |
+| maxResults                               | query    | *int    | Optional. The maximum number of tokens to return. Default is 10. Must be >=1 and <= 500. |
+| nextPageToken                            | query    | *string | Optional. A token to retrieve the next page of results.                                  |
+| includeRevoked                           | query    | *bool   | Optional. Whether to include revoked tokens in the results. Default is false.            |
+| Authorization                            | header   | string  | The authorization header for the request.                                                |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                   |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                      |
+
+## 76.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextPageToken": "*string",
+    "Items": [{
+        "TokenID": "string",
+        "CreatedAt": "string",
+        "ExpiresAt": "string",
+        "RevokedAt": "*string",
+        "TokenHash": "string"
+    }]
+}
+```
+
+| Field         | Type                                              | Description                                                                                    |
+|---------------|---------------------------------------------------|------------------------------------------------------------------------------------------------|
+| NextPageToken | *string                                           | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Items         | [][RunnerTokenMetadata](#763-RunnerTokenMetadata) | A list of runner token metadata objects.                                                       |
+
+## 76.3 RunnerTokenMetadata
+
+The RunnerTokenMetadata object contains metadata about a runner token.
+
+| Field     | Type    | Description                                                                 |
+|-----------|---------|-----------------------------------------------------------------------------|
+| TokenID   | string  | The ID of the token.                                                        |
+| CreatedAt | string  | The timestamp when the token was created.                                   |
+| ExpiresAt | string  | The timestamp when the token expires.                                       |
+| RevokedAt | *string | The timestamp when the token was revoked. Null if the token is not revoked. |
+| TokenHash | string  | The sha256 hash of the token.                                               |
+
+# 77. RevokeRunnerToken
+
+The RevokeRunnerToken API revokes a runner token.
+
+## 77.1 Request
+
+```http request
+POST /v1/tenants/{tenant_id}/runners/{runner_id}/tokens/{token_id}/revoke HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+``` 
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
+| runner_id                                | path     | string  | The ID of the runner the token belongs to.                          |
+| token_id                                 | path     | string  | The ID of the token to revoke.                                      |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 77.2 Response
+
+On success a 204 NO CONTENT is returned with no body.
+
+# 78. RegisterRunnerInstance
+
+The RegisterRunnerInstance API registers a new runner instance. 
+
+When customers deploy runners in their own environments, they can deploy multiple instances to
+provide high availability and load balancing. These instances all correspond to a single logical runner. Each time
+the runner software starts up, it will generate a random instance ID and register its self. Instances fetch messages by
+calling GetMessageBatch. Each call to GetMessageBatch also heartbeats that instances. If an instance
+goes 60s without heart beating, it will be marked as unhealthy and traffic will no longer be routed to it.  
+
+New instances are available for traffic immediately upon registration. 
+
+Instances that become unhealthy must heart beat successfully 10 times (150 seconds) before traffic will be routed to
+them. Unlike a load balancer, we do not implement a mode where we route traffic to all instances when they are all unhealthy.
+
+We enforce that the PublicKey provided is unique and has not been seen by Plan 42 before. Any attempt to re-use
+an existing PublicKey will result in a 404 BAD REQUEST error.
+
+## 78.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/runners/{runner_id}/instances/{instance_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+
+{
+    "PublicKey": "string"
+}
+```
+
+| Parameter     | Location | Type   | Description                                        |
+|---------------|----------|--------|----------------------------------------------------|
+| tenant_id     | path     | string | The ID of the tenant that owns the runner.         |
+| runner_id     | path     | string | The ID of the runner to register the instance for. |
+| instance_id   | path     | string | The ID of the instance to register.                |
+| Authorization | header   | string | The authorization header for the request.          |
+| PublicKey     | body     | string | The PEM encoded public key of the instance.        |
+
+Note that this api does not support delegation.
+
+## 78.2 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http request
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "RunnerID": "string",
+    "InstanceID": "string",
+    "PublicKey": "string",
+    "RegisteredAt": "string",
+    "LastHeartBeatAt": "string",
+    "IsHealthy": bool
+}
+```
+
+| Field           | Type   | Description                                          |
+|-----------------|--------|------------------------------------------------------|
+| TenantID        | string | The ID of the tenant that owns the runner.           |
+| RunnerID        | string | The ID of the runner the instance is registered for. |
+| InstanceID      | string | The ID of the registered instance.                   |
+| PublicKey       | string | The PEM encoded public key of the instance.          |
+| RegisteredAt    | string | The timestamp when the instance was registered.      |
+| LastHeartBeatAt | string | The timestamp when the instance last heart beated.   |
+| IsHealthy       | bool   | Whether the instance is currently healthy.           | 
+
+# 79. GetMessagesBatch
+
+The GetMessagesBatch API retrieves a batch of messages for a runner instance.
+
+We use "at most once" semantics for messages. Messages are implemented asynchronously because the api service
+(which sends messages to runners) doesn't have line of site the them. However, messages are used in syncronous request
+response scenarios (for example, when calling a github api to search for repos, or to start a task job).
+
+We don't implement "at least once" semantics because by the time we attempt to re-drive delivery, the original
+caller would have already timed out and marked it's request as failed.
+
+So, when messages are returned from this API, the are deleted from the instance's queue before they are returned.
+
+## 79.1 Request
+
+```http request
+POST /v1/tenants/{tenant_id}/runners/{runner_id}/instances/{instance_id}/messages/batch HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+```
+
+| Parameter     | Location | Type   | Description                                          |
+|---------------|----------|--------|------------------------------------------------------|
+| tenant_id     | path     | string | The ID of the tenant that owns the runner.           |
+| runner_id     | path     | string | The ID of the runner the instance is registered for. |
+| instance_id   | path     | string | The ID of the instance to retrieve messages for.     |
+| Authorization | header   | string | The authorization header for the request.            |
+
+Note that this api does not support delegation.
+
+## 79.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "Messages": [{
+        "CallerID": "string",
+        "MessageID": "string",
+        "MessageType": "string",
+        "CreatedAt": "string",
+        "CallerPublicKey": "string",
+        "Payload": "string",
+    }]
+}
+```
+
+| Field         | Type                                  | Description                                                                   |
+|---------------|---------------------------------------|-------------------------------------------------------------------------------|
+| Messages      | [][RunnerMessage](#793-RunnerMessage) | A list of messages for the runner instance. At most 10 messages are returned. |
+
+## 79.3 RunnerMessage
+The RunnerMessage object contains information about a message sent to a runner instance.
+
+| Field           | Type   | Description                                                                                                                                                                |
+|-----------------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| CallerID        | string | The ID of the caller that sent the message.                                                                                                                                |
+| MessageID       | string | The ID of the message.                                                                                                                                                     |
+| MessageType     | string | The type of the message.                                                                                                                                                   |
+| CreatedAt       | string | The timestamp when the message was created.                                                                                                                                |
+| CallerPublicKey | string | The PEM encoded public key of the caller that sent message.                                                                                                                |
+| Payload         | string | The base64 encoded payload of the message. The payload is encrypted using ECIES, with a key dervied from the private key of the caller and the public key of the instance. |
+
+# 80. WriteResponse
+
+The WriteResponse API is used by a runner instance to respond to a message it received via a call to GetMessagesBatch.
+
+## 80.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/runners/{runner_id}/instances/{instance_id}/messages/{message_id}/response HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+
+{
+    "CallerID": "string",
+    "Payload": "string"
+}
+```
+
+| Parameter     | Location | Type   | Description                                                                                                                                                                 |
+|---------------|----------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id     | path     | string | The ID of the tenant that owns the runner.                                                                                                                                  |
+| runner_id     | path     | string | The ID of the runner the instance is registered for.                                                                                                                        |
+| instance_id   | path     | string | The ID of the instance responding to the message.                                                                                                                           |
+| message_id    | path     | string | The ID of the message being responded to.                                                                                                                                   |
+| Authorization | header   | string | The authorization header for the request.                                                                                                                                   |
+| CallerID      | body     | string | The ID of the caller that sent the original message.                                                                                                                        |
+| Payload       | body     | string | The base64 encoded payload of the response. The payload is encrypted using ECIES, with a key dervied from the private key of the instance and the public key of the caller. |
+
+Note that this api does not support delegation.
+
+## 80.2 Response
+On success a 204 NO CONTENT is returned with no body.
+
+# 81. SearchTasks
 
 The SearchTasks API searches for tasks within a tenant. Currently the only supported search criterion is a GitHub pull request ID.
 
-## 68.1 Request
+## 81.1 Request
 
 ```http request
 POST /v1/tenants/{tenant_id}/tasks/search?pullRequestId={pullRequestId} HTTP/1.1
@@ -4059,7 +4752,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 The request body must be valid JSON. At present the body should be an empty object ( `{}` ). Future iterations of this API may define additional fields in the body.
 
-## 68.2 Response
+## 81.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
