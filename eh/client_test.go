@@ -927,6 +927,135 @@ func TestGetRunnerPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestUpdateRunner(t *testing.T) {
+	t.Parallel()
+
+	name := "runner-updated"
+	description := "runner-desc"
+	isCloud := true
+	runsTasks := false
+	proxiesGithub := true
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1", r.URL.Path)
+		require.Equal(t, "2", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateRunnerRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.Name)
+		require.Equal(t, name, *reqBody.Name)
+		require.NotNil(t, reqBody.Description)
+		require.Equal(t, description, *reqBody.Description)
+		require.NotNil(t, reqBody.IsCloud)
+		require.True(t, *reqBody.IsCloud)
+		require.NotNil(t, reqBody.RunsTasks)
+		require.False(t, *reqBody.RunsTasks)
+		require.NotNil(t, reqBody.ProxiesGithub)
+		require.True(t, *reqBody.ProxiesGithub)
+		require.Zero(t, reqBody.Version)
+		require.Empty(t, reqBody.TenantID)
+		require.Empty(t, reqBody.RunnerID)
+
+		now := time.Date(2024, time.January, 2, 0, 0, 0, 0, time.UTC)
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Runner{
+			TenantID:      "abc",
+			RunnerID:      "runner1",
+			Name:          name,
+			Description:   &description,
+			IsCloud:       true,
+			RunsTasks:     false,
+			ProxiesGithub: true,
+			CreatedAt:     now,
+			UpdatedAt:     now,
+			Version:       2,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	runner, err := client.UpdateRunner(context.Background(), &eh.UpdateRunnerRequest{
+		TenantID:      "abc",
+		RunnerID:      "runner1",
+		Version:       2,
+		Name:          &name,
+		Description:   &description,
+		IsCloud:       &isCloud,
+		RunsTasks:     &runsTasks,
+		ProxiesGithub: &proxiesGithub,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "runner1", runner.RunnerID)
+	require.NotNil(t, runner.Description)
+	require.Equal(t, description, *runner.Description)
+}
+
+func TestUpdateRunnerError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UpdateRunner(context.Background(), &eh.UpdateRunnerRequest{TenantID: "abc", RunnerID: "runner1", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestUpdateRunnerConflictError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveRunnerConflict()
+	defer srv.Close()
+
+	_, err := client.UpdateRunner(context.Background(), &eh.UpdateRunnerRequest{TenantID: "abc", RunnerID: "runner1", Version: 1})
+	verifyRunnerConflict(t, err)
+}
+
+func TestUpdateRunnerPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusOK)
+		now := time.Date(2024, time.January, 3, 0, 0, 0, 0, time.UTC)
+		resp := eh.Runner{
+			TenantID:  tenantIDThatNeedsEscaping,
+			RunnerID:  runnerIDThatNeedsEscaping,
+			Name:      "runner",
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	isCloud := true
+	_, err := client.UpdateRunner(context.Background(), &eh.UpdateRunnerRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+		RunnerID: runnerIDThatNeedsEscaping,
+		Version:  1,
+		IsCloud:  &isCloud,
+	})
+	require.NoError(t, err)
+}
+
 // nolint: dupl
 func TestGetEnvironment(t *testing.T) {
 	t.Parallel()
