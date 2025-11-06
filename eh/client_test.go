@@ -3573,6 +3573,127 @@ func TestGetGithubConnectionPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestUpdateGithubConnection(t *testing.T) {
+	t.Parallel()
+
+	stateExpiry := time.Now().UTC().Add(time.Hour).Truncate(time.Second)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/github-connections/conn", r.URL.Path)
+		require.Equal(t, "2", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateGithubConnectionRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.Private)
+		require.True(t, *reqBody.Private)
+		require.NotNil(t, reqBody.RunnerID)
+		require.Equal(t, "runner", *reqBody.RunnerID)
+		require.NotNil(t, reqBody.OAuthToken)
+		require.Equal(t, "oauth", *reqBody.OAuthToken)
+		require.NotNil(t, reqBody.RefreshToken)
+		require.Equal(t, "refresh", *reqBody.RefreshToken)
+		require.NotNil(t, reqBody.State)
+		require.Equal(t, "pending", *reqBody.State)
+		require.NotNil(t, reqBody.StateExpiry)
+		require.WithinDuration(t, stateExpiry, *reqBody.StateExpiry, time.Second)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GithubConnection{TenantID: "abc", ConnectionID: "conn"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	resp, err := client.UpdateGithubConnection(context.Background(), &eh.UpdateGithubConnectionRequest{
+		TenantID:     "abc",
+		ConnectionID: "conn",
+		Version:      2,
+		Private:      util.Pointer(true),
+		RunnerID:     util.Pointer("runner"),
+		OAuthToken:   util.Pointer("oauth"),
+		RefreshToken: util.Pointer("refresh"),
+		State:        util.Pointer("pending"),
+		StateExpiry:  util.Pointer(stateExpiry),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "conn", resp.ConnectionID)
+}
+
+func TestUpdateGithubConnectionError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UpdateGithubConnection(context.Background(), &eh.UpdateGithubConnectionRequest{TenantID: "abc", ConnectionID: "conn", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestUpdateGithubConnectionConflictError(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.GithubConnection{ConnectionID: "conn"},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UpdateGithubConnection(context.Background(), &eh.UpdateGithubConnectionRequest{TenantID: "abc", ConnectionID: "conn", Version: 1})
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, eh.ObjectTypeGithubConnection, clientErr.Current.ObjectType())
+	connection, ok := clientErr.Current.(*eh.GithubConnection)
+	require.True(t, ok, "Expected Current to be of type *eh.GithubConnection")
+	require.Equal(t, "conn", connection.ConnectionID)
+}
+
+func TestUpdateGithubConnectionPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedGithubConnectionID, parts[5])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GithubConnection{
+			TenantID:     tenantIDThatNeedsEscaping,
+			ConnectionID: githubConnectionIDThatNeedsEscaping,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UpdateGithubConnection(context.Background(), &eh.UpdateGithubConnectionRequest{
+		TenantID:     tenantIDThatNeedsEscaping,
+		ConnectionID: githubConnectionIDThatNeedsEscaping,
+		Version:      1,
+	})
+	require.NoError(t, err)
+}
+
 func TestAddGithubOrg(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
