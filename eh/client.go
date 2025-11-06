@@ -275,6 +275,7 @@ const (
 	ObjectTypeTask                   ObjectType = "Task"
 	ObjectTypeRunner                 ObjectType = "Runner"
 	ObjectTypeGithubOrg              ObjectType = "GithubOrg"
+	ObjectTypeGithubConnection       ObjectType = "GithubConnection"
 	ObjectTypeFeatureFlag            ObjectType = "FeatureFlag"
 	ObjectTypeFeatureFlagOverride    ObjectType = "FeatureFlagOverride"
 	ObjectTypeWorkstream             ObjectType = "Workstream"
@@ -340,6 +341,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Runner{}
 		case ObjectTypeGithubOrg:
 			current = &GithubOrg{}
+		case ObjectTypeGithubConnection:
+			current = &GithubConnection{}
 		case ObjectTypeFeatureFlag:
 			current = &FeatureFlag{}
 		case ObjectTypeFeatureFlagOverride:
