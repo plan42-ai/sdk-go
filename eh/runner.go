@@ -486,3 +486,67 @@ func (c *Client) GenerateRunnerToken(ctx context.Context, req *GenerateRunnerTok
 	}
 	return &token, nil
 }
+
+// RevokeRunnerTokenRequest is the request payload for RevokeRunnerToken.
+type RevokeRunnerTokenRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID string `json:"-"`
+	RunnerID string `json:"-"`
+	TokenID  string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *RevokeRunnerTokenRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "TokenID":
+		return r.TokenID, true
+	default:
+		return nil, false
+	}
+}
+
+// RevokeRunnerToken revokes a runner token.
+// nolint: dupl
+func (c *Client) RevokeRunnerToken(ctx context.Context, req *RevokeRunnerTokenRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return fmt.Errorf("runner id is required")
+	}
+	if req.TokenID == "" {
+		return fmt.Errorf("token id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID), "tokens", url.PathEscape(req.TokenID), "revoke")
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+	return nil
+}
