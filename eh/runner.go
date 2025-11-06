@@ -186,3 +186,71 @@ func (c *Client) ListRunners(ctx context.Context, req *ListRunnersRequest) (*Lis
 	}
 	return &out, nil
 }
+
+// DeleteRunnerRequest is the request payload for DeleteRunner.
+type DeleteRunnerRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	RunnerID string `json:"-"`
+	Version  int    `json:"-"`
+}
+
+func (r *DeleteRunnerRequest) GetVersion() int {
+	return r.Version
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteRunnerRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteRunner deletes a runner.
+// nolint: dupl
+func (c *Client) DeleteRunner(ctx context.Context, req *DeleteRunnerRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return fmt.Errorf("runner id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+	return nil
+}

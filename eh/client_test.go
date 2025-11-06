@@ -785,6 +785,87 @@ func TestCreateRunnerPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestDeleteRunner(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteRunner(context.Background(), &eh.DeleteRunnerRequest{
+		TenantID: "abc",
+		RunnerID: "runner1",
+		Version:  1,
+	})
+	require.NoError(t, err)
+}
+
+func TestDeleteRunnerError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.DeleteRunner(context.Background(), &eh.DeleteRunnerRequest{
+		TenantID: "abc",
+		RunnerID: "runner1",
+		Version:  1,
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestDeleteRunnerConflictError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveRunnerConflict()
+	defer srv.Close()
+
+	err := client.DeleteRunner(context.Background(), &eh.DeleteRunnerRequest{
+		TenantID: "abc",
+		RunnerID: "runner1",
+		Version:  1,
+	})
+	verifyRunnerConflict(t, err)
+}
+
+func TestDeleteRunnerPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteRunner(context.Background(), &eh.DeleteRunnerRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+		RunnerID: runnerIDThatNeedsEscaping,
+		Version:  1,
+	})
+	require.NoError(t, err)
+}
+
 // nolint: dupl
 func TestGetEnvironment(t *testing.T) {
 	t.Parallel()
