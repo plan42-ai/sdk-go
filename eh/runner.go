@@ -645,3 +645,106 @@ func (c *Client) RegisterRunnerInstance(ctx context.Context, req *RegisterRunner
 
 	return &instance, nil
 }
+
+// WriteResponseRequest is the request payload for WriteResponse.
+type WriteResponseRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID   string `json:"-"`
+	RunnerID   string `json:"-"`
+	InstanceID string `json:"-"`
+	MessageID  string `json:"-"`
+
+	CallerID string `json:"CallerID"`
+	Payload  string `json:"Payload"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *WriteResponseRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "InstanceID":
+		return r.InstanceID, true
+	case "MessageID":
+		return r.MessageID, true
+	case "CallerID":
+		return r.CallerID, true
+	case "Payload":
+		return r.Payload, true
+	default:
+		return nil, false
+	}
+}
+
+// WriteResponse sends a response for a runner message.
+// nolint: dupl
+func (c *Client) WriteResponse(ctx context.Context, req *WriteResponseRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return fmt.Errorf("runner id is required")
+	}
+	if req.InstanceID == "" {
+		return fmt.Errorf("instance id is required")
+	}
+	if req.MessageID == "" {
+		return fmt.Errorf("message id is required")
+	}
+	if req.CallerID == "" {
+		return fmt.Errorf("caller id is required")
+	}
+	if req.Payload == "" {
+		return fmt.Errorf("payload is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"runners",
+		url.PathEscape(req.RunnerID),
+		"instances",
+		url.PathEscape(req.InstanceID),
+		"messages",
+		url.PathEscape(req.MessageID),
+		"response",
+	)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+
+	return nil
+}

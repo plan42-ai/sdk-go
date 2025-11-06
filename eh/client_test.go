@@ -48,6 +48,8 @@ const (
 	escapedGithubConnectionID           = "conn%2F..%2F..%2Fid"
 	instanceIDThatNeedsEscaping         = "instance/../../id"
 	escapedInstanceID                   = "instance%2F..%2F..%2Fid"
+	messageIDThatNeedsEscaping          = "message/../../id"
+	escapedMessageID                    = "message%2F..%2F..%2Fid"
 
 	tokenID         = "tok"
 	taskTitle       = "new"
@@ -840,6 +842,89 @@ func TestCreateRunnerPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.CreateRunner(context.Background(), &eh.CreateRunnerRequest{TenantID: tenantIDThatNeedsEscaping, RunnerID: runnerIDThatNeedsEscaping, Name: "runner"})
+	require.NoError(t, err)
+}
+
+func TestWriteResponse(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/run/instances/inst/messages/msg/response", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		var reqBody eh.WriteResponseRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, "caller-123", reqBody.CallerID)
+		require.Equal(t, "payload", reqBody.Payload)
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.WriteResponse(context.Background(), &eh.WriteResponseRequest{
+		TenantID:   "abc",
+		RunnerID:   "run",
+		InstanceID: "inst",
+		MessageID:  "msg",
+		CallerID:   "caller-123",
+		Payload:    "payload",
+	})
+	require.NoError(t, err)
+}
+
+func TestWriteResponseError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.WriteResponse(context.Background(), &eh.WriteResponseRequest{
+		TenantID:   "abc",
+		RunnerID:   "run",
+		InstanceID: "inst",
+		MessageID:  "msg",
+		CallerID:   "caller-123",
+		Payload:    "payload",
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+}
+
+func TestWriteResponsePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 11, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedRunnerID, parts[5])
+		require.Equal(t, escapedInstanceID, parts[7])
+		require.Equal(t, escapedMessageID, parts[9])
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.WriteResponse(context.Background(), &eh.WriteResponseRequest{
+		TenantID:   tenantIDThatNeedsEscaping,
+		RunnerID:   runnerIDThatNeedsEscaping,
+		InstanceID: instanceIDThatNeedsEscaping,
+		MessageID:  messageIDThatNeedsEscaping,
+		CallerID:   "caller-123",
+		Payload:    "payload",
+	})
 	require.NoError(t, err)
 }
 
