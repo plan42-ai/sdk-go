@@ -254,3 +254,68 @@ func (c *Client) DeleteRunner(ctx context.Context, req *DeleteRunnerRequest) err
 	}
 	return nil
 }
+
+// GetRunnerRequest is the request payload for GetRunner.
+type GetRunnerRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	RunnerID string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GetRunnerRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	default:
+		return nil, false
+	}
+}
+
+// GetRunner retrieves a runner by ID.
+// nolint:dupl
+func (c *Client) GetRunner(ctx context.Context, req *GetRunnerRequest) (*Runner, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return nil, fmt.Errorf("runner id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID))
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var runner Runner
+	if err := json.NewDecoder(resp.Body).Decode(&runner); err != nil {
+		return nil, err
+	}
+	return &runner, nil
+}

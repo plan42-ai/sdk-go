@@ -133,6 +133,7 @@ const (
 	ActionListRunners               Action = "ListRunners"
 	ActionDeleteRunner              Action = "DeleteRunner"
 	ActionListGithubConnections     Action = "ListGithubConnections"
+	ActionGetRunner                 Action = "GetRunner"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -345,6 +346,7 @@ func init() {
 		ActionListRunners,               // 0x1000_0000_0000_0000
 		ActionDeleteRunner,              // 0x2000_0000_0000_0000
 		ActionListGithubConnections,     // 0x4000_0000_0000_0000
+		ActionGetRunner,                 // 0x8000_0000_0000_0000
 	})
 	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
 		TokenTypeWebUI,
