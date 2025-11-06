@@ -3253,6 +3253,105 @@ func TestListGithubConnectionsPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestDeleteGithubConnection(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/tenants/abc/github-connections/conn", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteGithubConnection(context.Background(), &eh.DeleteGithubConnectionRequest{
+		TenantID:     "abc",
+		ConnectionID: "conn",
+		Version:      1,
+	})
+	require.NoError(t, err)
+}
+
+func TestDeleteGithubConnectionError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.DeleteGithubConnection(context.Background(), &eh.DeleteGithubConnectionRequest{
+		TenantID:     "abc",
+		ConnectionID: "conn",
+		Version:      1,
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestDeleteGithubConnectionConflictError(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.GithubConnection{ConnectionID: "conn"},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteGithubConnection(context.Background(), &eh.DeleteGithubConnectionRequest{
+		TenantID:     "abc",
+		ConnectionID: "conn",
+		Version:      1,
+	})
+	var conflictErr *eh.ConflictError
+	require.ErrorAs(t, err, &conflictErr)
+	require.Equal(t, http.StatusConflict, conflictErr.ResponseCode)
+	require.NotNil(t, conflictErr.Current)
+	require.Equal(t, eh.ObjectTypeGithubConnection, conflictErr.Current.ObjectType())
+	connection, ok := conflictErr.Current.(*eh.GithubConnection)
+	require.True(t, ok, "Expected Current to be of type *eh.GithubConnection")
+	require.Equal(t, "conn", connection.ConnectionID)
+}
+
+func TestDeleteGithubConnectionPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedGithubConnectionID, parts[5])
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteGithubConnection(context.Background(), &eh.DeleteGithubConnectionRequest{
+		TenantID:     tenantIDThatNeedsEscaping,
+		ConnectionID: githubConnectionIDThatNeedsEscaping,
+		Version:      1,
+	})
+	require.NoError(t, err)
+}
+
 func TestAddGithubOrg(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
