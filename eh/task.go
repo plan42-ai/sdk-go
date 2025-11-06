@@ -100,6 +100,31 @@ func (r *GetTaskRequest) GetField(name string) (any, bool) {
 	}
 }
 
+// SearchTasksRequest is the request payload for SearchTasks.
+type SearchTasksRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID      string         `json:"-"`
+	PullRequestID *int64         `json:"-"`
+	Body          map[string]any `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+func (r *SearchTasksRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "PullRequestID":
+		if r.PullRequestID == nil {
+			return nil, false
+		}
+		return *r.PullRequestID, true
+	default:
+		return nil, false
+	}
+}
+
 // GetTask retrieves a task by ID.
 // nolint:dupl
 func (c *Client) GetTask(ctx context.Context, req *GetTaskRequest) (*Task, error) {
@@ -142,6 +167,65 @@ func (c *Client) GetTask(ctx context.Context, req *GetTaskRequest) (*Task, error
 	}
 
 	var out Task
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// SearchTasks performs a task search within a tenant.
+func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*ListTasksResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.PullRequestID == nil {
+		return nil, fmt.Errorf("pull request id is required")
+	}
+	if *req.PullRequestID <= 0 {
+		return nil, fmt.Errorf("pull request id must be positive")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", "search")
+	q := u.Query()
+	q.Set("pullRequestId", strconv.FormatInt(*req.PullRequestID, 10))
+	u.RawQuery = q.Encode()
+
+	payload := req.Body
+	if payload == nil {
+		payload = map[string]any{}
+	}
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(payload); err != nil {
+		return nil, err
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), &buf)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out ListTasksResponse
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
