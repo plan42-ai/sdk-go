@@ -34,6 +34,8 @@ const (
 	escapedTokenID                   = "tok%2F..%2F..%2Fid" // #nosec G101: This is not a credential.
 	environmentIDThatNeedsEscaping   = "env/../../id"
 	escapedEnvironmentID             = "env%2F..%2F..%2Fid"
+	runnerIDThatNeedsEscaping        = "runner/../../id"
+	escapedRunnerID                  = "runner%2F..%2F..%2Fid"
 	taskIDThatNeedsEscaping          = "task/../../id"
 	escapedTaskID                    = "task%2F..%2F..%2Fid"
 	workstreamIDThatNeedsEscaping    = "ws/../../id"
@@ -555,6 +557,36 @@ func verifyEnvironmentConflict(t *testing.T, err error) {
 	require.Equal(t, eh.Environment{EnvironmentID: "env"}, *env)
 }
 
+func serveRunnerConflict() (*httptest.Server, *eh.Client) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.Runner{RunnerID: "runner1"},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+
+	client := eh.NewClient(srv.URL)
+	return srv, client
+}
+
+func verifyRunnerConflict(t *testing.T, err error) {
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.Equal(t, "exists", clientErr.Message)
+	require.Equal(t, "Conflict", clientErr.ErrorType)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, eh.ObjectTypeRunner, clientErr.Current.ObjectType())
+	runner, ok := clientErr.Current.(*eh.Runner)
+	require.True(t, ok, "Expected Current to be of type *eh.Runner")
+	require.Equal(t, "runner1", runner.RunnerID)
+}
+
 func serveTaskConflict() (*httptest.Server, *eh.Client) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusConflict)
@@ -640,6 +672,113 @@ func TestCreateEnvironmentPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.CreateEnvironment(context.Background(), &eh.CreateEnvironmentRequest{TenantID: tenantIDThatNeedsEscaping, EnvironmentID: environmentIDThatNeedsEscaping, Name: "env"})
+	require.NoError(t, err)
+}
+
+func TestCreateRunner(t *testing.T) {
+	t.Parallel()
+
+	description := "runner-desc"
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1", r.URL.Path)
+
+		var reqBody eh.CreateRunnerRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, "runner-name", reqBody.Name)
+		require.True(t, reqBody.IsCloud)
+		require.True(t, reqBody.RunsTasks)
+		require.True(t, reqBody.ProxiesGithub)
+		require.NotNil(t, reqBody.Description)
+		require.Equal(t, description, *reqBody.Description)
+
+		now := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.Runner{
+			TenantID:      "abc",
+			RunnerID:      "runner1",
+			Name:          "runner-name",
+			Description:   &description,
+			IsCloud:       true,
+			RunsTasks:     true,
+			ProxiesGithub: true,
+			CreatedAt:     now,
+			UpdatedAt:     now,
+			Version:       1,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	runner, err := client.CreateRunner(context.Background(), &eh.CreateRunnerRequest{
+		TenantID:      "abc",
+		RunnerID:      "runner1",
+		Name:          "runner-name",
+		Description:   &description,
+		IsCloud:       true,
+		RunsTasks:     true,
+		ProxiesGithub: true,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "runner1", runner.RunnerID)
+	require.NotNil(t, runner.Description)
+	require.Equal(t, description, *runner.Description)
+}
+
+func TestCreateRunnerError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.CreateRunner(context.Background(), &eh.CreateRunnerRequest{TenantID: "abc", RunnerID: "runner1", Name: "runner-name"})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestCreateRunnerConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveRunnerConflict()
+	defer srv.Close()
+
+	_, err := client.CreateRunner(context.Background(), &eh.CreateRunnerRequest{TenantID: "abc", RunnerID: "runner1", Name: "runner-name"})
+	verifyRunnerConflict(t, err)
+}
+
+func TestCreateRunnerPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusCreated)
+		now := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+		resp := eh.Runner{
+			TenantID:  tenantIDThatNeedsEscaping,
+			RunnerID:  runnerIDThatNeedsEscaping,
+			Name:      "runner",
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.CreateRunner(context.Background(), &eh.CreateRunnerRequest{TenantID: tenantIDThatNeedsEscaping, RunnerID: runnerIDThatNeedsEscaping, Name: "runner"})
 	require.NoError(t, err)
 }
 
