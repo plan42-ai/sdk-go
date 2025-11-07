@@ -3118,7 +3118,7 @@ The UI will use 5 min cookie expiration times, to match the API service cache TT
 ## 53.1 Adding a new feature flag
 
 ```bash
-eh-ctl feature-flag create -f <flag-name> -D <description> -p <default-pct>
+eh-ctl feature-flag add -f <flag-name> -D <description> -p <default-pct>
 ```
 
 This will create a new feature flag with the given name, description and default percentage. The flag name must be
@@ -3127,7 +3127,7 @@ unique. The default percentage must be between 0.0 and 1.0.
 ## 53.2 Explicitly enabling a feature flag for a tenant
 
 ```bash
-eh-ctl feature-flag override -t <tenant-id> -f <flag-name> -e
+eh-ctl feature-flag override -i <tenant-id> -f <flag-name> -e
 ```
 
 This will create a new feature flag override for the given tenant and flag name. If an override already exists, it will
