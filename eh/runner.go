@@ -416,3 +416,73 @@ func (c *Client) UpdateRunner(ctx context.Context, req *UpdateRunnerRequest) (*R
 	}
 	return &runner, nil
 }
+
+// GenerateRunnerTokenRequest is the request payload for GenerateRunnerToken.
+type GenerateRunnerTokenRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	RunnerID string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GenerateRunnerTokenRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	default:
+		return nil, false
+	}
+}
+
+// GenerateRunnerTokenResponse is the response payload for GenerateRunnerToken.
+type GenerateRunnerTokenResponse struct {
+	TokenID   string    `json:"TokenID"`
+	Token     string    `json:"Token"`
+	ExpiresAt time.Time `json:"ExpiresAt"`
+}
+
+// GenerateRunnerToken generates a new token for a runner.
+func (c *Client) GenerateRunnerToken(ctx context.Context, req *GenerateRunnerTokenRequest) (*GenerateRunnerTokenResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return nil, fmt.Errorf("runner id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID), "generate-token")
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var token GenerateRunnerTokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&token); err != nil {
+		return nil, err
+	}
+	return &token, nil
+}
