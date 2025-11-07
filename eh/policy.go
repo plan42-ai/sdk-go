@@ -4,42 +4,47 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 )
 
-func createEnumMaps[T ~string](values []T) (map[T]int64, map[int64]T) {
-	if len(values) > 64 {
-		panic("too many enum values")
-	}
-	encodingMap := make(map[T]int64)
-	decodingMap := make(map[int64]T)
+func createEnumMaps[Enum ~string, BV Bitvector[BV]](values []Enum, bit BV) (map[Enum]BV, map[BV]Enum) {
+	encodingMap := make(map[Enum]BV)
+	decodingMap := make(map[BV]Enum)
+
+	encodingMap[Enum("*")] = bit.Not()
+
 	for i := range values {
-		encodingMap[values[i]] = 1 << i
-		decodingMap[1<<i] = values[i]
+		bit = bit.Lsh(1)
+		encodingMap[values[i]] = bit
+		decodingMap[bit] = values[i]
 	}
-	encodingMap[T("*")] = -1
+
 	return encodingMap, decodingMap
 }
 
-func CreateBitVector[T ~string](values []T, enc map[T]int64) int64 {
-	var ret int64
+func CreateBitVector[T ~string, BV Bitvector[BV]](values []T, enc map[T]BV) BV {
+	var ret BV
 	for _, v := range values {
-		ret |= enc[v]
+		ret = ret.Or(enc[v])
 	}
 	return ret
 }
 
-func CreateArray[T ~string](bv int64, dec map[int64]T) []T {
-	if bv == -1 {
+func CreateArray[T ~string, BV Bitvector[BV]](bv BV, dec map[BV]T) []T {
+	if bv.AllOnes() {
 		return []T{T("*")}
 	}
 	var ret []T
+	var bit BV
+
 	for i := 0; i < 64; i++ {
-		if (bv & (1 << i)) != 0 {
-			if item, ok := dec[1<<i]; ok {
+		bit = bit.Lsh(1)
+		if bv.And(bit).NonZero() {
+			if item, ok := dec[bit]; ok {
 				ret = append(ret, item)
 			}
 		}
@@ -167,7 +172,7 @@ type PolicyPrincipal struct {
 	Enterprise       *string       `json:"Enterprise,omitempty"`
 	EnterpriseRole   *MemberRole   `json:"EnterpriseRole,omitempty"`
 
-	TokenTypesBitVector int64 `json:"-"`
+	TokenTypesBitVector SmallBitVector `json:"-"`
 }
 
 func (p *PolicyPrincipal) GetField(name string) (any, bool) {
@@ -222,8 +227,8 @@ type Policy struct {
 	CreatedAt          time.Time        `json:"CreatedAt"`
 	UpdatedAt          time.Time        `json:"UpdatedAt"`
 
-	ActionsBitVector          int64 `json:"-"`
-	DelegatedActionsBitVector int64 `json:"-"`
+	ActionsBitVector          ActionBitVector `json:"-"`
+	DelegatedActionsBitVector ActionBitVector `json:"-"`
 }
 
 func (p *Policy) GetField(name string) (any, bool) {
@@ -274,86 +279,175 @@ func (p *Policy) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type ActionBitVector struct {
+	// Note: we use int64, so that database scans are easier (we just pass in &.ActionsBitVector.High and
+	// &.ActionsBitVector.Low as parameters). PSQL doesn't have unsigned integer types.
+	// To scan a BIGINT, we need to give it *int64, not *uint64.
+	// That means we need to convert between int64 to uint64 before doing bitwise operations
+	// (so that we get unsigned behavior), and then convert back to int64.
+	High int64
+	Low  int64
+}
+
+func (bv ActionBitVector) Lsh(n uint) ActionBitVector {
+	// #nosec: G115: twe are doing a logical left shift... no overflow.
+	return ActionBitVector{
+		High: int64(uint64(bv.High)<<n | uint64(bv.Low)>>(64-n)),
+		Low:  int64(uint64(bv.Low) << n),
+	}
+}
+
+func (bv ActionBitVector) And(other ActionBitVector) ActionBitVector {
+	return ActionBitVector{
+		High: bv.High & other.High,
+		Low:  bv.Low & other.Low,
+	}
+}
+
+func (bv ActionBitVector) Or(other ActionBitVector) ActionBitVector {
+	return ActionBitVector{
+		High: bv.High | other.High,
+		Low:  bv.Low | other.Low,
+	}
+}
+
+func (bv ActionBitVector) Not() ActionBitVector {
+	return ActionBitVector{
+		High: ^bv.High,
+		Low:  ^bv.Low,
+	}
+}
+
+func (bv ActionBitVector) AllOnes() bool {
+	return bv.High == -1 && bv.Low == -1
+}
+
+func (bv ActionBitVector) NonZero() bool {
+	return bv.High != 0 || bv.Low != 0
+}
+
+type SmallBitVector uint64
+
+func (s SmallBitVector) Lsh(n uint) SmallBitVector {
+	return s << n
+}
+
+func (s SmallBitVector) And(other SmallBitVector) SmallBitVector {
+	return s & other
+}
+
+func (s SmallBitVector) Or(other SmallBitVector) SmallBitVector {
+	return s | other
+}
+
+func (s SmallBitVector) Not() SmallBitVector {
+	return ^s
+}
+
+func (s SmallBitVector) AllOnes() bool {
+	return s == math.MaxUint64
+}
+
+func (s SmallBitVector) NonZero() bool {
+	return s != 0
+}
+
+type Bitvector[T any] interface {
+	Lsh(n uint) T
+	And(other T) T
+	Or(other T) T
+	Not() T
+	AllOnes() bool
+	NonZero() bool
+	comparable
+}
+
 var (
-	ActionToBit    map[Action]int64
-	BitToAction    map[int64]Action
-	TokenTypeToBit map[TokenType]int64
-	BitToTokenType map[int64]TokenType
+	ActionToBit    map[Action]ActionBitVector
+	BitToAction    map[ActionBitVector]Action
+	TokenTypeToBit map[TokenType]SmallBitVector
+	BitToTokenType map[SmallBitVector]TokenType
 )
 
 func init() {
-	ActionToBit, BitToAction = createEnumMaps([]Action{
-		ActionPerformDelegatedAction,    // 0x0000_0000_0000_0001
-		ActionCreateTenant,              // 0x0000_0000_0000_0002
-		ActionGetTenant,                 // 0x0000_0000_0000_0004
-		ActionGenerateWebUIToken,        // 0x0000_0000_0000_0008
-		ActionListPolicies,              // 0x0000_0000_0000_0010
-		ActionUpdateTurn,                // 0x0000_0000_0000_0020
-		ActionUpdateTask,                // 0x0000_0000_0000_0040
-		ActionGetTask,                   // 0x0000_0000_0000_0080
-		ActionListTasks,                 // 0x0000_0000_0000_0100
-		ActionGetTurn,                   // 0x0000_0000_0000_0200
-		ActionUploadTurnLogs,            // 0x0000_0000_0000_0400
-		ActionGetCurrentUser,            // 0x0000_0000_0000_0800
-		ActionCreateEnvironment,         // 0x0000_0000_0000_1000
-		ActionGetEnvironment,            // 0x0000_0000_0000_2000
-		ActionListEnvironments,          // 0x0000_0000_0000_4000
-		ActionUpdateEnvironment,         // 0x0000_0000_0000_8000
-		ActionDeleteEnvironment,         // 0x0000_0000_0001_0000
-		ActionGetLastTurn,               // 0x0000_0000_0002_0000
-		ActionCreateTask,                // 0x0000_0000_0004_0000
-		ActionGetLastTurnLog,            // 0x0000_0000_0008_0000
-		ActionStreamLogs,                // 0x0000_0000_0010_0000
-		ActionListTurns,                 // 0x0000_0000_0020_0000
-		ActionAddGithubOrg,              // 0x0000_0000_0040_0000
-		ActionUpdateGithubOrg,           // 0x0000_0000_0080_0000
-		ActionDeleteGithubOrg,           // 0x0000_0000_0100_0000
-		ActionListGithubOrgs,            // 0x0000_0000_0200_0000
-		ActionGetGithubOrg,              // 0x0000_0000_0400_0000
-		ActionCreateFeatureFlag,         // 0x0000_0000_0800_0000
-		ActionGetTenantFeatureFlags,     // 0x0000_0000_1000_0000
-		ActionCreateFeatureFlagOverride, // 0x0000_0000_2000_0000
-		ActionListFeatureFlags,          // 0x0000_0000_4000_0000
-		ActionGetFeatureFlag,            // 0x0000_0000_8000_0000
-		ActionUpdateFeatureFlag,         // 0x0000_0001_0000_0000
-		ActionDeleteFeatureFlag,         // 0x0000_0002_0000_0000
-		ActionDeleteFeatureFlagOverride, // 0x0000_0004_0000_0000
-		ActionGetFeatureFlagOverride,    // 0x0000_0008_0000_0000
-		ActionUpdateFeatureFlagOverride, // 0x0000_0010_0000_0000
-		ActionListFeatureFlagOverrides,  // 0x0000_0020_0000_0000
-		ActionGetTenantGithubCreds,      // 0x0000_0040_0000_0000
-		ActionUpdateTenantGithubCreds,   // 0x0000_0080_0000_0000
-		ActionFindGithubUser,            // 0x0000_0100_0000_0000
-		ActionCreateWorkstream,          // 0x0000_0200_0000_0000
-		ActionGetWorkstream,             // 0x0000_0400_0000_0000
-		ActionUpdateWorkstream,          // 0x0000_0800_0000_0000
-		ActionListWorkstreams,           // 0x0000_1000_0000_0000
-		ActionDeleteWorkstream,          // 0x0000_2000_0000_0000
-		ActionAddWorkstreamShortName,    // 0x0000_4000_0000_0000
-		ActionListWorkstreamShortNames,  // 0x0000_8000_0000_0000
-		ActionDeleteWorkstreamShortName, // 0x0001_0000_0000_0000
-		ActionMoveTask,                  // 0x0002_0000_0000_0000
-		ActionMoveShortName,             // 0x0004_0000_0000_0000
-		ActionListTenants,               // 0x0008_0000_0000_0000
-		ActionCreateWorkstreamTask,      // 0x0010_0000_0000_0000
-		ActionListWorkstreamTasks,       // 0x0020_0000_0000_0000
-		ActionDeleteWorkstreamTask,      // 0x0040_0000_0000_0000
-		ActionUpdateWorkstreamTask,      // 0x0080_0000_0000_0000
-		ActionGetWorkstreamTask,         // 0x0100_0000_0000_0000
-		ActionSearchTasks,               // 0x0200_0000_0000_0000
-		ActionCreateRunner,              // 0x0400_0000_0000_0000
-		ActionCreateGithubConnection,    // 0x0800_0000_0000_0000
-		ActionListRunners,               // 0x1000_0000_0000_0000
-		ActionDeleteRunner,              // 0x2000_0000_0000_0000
-		ActionListGithubConnections,     // 0x4000_0000_0000_0000
-		ActionGetRunner,                 // 0x8000_0000_0000_0000
-	})
-	TokenTypeToBit, BitToTokenType = createEnumMaps([]TokenType{
-		TokenTypeWebUI,
-		TokenTypeAuthProvider,
-		TokenTypeServiceAccount,
-		TokenTypeAgent,
-	})
+	ActionToBit, BitToAction = createEnumMaps(
+		[]Action{
+			ActionPerformDelegatedAction,    // 0x0000_0000_0000_0001
+			ActionCreateTenant,              // 0x0000_0000_0000_0002
+			ActionGetTenant,                 // 0x0000_0000_0000_0004
+			ActionGenerateWebUIToken,        // 0x0000_0000_0000_0008
+			ActionListPolicies,              // 0x0000_0000_0000_0010
+			ActionUpdateTurn,                // 0x0000_0000_0000_0020
+			ActionUpdateTask,                // 0x0000_0000_0000_0040
+			ActionGetTask,                   // 0x0000_0000_0000_0080
+			ActionListTasks,                 // 0x0000_0000_0000_0100
+			ActionGetTurn,                   // 0x0000_0000_0000_0200
+			ActionUploadTurnLogs,            // 0x0000_0000_0000_0400
+			ActionGetCurrentUser,            // 0x0000_0000_0000_0800
+			ActionCreateEnvironment,         // 0x0000_0000_0000_1000
+			ActionGetEnvironment,            // 0x0000_0000_0000_2000
+			ActionListEnvironments,          // 0x0000_0000_0000_4000
+			ActionUpdateEnvironment,         // 0x0000_0000_0000_8000
+			ActionDeleteEnvironment,         // 0x0000_0000_0001_0000
+			ActionGetLastTurn,               // 0x0000_0000_0002_0000
+			ActionCreateTask,                // 0x0000_0000_0004_0000
+			ActionGetLastTurnLog,            // 0x0000_0000_0008_0000
+			ActionStreamLogs,                // 0x0000_0000_0010_0000
+			ActionListTurns,                 // 0x0000_0000_0020_0000
+			ActionAddGithubOrg,              // 0x0000_0000_0040_0000
+			ActionUpdateGithubOrg,           // 0x0000_0000_0080_0000
+			ActionDeleteGithubOrg,           // 0x0000_0000_0100_0000
+			ActionListGithubOrgs,            // 0x0000_0000_0200_0000
+			ActionGetGithubOrg,              // 0x0000_0000_0400_0000
+			ActionCreateFeatureFlag,         // 0x0000_0000_0800_0000
+			ActionGetTenantFeatureFlags,     // 0x0000_0000_1000_0000
+			ActionCreateFeatureFlagOverride, // 0x0000_0000_2000_0000
+			ActionListFeatureFlags,          // 0x0000_0000_4000_0000
+			ActionGetFeatureFlag,            // 0x0000_0000_8000_0000
+			ActionUpdateFeatureFlag,         // 0x0000_0001_0000_0000
+			ActionDeleteFeatureFlag,         // 0x0000_0002_0000_0000
+			ActionDeleteFeatureFlagOverride, // 0x0000_0004_0000_0000
+			ActionGetFeatureFlagOverride,    // 0x0000_0008_0000_0000
+			ActionUpdateFeatureFlagOverride, // 0x0000_0010_0000_0000
+			ActionListFeatureFlagOverrides,  // 0x0000_0020_0000_0000
+			ActionGetTenantGithubCreds,      // 0x0000_0040_0000_0000
+			ActionUpdateTenantGithubCreds,   // 0x0000_0080_0000_0000
+			ActionFindGithubUser,            // 0x0000_0100_0000_0000
+			ActionCreateWorkstream,          // 0x0000_0200_0000_0000
+			ActionGetWorkstream,             // 0x0000_0400_0000_0000
+			ActionUpdateWorkstream,          // 0x0000_0800_0000_0000
+			ActionListWorkstreams,           // 0x0000_1000_0000_0000
+			ActionDeleteWorkstream,          // 0x0000_2000_0000_0000
+			ActionAddWorkstreamShortName,    // 0x0000_4000_0000_0000
+			ActionListWorkstreamShortNames,  // 0x0000_8000_0000_0000
+			ActionDeleteWorkstreamShortName, // 0x0001_0000_0000_0000
+			ActionMoveTask,                  // 0x0002_0000_0000_0000
+			ActionMoveShortName,             // 0x0004_0000_0000_0000
+			ActionListTenants,               // 0x0008_0000_0000_0000
+			ActionCreateWorkstreamTask,      // 0x0010_0000_0000_0000
+			ActionListWorkstreamTasks,       // 0x0020_0000_0000_0000
+			ActionDeleteWorkstreamTask,      // 0x0040_0000_0000_0000
+			ActionUpdateWorkstreamTask,      // 0x0080_0000_0000_0000
+			ActionGetWorkstreamTask,         // 0x0100_0000_0000_0000
+			ActionSearchTasks,               // 0x0200_0000_0000_0000
+			ActionCreateRunner,              // 0x0400_0000_0000_0000
+			ActionCreateGithubConnection,    // 0x0800_0000_0000_0000
+			ActionListRunners,               // 0x1000_0000_0000_0000
+			ActionDeleteRunner,              // 0x2000_0000_0000_0000
+			ActionListGithubConnections,     // 0x4000_0000_0000_0000
+			ActionGetRunner,                 // 0x8000_0000_0000_0000
+		},
+		ActionBitVector{},
+	)
+	TokenTypeToBit, BitToTokenType = createEnumMaps(
+		[]TokenType{
+			TokenTypeWebUI,
+			TokenTypeAuthProvider,
+			TokenTypeServiceAccount,
+			TokenTypeAgent,
+		},
+		SmallBitVector(0),
+	)
 }
 
 type AuthorizationType string
