@@ -3963,6 +3963,7 @@ Content-Type: application/json; charset=utf-8
     "ProxiesGithub": bool,
     "CreatedAt": "string",
     "UpdatedAt": "string",
+    "Deleted": bool,
     "Version": int
 }
 ```
@@ -3978,6 +3979,7 @@ Content-Type: application/json; charset=utf-8
 | ProxiesGithub | bool   | Whether the runner proxies access to github.                        |
 | CreatedAt     | string | The timestamp when the runner was created.                          |
 | UpdatedAt     | string | The timestamp when the runner was last updated.                     |
+| Deleted       | bool   | Whether the runner has been deleted.                                |
 | Version       | int    | The version of the runner. Used for optimistic concurrency control. |
 
 # 66. ListRunners
@@ -3987,7 +3989,7 @@ The ListRunners API lists runners associated with a tenant.
 ## 66.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/runners?maxResults={maxResults}&token={token} HTTP/1.1
+GET /v1/tenants/{tenant_id}/runners?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -3999,6 +4001,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | tenant_id                                | path     | string  | The ID of the tenant that owns the runners.                                                                     |
 | maxResults                               | query    | *int    | Optional. The maximum number of runners to return. Default is 10. Must be >=1 and <= 500.                       |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted runners in the results.                                                |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                       |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
@@ -4029,7 +4032,7 @@ The GetRunner API retrieves a runner associated with a tenant.
 ## 67.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/runners/{runner_id} HTTP/1.1
+GET /v1/tenants/{tenant_id}/runners/{runner_id}?includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -4040,6 +4043,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|---------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
 | runner_id                                | path     | string  | The ID of the runner to retrieve.                                   |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return a deleted runner.                   |
 | Authorization                            | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
@@ -4062,6 +4066,7 @@ Content-Type: application/json; charset=utf-8
     "ProxiesGithub": bool,
     "CreatedAt": "string",
     "UpdatedAt": "string",
+    "Deleted": bool,
     "Version": int
 }
 ```
@@ -4088,7 +4093,8 @@ If-Match: <version>
     "Description": "*string",
     "IsCloud" : "*bool",
     "RunsTasks" : "*bool",
-    "ProxiesGithub":*bool    
+    "ProxiesGithub":*bool,
+    "Deleted": "*bool"    
 }
 ```
 
@@ -4105,6 +4111,7 @@ If-Match: <version>
 | IsCloud                                  | body     | *bool   | Optional. When set, updates whether the runner is a cloud runner.            |
 | RunsTasks                                | body     | *bool   | Optional. When set, updates whether the runner is used to execute tasks.     |
 | ProxiesGithub                            | body     | *bool   | Optional. When set, updates whether the runner proxies access to github.     |
+| Deleted                                  | body     | *bool   | Optional. Set to false to undelete a runner.                                 |
 
 ## 68.2 Response
 
@@ -4124,6 +4131,7 @@ Content-Type: application/json; charset=utf-8
     "ProxiesGithub": bool,
     "CreatedAt": "string",
     "UpdatedAt": "string",
+    "Deleted": bool,
     "Version": int
 }
 ```
@@ -4132,7 +4140,7 @@ See [here](#652-response) for more details.
 
 # 69. DeleteRunner
 
-The DeleteRunner API hard deletes a runner associated with a tenant. 
+The DeleteRunner API soft deletes a runner associated with a tenant. 
 
 ## 69.1 Request
 

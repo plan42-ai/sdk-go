@@ -22,6 +22,7 @@ type Runner struct {
 	ProxiesGithub bool      `json:"ProxiesGithub"`
 	CreatedAt     time.Time `json:"CreatedAt"`
 	UpdatedAt     time.Time `json:"UpdatedAt"`
+	Deleted       bool      `json:"Deleted"`
 	Version       int       `json:"Version"`
 }
 
@@ -94,6 +95,7 @@ type UpdateRunnerRequest struct {
 	IsCloud       *bool   `json:"IsCloud,omitempty"`
 	RunsTasks     *bool   `json:"RunsTasks,omitempty"`
 	ProxiesGithub *bool   `json:"ProxiesGithub,omitempty"`
+	Deleted       *bool   `json:"Deleted,omitempty"`
 }
 
 func (r *UpdateRunnerRequest) GetVersion() int {
@@ -120,6 +122,8 @@ func (r *UpdateRunnerRequest) GetField(name string) (any, bool) {
 		return evalNullable(r.RunsTasks)
 	case "ProxiesGithub":
 		return evalNullable(r.ProxiesGithub)
+	case "Deleted":
+		return evalNullable(r.Deleted)
 	default:
 		return nil, false
 	}
@@ -178,9 +182,10 @@ type ListRunnersRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID   string
-	MaxResults *int
-	Token      *string
+	TenantID       string
+	MaxResults     *int
+	Token          *string
+	IncludeDeleted *bool
 }
 
 // GetField retrieves the value of a field by name.
@@ -193,6 +198,8 @@ func (r *ListRunnersRequest) GetField(name string) (any, bool) {
 		return evalNullable(r.MaxResults)
 	case "Token":
 		return evalNullable(r.Token)
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -215,6 +222,9 @@ func (c *Client) ListRunners(ctx context.Context, req *ListRunnersRequest) (*Lis
 	}
 	if req.Token != nil {
 		q.Set("token", *req.Token)
+	}
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
 	}
 	u.RawQuery = q.Encode()
 
@@ -319,8 +329,9 @@ type GetRunnerRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID string `json:"-"`
-	RunnerID string `json:"-"`
+	TenantID       string `json:"-"`
+	RunnerID       string `json:"-"`
+	IncludeDeleted *bool  `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -331,6 +342,8 @@ func (r *GetRunnerRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "RunnerID":
 		return r.RunnerID, true
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -350,6 +363,11 @@ func (c *Client) GetRunner(ctx context.Context, req *GetRunnerRequest) (*Runner,
 	}
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID))
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
