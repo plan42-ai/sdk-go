@@ -4032,3 +4032,50 @@ Content-Type: application/json; charset=utf-8
 
 See [Task](#183-response) for field descriptions.
 
+# 68. SearchTasks
+
+The SearchTasks API searches for tasks within a tenant. Currently the only supported search criterion is a GitHub pull request ID.
+
+## 68.1 Request
+
+```http request
+POST /v1/tenants/{tenant_id}/tasks/search?pullRequestId={pullRequestId} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                           |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to search.                                                                                       |
+| pullRequestId                            | query    | *int    | The GitHub pull request ID to search for. Required when searching by pull request.                                    |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                             |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                   |
+
+The request body must be valid JSON. At present the body should be an empty object ( `{}` ). Future iterations of this API may define additional fields in the body.
+
+## 68.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Tasks": [],
+  "NextToken": "*string"
+}
+```
+
+| Field     | Type                    | Description                                                                                    |
+|-----------|-------------------------|------------------------------------------------------------------------------------------------|
+| Tasks     | [][Task](#183-response) | The set of tasks that match the provided search criteria.                                      |
+| NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
+
+Requests that do not match any tasks return `Tasks: []` with `NextToken` unset. If the supplied `pullRequestId` is invalid or the caller lacks access to the tenant, standard error responses are returned.
