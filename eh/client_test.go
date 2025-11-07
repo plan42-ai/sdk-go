@@ -866,6 +866,67 @@ func TestDeleteRunnerPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetRunner(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner", r.URL.Path)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Runner{TenantID: "abc", RunnerID: "runner"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	runner, err := client.GetRunner(context.Background(), &eh.GetRunnerRequest{TenantID: "abc", RunnerID: "runner"})
+	require.NoError(t, err)
+	require.Equal(t, "runner", runner.RunnerID)
+}
+
+func TestGetRunnerError(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusNotFound, Message: "nope", ErrorType: "NotFound"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetRunner(context.Background(), &eh.GetRunnerRequest{TenantID: "abc", RunnerID: "runner"})
+	require.Error(t, err)
+}
+
+// nolint:dupl
+func TestGetRunnerPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Runner{TenantID: tenantIDThatNeedsEscaping, RunnerID: runnerIDThatNeedsEscaping}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetRunner(context.Background(), &eh.GetRunnerRequest{TenantID: tenantIDThatNeedsEscaping, RunnerID: runnerIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
 // nolint: dupl
 func TestGetEnvironment(t *testing.T) {
 	t.Parallel()
@@ -4234,6 +4295,19 @@ func TestFeatureFlagsHeader(t *testing.T) {
 					FeatureFlags:  eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
 					TenantID:      "t",
 					EnvironmentID: "e",
+				})
+				return err
+			},
+		},
+		{
+			name:   "GetRunner",
+			status: http.StatusOK,
+			resp:   eh.Runner{},
+			call: func(c *eh.Client) error {
+				_, err := c.GetRunner(context.Background(), &eh.GetRunnerRequest{
+					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+					TenantID:     "t",
+					RunnerID:     "r",
 				})
 				return err
 			},

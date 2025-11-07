@@ -664,6 +664,7 @@ type GenerateWebUITokenResponse struct {
 }
 
 // GenerateWebUIToken generates a new Web UI token.
+// nolint:dupl
 func (c *Client) GenerateWebUIToken(ctx context.Context, req *GenerateWebUITokenRequest) (*GenerateWebUITokenResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
