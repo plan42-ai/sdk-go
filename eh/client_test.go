@@ -30,24 +30,27 @@ const (
 	tenantIDThatNeedsEscaping = "foo/../../bar"
 	escapedTenantID           = "foo%2F..%2F..%2Fbar"
 
-	tokenIDThatNeedsEscaping         = "tok/../../id"       // #nosec G101: This is not a credential.
-	escapedTokenID                   = "tok%2F..%2F..%2Fid" // #nosec G101: This is not a credential.
-	environmentIDThatNeedsEscaping   = "env/../../id"
-	escapedEnvironmentID             = "env%2F..%2F..%2Fid"
-	runnerIDThatNeedsEscaping        = "runner/../../id"
-	escapedRunnerID                  = "runner%2F..%2F..%2Fid"
-	taskIDThatNeedsEscaping          = "task/../../id"
-	escapedTaskID                    = "task%2F..%2F..%2Fid"
-	workstreamIDThatNeedsEscaping    = "ws/../../id"
-	escapedWorkstreamID              = "ws%2F..%2F..%2Fid"
-	githubOrgIDThatNeedsEscaping     = "org/../../id"
-	escapedGithubOrgID               = "org%2F..%2F..%2Fid"
-	featureFlagNameThatNeedsEscaping = "flag/../../name"
-	escapedFeatureFlagName           = "flag%2F..%2F..%2Fname"
+	tokenIDThatNeedsEscaping            = "tok/../../id"       // #nosec G101: This is not a credential.
+	escapedTokenID                      = "tok%2F..%2F..%2Fid" // #nosec G101: This is not a credential.
+	environmentIDThatNeedsEscaping      = "env/../../id"
+	escapedEnvironmentID                = "env%2F..%2F..%2Fid"
+	taskIDThatNeedsEscaping             = "task/../../id"
+	escapedTaskID                       = "task%2F..%2F..%2Fid"
+	workstreamIDThatNeedsEscaping       = "ws/../../id"
+	escapedWorkstreamID                 = "ws%2F..%2F..%2Fid"
+	githubOrgIDThatNeedsEscaping        = "org/../../id"
+	escapedGithubOrgID                  = "org%2F..%2F..%2Fid"
+	featureFlagNameThatNeedsEscaping    = "flag/../../name"
+	escapedFeatureFlagName              = "flag%2F..%2F..%2Fname"
+	runnerIDThatNeedsEscaping           = "runner/../../id"
+	escapedRunnerID                     = "runner%2F..%2F..%2Fid"
+	githubConnectionIDThatNeedsEscaping = "conn/../../id"
+	escapedGithubConnectionID           = "conn%2F..%2F..%2Fid"
 
-	tokenID    = "tok"
-	taskTitle  = "new"
-	turnStatus = "Done"
+	tokenID         = "tok"
+	taskTitle       = "new"
+	turnStatus      = "Done"
+	githubUserLogin = "octocat"
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -2724,6 +2727,194 @@ func TestStreamTurnLogsPathEscaping(t *testing.T) {
 	})
 	require.NoError(t, err)
 	_ = body.Close()
+}
+
+func TestCreateGithubConnection(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now().UTC()
+	tokenExpiry := now.Add(time.Hour)
+	stateExpiry := now.Add(2 * time.Hour)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/github-connections/conn", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		var reqBody eh.CreateGithubConnectionRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.False(t, reqBody.Private)
+		require.Nil(t, reqBody.RunnerID)
+		require.NotNil(t, reqBody.GithubUserLogin)
+		require.Equal(t, githubUserLogin, *reqBody.GithubUserLogin)
+		require.NotNil(t, reqBody.GithubUserID)
+		require.Equal(t, 123, *reqBody.GithubUserID)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.GithubConnection{
+			TenantID:        "abc",
+			ConnectionID:    "conn",
+			Private:         false,
+			GithubUserLogin: util.Pointer(githubUserLogin),
+			GithubUserID:    util.Pointer(123),
+			OAuthToken:      util.Pointer("token"),
+			RefreshToken:    util.Pointer("refresh"),
+			TokenExpiry:     &tokenExpiry,
+			State:           util.Pointer("pending"),
+			StateExpiry:     &stateExpiry,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+			Version:         1,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	login := githubUserLogin
+	userID := 123
+
+	resp, err := client.CreateGithubConnection(context.Background(), &eh.CreateGithubConnectionRequest{
+		TenantID:        "abc",
+		ConnectionID:    "conn",
+		GithubUserLogin: &login,
+		GithubUserID:    &userID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "conn", resp.ConnectionID)
+	require.NotNil(t, resp.GithubUserLogin)
+	require.Equal(t, githubUserLogin, *resp.GithubUserLogin)
+	require.NotNil(t, resp.TokenExpiry)
+	require.Equal(t, tokenExpiry, *resp.TokenExpiry)
+	require.Equal(t, 1, resp.Version)
+}
+
+func TestCreateGithubConnectionError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	login := githubUserLogin
+	userID := 123
+	_, err := client.CreateGithubConnection(context.Background(), &eh.CreateGithubConnectionRequest{
+		TenantID:        "abc",
+		ConnectionID:    "conn",
+		GithubUserLogin: &login,
+		GithubUserID:    &userID,
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+}
+
+func TestCreateGithubConnectionConflictError(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(eh.ConflictError{
+			ResponseCode: http.StatusConflict,
+			Message:      "exists",
+			ErrorType:    "Conflict",
+			Current:      &eh.GithubConnection{ConnectionID: "conn"},
+		})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	login := githubUserLogin
+	userID := 123
+
+	_, err := client.CreateGithubConnection(context.Background(), &eh.CreateGithubConnectionRequest{
+		TenantID:        "abc",
+		ConnectionID:    "conn",
+		GithubUserLogin: &login,
+		GithubUserID:    &userID,
+	})
+	var clientErr *eh.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, eh.ObjectTypeGithubConnection, clientErr.Current.ObjectType())
+	connection, ok := clientErr.Current.(*eh.GithubConnection)
+	require.True(t, ok, "Expected Current to be of type *eh.GithubConnection")
+	require.Equal(t, "conn", connection.ConnectionID)
+}
+
+func TestCreateGithubConnectionPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedGithubConnectionID, parts[5])
+
+		w.WriteHeader(http.StatusCreated)
+		now := time.Now().UTC()
+		resp := eh.GithubConnection{
+			TenantID:     tenantIDThatNeedsEscaping,
+			ConnectionID: githubConnectionIDThatNeedsEscaping,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+			Version:      1,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.CreateGithubConnection(context.Background(), &eh.CreateGithubConnectionRequest{
+		TenantID:        tenantIDThatNeedsEscaping,
+		ConnectionID:    githubConnectionIDThatNeedsEscaping,
+		GithubUserLogin: util.Pointer(githubUserLogin),
+		GithubUserID:    util.Pointer(123),
+	})
+	require.NoError(t, err)
+}
+
+func TestCreateGithubConnectionPrivateValidation(t *testing.T) {
+	t.Parallel()
+
+	client := eh.NewClient("https://api.example.com")
+
+	_, err := client.CreateGithubConnection(context.Background(), &eh.CreateGithubConnectionRequest{
+		TenantID:     "abc",
+		ConnectionID: "conn",
+		Private:      true,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "runner id is required when private is true")
+
+	_, err = client.CreateGithubConnection(context.Background(), &eh.CreateGithubConnectionRequest{
+		TenantID:        "abc",
+		ConnectionID:    "conn",
+		Private:         true,
+		RunnerID:        util.Pointer("runner"),
+		GithubUserLogin: util.Pointer(githubUserLogin),
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "github user login must be nil when private is true")
+
+	_, err = client.CreateGithubConnection(context.Background(), &eh.CreateGithubConnectionRequest{
+		TenantID:     "abc",
+		ConnectionID: "conn",
+		Private:      true,
+		RunnerID:     util.Pointer("runner"),
+		GithubUserID: util.Pointer(123),
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "github user id must be nil when private is true")
 }
 
 func TestAddGithubOrg(t *testing.T) {

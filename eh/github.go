@@ -26,6 +26,121 @@ type GithubOrg struct {
 // ObjectType returns the object type for ConflictError handling.
 func (GithubOrg) ObjectType() ObjectType { return ObjectTypeGithubOrg }
 
+// GithubConnection represents a GitHub connection for a tenant.
+type GithubConnection struct {
+	TenantID        string     `json:"TenantID"`
+	ConnectionID    string     `json:"ConnectionID"`
+	Private         bool       `json:"Private"`
+	RunnerID        *string    `json:"RunnerID,omitempty"`
+	GithubUserLogin *string    `json:"GithubUserLogin,omitempty"`
+	GithubUserID    *int       `json:"GithubUserID,omitempty"`
+	OAuthToken      *string    `json:"OAuthToken,omitempty"`
+	RefreshToken    *string    `json:"RefreshToken,omitempty"`
+	TokenExpiry     *time.Time `json:"TokenExpiry,omitempty"`
+	State           *string    `json:"State,omitempty"`
+	StateExpiry     *time.Time `json:"StateExpiry,omitempty"`
+	CreatedAt       time.Time  `json:"CreatedAt"`
+	UpdatedAt       time.Time  `json:"UpdatedAt"`
+	Version         int        `json:"Version"`
+}
+
+// ObjectType returns the object type for ConflictError handling.
+func (GithubConnection) ObjectType() ObjectType { return ObjectTypeGithubConnection }
+
+// CreateGithubConnectionRequest is the request payload for CreateGithubConnection.
+type CreateGithubConnectionRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID     string `json:"-"`
+	ConnectionID string `json:"-"`
+
+	Private         bool    `json:"Private"`
+	RunnerID        *string `json:"RunnerID,omitempty"`
+	GithubUserLogin *string `json:"GithubUserLogin,omitempty"`
+	GithubUserID    *int    `json:"GithubUserID,omitempty"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *CreateGithubConnectionRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "ConnectionID":
+		return r.ConnectionID, true
+	case "Private":
+		return r.Private, true
+	case "RunnerID":
+		return evalNullable(r.RunnerID)
+	case "GithubUserLogin":
+		return evalNullable(r.GithubUserLogin)
+	case "GithubUserID":
+		return evalNullable(r.GithubUserID)
+	default:
+		return nil, false
+	}
+}
+
+// CreateGithubConnection creates a GitHub connection for a tenant.
+// nolint: dupl
+func (c *Client) CreateGithubConnection(ctx context.Context, req *CreateGithubConnectionRequest) (*GithubConnection, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.ConnectionID == "" {
+		return nil, fmt.Errorf("connection id is required")
+	}
+	if req.Private && req.RunnerID == nil {
+		return nil, fmt.Errorf("runner id is required when private is true")
+	}
+	if req.Private {
+		if req.GithubUserLogin != nil {
+			return nil, fmt.Errorf("github user login must be nil when private is true")
+		}
+		if req.GithubUserID != nil {
+			return nil, fmt.Errorf("github user id must be nil when private is true")
+		}
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github-connections", url.PathEscape(req.ConnectionID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out GithubConnection
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // FindGithubUserRequest is the request for FindGithubUser.
 // Exactly one of GithubID or GithubLogin must be provided.
 type FindGithubUserRequest struct {
