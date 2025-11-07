@@ -2998,6 +2998,71 @@ func TestCreateGithubConnectionPrivateValidation(t *testing.T) {
 	require.Contains(t, err.Error(), "github user id must be nil when private is true")
 }
 
+func TestListGithubConnections(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/github-connections", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+		require.Equal(t, "10", r.URL.Query().Get("maxResults"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.List[eh.GithubConnection]{
+			Items: []eh.GithubConnection{{ConnectionID: "conn-1"}},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	maxResults := 10
+	resp, err := client.ListGithubConnections(context.Background(), &eh.ListGithubConnectionsRequest{
+		TenantID:   "abc",
+		MaxResults: &maxResults,
+		Token:      util.Pointer(tokenID),
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "conn-1", resp.Items[0].ConnectionID)
+}
+
+func TestListGithubConnectionsError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListGithubConnections(context.Background(), &eh.ListGithubConnectionsRequest{TenantID: "abc"})
+	require.Error(t, err)
+}
+
+func TestListGithubConnectionsPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, "github-connections", parts[4])
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.List[eh.GithubConnection]{Items: []eh.GithubConnection{}}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListGithubConnections(context.Background(), &eh.ListGithubConnectionsRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+	})
+	require.NoError(t, err)
+}
+
 func TestAddGithubOrg(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
