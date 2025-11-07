@@ -273,6 +273,7 @@ const (
 	ObjectTypeWebUITokenThumbprint   ObjectType = "WebUITokenThumbprint"
 	ObjectTypeTurn                   ObjectType = "Turn"
 	ObjectTypeTask                   ObjectType = "Task"
+	ObjectTypeRunner                 ObjectType = "Runner"
 	ObjectTypeGithubOrg              ObjectType = "GithubOrg"
 	ObjectTypeFeatureFlag            ObjectType = "FeatureFlag"
 	ObjectTypeFeatureFlagOverride    ObjectType = "FeatureFlagOverride"
@@ -335,6 +336,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Turn{}
 		case ObjectTypeTask:
 			current = &Task{}
+		case ObjectTypeRunner:
+			current = &Runner{}
 		case ObjectTypeGithubOrg:
 			current = &GithubOrg{}
 		case ObjectTypeFeatureFlag:
