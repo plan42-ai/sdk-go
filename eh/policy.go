@@ -140,6 +140,7 @@ const (
 	ActionListGithubConnections     Action = "ListGithubConnections"
 	ActionGetRunner                 Action = "GetRunner"
 	ActionUpdateRunner              Action = "UpdateRunner"
+	ActionDeleteGithubConnection    Action = "DeleteGithubConnection"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -162,17 +163,16 @@ const (
 
 // PolicyPrincipal defines the principal that a policy applies to.
 type PolicyPrincipal struct {
-	Type             PrincipalType `json:"Type"`
-	Name             *string       `json:"Name,omitempty"`
-	RoleArn          *string       `json:"RoleArn,omitempty"`
-	Tenant           *string       `json:"Tenant,omitempty"`
-	TokenTypes       []TokenType   `json:"TokenTypes,omitempty"`
-	Provider         *string       `json:"Provider,omitempty"`
-	Organization     *string       `json:"Organization,omitempty"`
-	OrganizationRole *MemberRole   `json:"OrganizationRole,omitempty"`
-	Enterprise       *string       `json:"Enterprise,omitempty"`
-	EnterpriseRole   *MemberRole   `json:"EnterpriseRole,omitempty"`
-
+	Type                PrincipalType  `json:"Type"`
+	Name                *string        `json:"Name,omitempty"`
+	RoleArn             *string        `json:"RoleArn,omitempty"`
+	Tenant              *string        `json:"Tenant,omitempty"`
+	TokenTypes          []TokenType    `json:"TokenTypes,omitempty"`
+	Provider            *string        `json:"Provider,omitempty"`
+	Organization        *string        `json:"Organization,omitempty"`
+	OrganizationRole    *MemberRole    `json:"OrganizationRole,omitempty"`
+	Enterprise          *string        `json:"Enterprise,omitempty"`
+	EnterpriseRole      *MemberRole    `json:"EnterpriseRole,omitempty"`
 	TokenTypesBitVector SmallBitVector `json:"-"`
 }
 
@@ -437,7 +437,8 @@ func init() {
 			ActionDeleteRunner,              // 0x2000_0000_0000_0000
 			ActionListGithubConnections,     // 0x4000_0000_0000_0000
 			ActionGetRunner,                 // 0x8000_0000_0000_0000
-			ActionUpdateRunner,              // (0x0000_0000_0000_001, 0)
+			ActionUpdateRunner,              // (0x0000_0000_0000_0001, 0)
+			ActionDeleteGithubConnection,    // (0x0000_0000_0000_0002, 0)
 		},
 		ActionBitVector{},
 	)

@@ -215,6 +215,76 @@ func (c *Client) ListGithubConnections(ctx context.Context, req *ListGithubConne
 	return &out, nil
 }
 
+// DeleteGithubConnectionRequest is the request payload for DeleteGithubConnection.
+type DeleteGithubConnectionRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID     string `json:"-"`
+	ConnectionID string `json:"-"`
+	Version      int    `json:"-"`
+}
+
+// GetVersion returns the expected version for optimistic concurrency control.
+func (r *DeleteGithubConnectionRequest) GetVersion() int {
+	return r.Version
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteGithubConnectionRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "ConnectionID":
+		return r.ConnectionID, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteGithubConnection deletes a GitHub connection for a tenant.
+func (c *Client) DeleteGithubConnection(ctx context.Context, req *DeleteGithubConnectionRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.ConnectionID == "" {
+		return fmt.Errorf("connection id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github-connections", url.PathEscape(req.ConnectionID))
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+
+	return nil
+}
+
 // FindGithubUserRequest is the request for FindGithubUser.
 // Exactly one of GithubID or GithubLogin must be provided.
 type FindGithubUserRequest struct {
