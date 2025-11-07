@@ -11,6 +11,7 @@ import (
 
 type GithubOptions struct {
 	AddOrg            AddGithubOrgOptions            `cmd:""`
+	AddConnection     AddGithubConnectionOptions     `cmd:""`
 	ListOrgs          ListGithubOrgsOptions          `cmd:""`
 	GetOrg            GetGithubOrgOptions            `cmd:""`
 	UpdateOrg         UpdateGithubOrgOptions         `cmd:""`
@@ -70,6 +71,35 @@ func (o *FindGithubUsersOptions) Run(ctx context.Context, s *SharedOptions) erro
 		token = resp.NextToken
 	}
 	return nil
+}
+
+type AddGithubConnectionOptions struct {
+	TenantID string `help:"The ID of the tenant to create the connection for." name:"tenant-id" short:"i" required:""`
+	JSON     string `help:"The JSON file containing the connection definition." name:"json" short:"j" default:"-"`
+}
+
+func (o *AddGithubConnectionOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
+	var req eh.CreateGithubConnectionRequest
+	err := readJsonFile(o.JSON, &req)
+	if err != nil {
+		return err
+	}
+	err = loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	req.TenantID = o.TenantID
+	req.ConnectionID = uuid.NewString()
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	connection, err := s.Client.CreateGithubConnection(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(connection)
 }
 
 type AddGithubOrgOptions struct {
