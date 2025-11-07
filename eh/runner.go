@@ -66,6 +66,51 @@ func (r *CreateRunnerRequest) GetField(name string) (any, bool) {
 	}
 }
 
+// UpdateRunnerRequest is the request payload for UpdateRunner.
+type UpdateRunnerRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	RunnerID string `json:"-"`
+	Version  int    `json:"-"`
+
+	Name          *string `json:"Name,omitempty"`
+	Description   *string `json:"Description,omitempty"`
+	IsCloud       *bool   `json:"IsCloud,omitempty"`
+	RunsTasks     *bool   `json:"RunsTasks,omitempty"`
+	ProxiesGithub *bool   `json:"ProxiesGithub,omitempty"`
+}
+
+func (r *UpdateRunnerRequest) GetVersion() int {
+	return r.Version
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *UpdateRunnerRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "Version":
+		return r.Version, true
+	case "Name":
+		return evalNullable(r.Name)
+	case "Description":
+		return evalNullable(r.Description)
+	case "IsCloud":
+		return evalNullable(r.IsCloud)
+	case "RunsTasks":
+		return evalNullable(r.RunsTasks)
+	case "ProxiesGithub":
+		return evalNullable(r.ProxiesGithub)
+	default:
+		return nil, false
+	}
+}
+
 // CreateRunner creates a new runner for a tenant.
 // nolint: dupl
 func (c *Client) CreateRunner(ctx context.Context, req *CreateRunnerRequest) (*Runner, error) {
@@ -315,6 +360,58 @@ func (c *Client) GetRunner(ctx context.Context, req *GetRunnerRequest) (*Runner,
 
 	var runner Runner
 	if err := json.NewDecoder(resp.Body).Decode(&runner); err != nil {
+		return nil, err
+	}
+	return &runner, nil
+}
+
+// UpdateRunner updates an existing runner for a tenant.
+// nolint: dupl
+func (c *Client) UpdateRunner(ctx context.Context, req *UpdateRunnerRequest) (*Runner, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return nil, fmt.Errorf("runner id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var runner Runner
+	err = json.NewDecoder(resp.Body).Decode(&runner)
+	if err != nil {
 		return nil, err
 	}
 	return &runner, nil
