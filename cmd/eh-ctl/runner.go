@@ -9,6 +9,7 @@ import (
 
 type RunnerOptions struct {
 	Create CreateRunnerOptions `cmd:""`
+	List   ListRunnerOptions   `cmd:""`
 }
 
 type CreateRunnerOptions struct {
@@ -41,4 +42,42 @@ func (o *CreateRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	return printJSON(runner)
+}
+
+type ListRunnerOptions struct {
+	TenantID       string `help:"The tenant ID to list runners for." name:"tenant-id" short:"i" required:""`
+	IncludeDeleted bool   `help:"When set, includes deleted runners in the results." short:"d" optional:""`
+}
+
+func (o *ListRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.ListRunnersRequest{
+		TenantID:       o.TenantID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	for {
+		resp, err := s.Client.ListRunners(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, runner := range resp.Items {
+			if err := printJSON(runner); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		req.Token = resp.NextToken
+	}
+
+	return nil
 }

@@ -248,6 +248,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Workstream.MoveShortName.Run(options.Ctx, &options.SharedOptions)
 	case "runner create":
 		return options.Runner.Create.Run(options.Ctx, &options.SharedOptions)
+	case "runner list":
+		return options.Runner.List.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
