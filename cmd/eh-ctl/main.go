@@ -250,6 +250,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Runner.Create.Run(options.Ctx, &options.SharedOptions)
 	case "runner list":
 		return options.Runner.List.Run(options.Ctx, &options.SharedOptions)
+	case "runner get":
+		return options.Runner.Get.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}

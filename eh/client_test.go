@@ -1301,6 +1301,27 @@ func TestDeleteRunnerPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetRunnerBasic(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner", r.URL.Path)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Runner{TenantID: "abc", RunnerID: "runner"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	runner, err := client.GetRunner(context.Background(), &eh.GetRunnerRequest{TenantID: "abc", RunnerID: "runner"})
+	require.NoError(t, err)
+	require.Equal(t, "runner", runner.RunnerID)
+}
+
 func TestGetRunnerError(t *testing.T) {
 	t.Parallel()
 

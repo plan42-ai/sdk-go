@@ -10,6 +10,7 @@ import (
 type RunnerOptions struct {
 	Create CreateRunnerOptions `cmd:""`
 	List   ListRunnerOptions   `cmd:""`
+	Get    GetRunnerOptions    `cmd:""`
 }
 
 type CreateRunnerOptions struct {
@@ -80,4 +81,31 @@ func (o *ListRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 
 	return nil
+}
+
+type GetRunnerOptions struct {
+	TenantID       string `help:"The tenant ID that owns the runner to fetch." name:"tenant-id" short:"i" required:""`
+	RunnerID       string `help:"The runner ID to fetch." name:"runner-id" short:"r" required:""`
+	IncludeDeleted bool   `help:"Set to return a deleted runner." name:"include-deleted" short:"d" optional:""`
+}
+
+func (o *GetRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetRunnerRequest{
+		TenantID:       o.TenantID,
+		RunnerID:       o.RunnerID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	runner, err := s.Client.GetRunner(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(runner)
 }
