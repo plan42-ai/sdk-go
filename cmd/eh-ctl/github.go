@@ -12,6 +12,7 @@ import (
 type GithubOptions struct {
 	AddOrg            AddGithubOrgOptions            `cmd:""`
 	AddConnection     AddGithubConnectionOptions     `cmd:""`
+	ListConnections   ListGithubConnectionsOptions   `cmd:""`
 	ListOrgs          ListGithubOrgsOptions          `cmd:""`
 	GetOrg            GetGithubOrgOptions            `cmd:""`
 	UpdateOrg         UpdateGithubOrgOptions         `cmd:""`
@@ -100,6 +101,45 @@ func (o *AddGithubConnectionOptions) Run(ctx context.Context, s *SharedOptions) 
 		return err
 	}
 	return printJSON(connection)
+}
+
+type ListGithubConnectionsOptions struct {
+	TenantID string `help:"The tenant ID to list github connections for." name:"tenant-id" short:"i" required:""`
+}
+
+func (o *ListGithubConnectionsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.ListGithubConnectionsRequest{
+		TenantID: o.TenantID,
+	}
+
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	for {
+		resp, err := s.Client.ListGithubConnections(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, connection := range resp.Items {
+			err = printJSON(connection)
+			if err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		req.Token = resp.NextToken
+	}
+
+	return nil
 }
 
 type AddGithubOrgOptions struct {
