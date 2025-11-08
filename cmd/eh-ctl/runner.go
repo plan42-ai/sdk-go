@@ -11,6 +11,7 @@ type RunnerOptions struct {
 	Create CreateRunnerOptions `cmd:""`
 	List   ListRunnerOptions   `cmd:""`
 	Get    GetRunnerOptions    `cmd:""`
+	Delete DeleteRunnerOptions `cmd:""`
 }
 
 type CreateRunnerOptions struct {
@@ -108,4 +109,40 @@ func (o *GetRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	return printJSON(runner)
+}
+
+// DeleteRunnerOptions contains the flags for the `runner delete` command.
+type DeleteRunnerOptions struct {
+	TenantID string `help:"The tenant ID to connect to." name:"tenant-id" short:"i" required:""`
+	RunnerID string `help:"The runner ID to delete." name:"runner-id" short:"r" required:""`
+}
+
+// Run executes the `runner delete` command.
+func (o *DeleteRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetRunnerRequest{
+		TenantID: o.TenantID,
+		RunnerID: o.RunnerID,
+	}
+
+	err := loadFeatureFlags(s, &getReq.FeatureFlags)
+	if err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	runner, err := s.Client.GetRunner(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	delReq := &eh.DeleteRunnerRequest{
+		TenantID: o.TenantID,
+		RunnerID: o.RunnerID,
+		Version:  runner.Version,
+	}
+	delReq.FeatureFlags = getReq.FeatureFlags
+	processDelegatedAuth(s, &delReq.DelegatedAuthInfo)
+
+	return s.Client.DeleteRunner(ctx, delReq)
 }
