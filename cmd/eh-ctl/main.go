@@ -252,6 +252,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Runner.List.Run(options.Ctx, &options.SharedOptions)
 	case "runner get":
 		return options.Runner.Get.Run(options.Ctx, &options.SharedOptions)
+	case "runner delete":
+		return options.Runner.Delete.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
