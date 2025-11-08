@@ -12,6 +12,7 @@ type RunnerOptions struct {
 	List   ListRunnerOptions   `cmd:""`
 	Get    GetRunnerOptions    `cmd:""`
 	Delete DeleteRunnerOptions `cmd:""`
+	Update UpdateRunnerOptions `cmd:""`
 }
 
 type CreateRunnerOptions struct {
@@ -145,4 +146,48 @@ func (o *DeleteRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 	processDelegatedAuth(s, &delReq.DelegatedAuthInfo)
 
 	return s.Client.DeleteRunner(ctx, delReq)
+}
+
+type UpdateRunnerOptions struct {
+	TenantID string `help:"The tenant ID to connect to." name:"tenant-id" short:"i" required:""`
+	RunnerID string `help:"The runner ID to fetch." name:"runner-id" short:"r" required:""`
+	JSON     string `help:"The json file containing the runner update. Use '-' to read from stdin." short:"j" default:"-"`
+}
+
+func (o *UpdateRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
+	err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	var req eh.UpdateRunnerRequest
+	err = readJsonFile(o.JSON, &req)
+	if err != nil {
+		return err
+	}
+	err = loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	req.TenantID = o.TenantID
+	req.RunnerID = o.RunnerID
+
+	getReq := &eh.GetRunnerRequest{
+		TenantID:       o.TenantID,
+		RunnerID:       o.RunnerID,
+		IncludeDeleted: pointer(true),
+	}
+	getReq.FeatureFlags = req.FeatureFlags
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+	runner, err := s.Client.GetRunner(ctx, getReq)
+	if err != nil {
+		return err
+	}
+	req.Version = runner.Version
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateRunner(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
 }
