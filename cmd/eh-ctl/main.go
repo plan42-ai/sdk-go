@@ -266,6 +266,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Runner.Update.Run(options.Ctx, &options.SharedOptions)
 	case "runner generate-token":
 		return options.Runner.GenerateToken.Run(options.Ctx, &options.SharedOptions)
+	case "runner list-tokens":
+		return options.Runner.ListTokens.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}

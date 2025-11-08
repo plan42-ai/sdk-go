@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
@@ -15,6 +16,7 @@ type RunnerOptions struct {
 	Delete        DeleteRunnerOptions        `cmd:""`
 	Update        UpdateRunnerOptions        `cmd:""`
 	GenerateToken GenerateRunnerTokenOptions `cmd:""`
+	ListTokens    ListRunnerTokensOptions    `cmd:""`
 }
 
 type CreateRunnerOptions struct {
@@ -221,4 +223,47 @@ func (o *GenerateRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) 
 	}
 
 	return printJSON(resp)
+}
+
+type ListRunnerTokensOptions struct {
+	TenantID string `help:"The tenant ID to list tokens for." name:"tenant-id" short:"i" required:""`
+	RunnerID string `help:"The runner ID to list tokens for." name:"runner-id" short:"r" required:""`
+}
+
+func (o *ListRunnerTokensOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.ShowSecrets {
+		return errors.New("invalid `-s`: runner token values cannot be fetched after they are generated")
+	}
+
+	req := &eh.ListRunnerTokensRequest{
+		TenantID: o.TenantID,
+		RunnerID: o.RunnerID,
+	}
+
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	for {
+		resp, err := s.Client.ListRunnerTokens(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, token := range resp.Items {
+			if err := printJSON(token); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextPageToken == nil {
+			break
+		}
+
+		req.NextPageToken = resp.NextPageToken
+	}
+
+	return nil
 }
