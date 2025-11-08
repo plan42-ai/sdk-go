@@ -845,6 +845,108 @@ func TestCreateRunnerPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetRunner(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name           string
+		setInclude     bool
+		includeDeleted bool
+		expectedValue  string
+	}{
+		{name: "default", expectedValue: ""},
+		{name: "include-deleted", setInclude: true, includeDeleted: true, expectedValue: "true"},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, http.MethodGet, r.Method)
+				require.Equal(t, "/v1/tenants/abc/runners/run", r.URL.Path)
+				require.Equal(t, tc.expectedValue, r.URL.Query().Get("includeDeleted"))
+
+				w.WriteHeader(http.StatusOK)
+				resp := eh.Runner{TenantID: "abc", RunnerID: "run"}
+				_ = json.NewEncoder(w).Encode(resp)
+			})
+
+			srv := httptest.NewServer(handler)
+			defer srv.Close()
+
+			client := eh.NewClient(srv.URL)
+			req := &eh.GetRunnerRequest{TenantID: "abc", RunnerID: "run"}
+			if tc.setInclude {
+				includeDeleted := tc.includeDeleted
+				req.IncludeDeleted = &includeDeleted
+			}
+
+			runner, err := client.GetRunner(context.Background(), req)
+			require.NoError(t, err)
+			require.Equal(t, "run", runner.RunnerID)
+		})
+	}
+}
+
+func TestListRunners(t *testing.T) {
+	t.Parallel()
+
+	maxResults := 20
+	token := tokenID
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners", r.URL.Path)
+		require.Equal(t, "20", r.URL.Query().Get("maxResults"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
+		require.Empty(t, r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.List[*eh.Runner]{
+			Items: []*eh.Runner{{RunnerID: "run"}},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListRunners(context.Background(), &eh.ListRunnersRequest{TenantID: "abc", MaxResults: &maxResults, Token: &token})
+	require.NoError(t, err)
+}
+
+func TestListRunnersIncludeDeleted(t *testing.T) {
+	t.Parallel()
+
+	maxResults := 20
+	token := tokenID
+	includeDeleted := true
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners", r.URL.Path)
+		require.Equal(t, "20", r.URL.Query().Get("maxResults"))
+		require.Equal(t, tokenID, r.URL.Query().Get("token"))
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.List[*eh.Runner]{
+			Items: []*eh.Runner{{RunnerID: "run"}},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListRunners(context.Background(), &eh.ListRunnersRequest{TenantID: "abc", MaxResults: &maxResults, Token: &token, IncludeDeleted: &includeDeleted})
+	require.NoError(t, err)
+}
+
 func TestWriteResponse(t *testing.T) {
 	t.Parallel()
 
@@ -1197,27 +1299,6 @@ func TestDeleteRunnerPathEscaping(t *testing.T) {
 		Version:  1,
 	})
 	require.NoError(t, err)
-}
-
-func TestGetRunner(t *testing.T) {
-	t.Parallel()
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, http.MethodGet, r.Method)
-		require.Equal(t, "/v1/tenants/abc/runners/runner", r.URL.Path)
-
-		w.WriteHeader(http.StatusOK)
-		resp := eh.Runner{TenantID: "abc", RunnerID: "runner"}
-		_ = json.NewEncoder(w).Encode(resp)
-	})
-
-	srv := httptest.NewServer(handler)
-	defer srv.Close()
-
-	client := eh.NewClient(srv.URL)
-	runner, err := client.GetRunner(context.Background(), &eh.GetRunnerRequest{TenantID: "abc", RunnerID: "runner"})
-	require.NoError(t, err)
-	require.Equal(t, "runner", runner.RunnerID)
 }
 
 func TestGetRunnerError(t *testing.T) {
