@@ -2,17 +2,19 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/google/uuid"
 )
 
 type RunnerOptions struct {
-	Create CreateRunnerOptions `cmd:""`
-	List   ListRunnerOptions   `cmd:""`
-	Get    GetRunnerOptions    `cmd:""`
-	Delete DeleteRunnerOptions `cmd:""`
-	Update UpdateRunnerOptions `cmd:""`
+	Create        CreateRunnerOptions        `cmd:""`
+	List          ListRunnerOptions          `cmd:""`
+	Get           GetRunnerOptions           `cmd:""`
+	Delete        DeleteRunnerOptions        `cmd:""`
+	Update        UpdateRunnerOptions        `cmd:""`
+	GenerateToken GenerateRunnerTokenOptions `cmd:""`
 }
 
 type CreateRunnerOptions struct {
@@ -190,4 +192,33 @@ func (o *UpdateRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	return printJSON(updated)
+}
+
+type GenerateRunnerTokenOptions struct {
+	TenantID string `help:"The tenant ID that owns the runner." name:"tenant-id" short:"i" required:""`
+	RunnerID string `help:"The runner ID to generate a token for." name:"runner-id" short:"r" required:""`
+}
+
+func (o *GenerateRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if !s.ShowSecrets {
+		return fmt.Errorf("you must specify `-s` when calling generate-token")
+	}
+
+	req := &eh.GenerateRunnerTokenRequest{
+		TenantID: o.TenantID,
+		RunnerID: o.RunnerID,
+	}
+
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	resp, err := s.Client.GenerateRunnerToken(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return printJSON(resp)
 }
