@@ -17,6 +17,7 @@ type RunnerOptions struct {
 	Update        UpdateRunnerOptions        `cmd:""`
 	GenerateToken GenerateRunnerTokenOptions `cmd:""`
 	ListTokens    ListRunnerTokensOptions    `cmd:""`
+	RevokeToken   RevokeRunnerTokenOptions   `cmd:""`
 }
 
 type CreateRunnerOptions struct {
@@ -265,5 +266,33 @@ func (o *ListRunnerTokensOptions) Run(ctx context.Context, s *SharedOptions) err
 		req.NextPageToken = resp.NextPageToken
 	}
 
+	return nil
+}
+
+type RevokeRunnerTokenOptions struct {
+	TenantID string `help:"The tenant to revoke the token for." name:"tenant-id" short:"i" required:""`
+	RunnerID string `help:"The runner to revoke the token for." name:"runner-id" short:"r" required:""`
+	TokenID  string `help:"The id of the token to revoke." name:"token-id" short:"k" required:""`
+}
+
+func (o *RevokeRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.RevokeRunnerTokenRequest{
+		TenantID: o.TenantID,
+		RunnerID: o.RunnerID,
+		TokenID:  o.TokenID,
+	}
+
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	err = s.Client.RevokeRunnerToken(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Token %s revoked.\n", o.TokenID)
 	return nil
 }
