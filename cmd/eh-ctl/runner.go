@@ -55,12 +55,16 @@ func (o *CreateRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 type ListRunnerOptions struct {
 	TenantID       string `help:"The tenant ID to list runners for." name:"tenant-id" short:"i" required:""`
 	IncludeDeleted bool   `help:"When set, includes deleted runners in the results." short:"d" optional:""`
+	RunsTasks      *bool  `help:"Optional. When set, filters runners based on whether they execute tasks." name:"runs-tasks" optional:""`
+	ProxiesGithub  *bool  `help:"Optional. When set, filters runners based on whether they proxy GitHub access." name:"proxies-github" optional:""`
 }
 
 func (o *ListRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &eh.ListRunnersRequest{
 		TenantID:       o.TenantID,
 		IncludeDeleted: pointer(o.IncludeDeleted),
+		RunsTasks:      o.RunsTasks,
+		ProxiesGithub:  o.ProxiesGithub,
 	}
 
 	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {

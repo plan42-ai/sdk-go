@@ -186,6 +186,8 @@ type ListRunnersRequest struct {
 	MaxResults     *int
 	Token          *string
 	IncludeDeleted *bool
+	RunsTasks      *bool
+	ProxiesGithub  *bool
 }
 
 // GetField retrieves the value of a field by name.
@@ -200,6 +202,10 @@ func (r *ListRunnersRequest) GetField(name string) (any, bool) {
 		return evalNullable(r.Token)
 	case "IncludeDeleted":
 		return evalNullable(r.IncludeDeleted)
+	case "RunsTasks":
+		return evalNullable(r.RunsTasks)
+	case "ProxiesGithub":
+		return evalNullable(r.ProxiesGithub)
 	default:
 		return nil, false
 	}
@@ -225,6 +231,12 @@ func (c *Client) ListRunners(ctx context.Context, req *ListRunnersRequest) (*Lis
 	}
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	if req.RunsTasks != nil {
+		q.Set("runsTasks", strconv.FormatBool(*req.RunsTasks))
+	}
+	if req.ProxiesGithub != nil {
+		q.Set("proxiesGithub", strconv.FormatBool(*req.ProxiesGithub))
 	}
 	u.RawQuery = q.Encode()
 

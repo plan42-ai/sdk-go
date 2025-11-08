@@ -902,6 +902,8 @@ func TestListRunners(t *testing.T) {
 		require.Equal(t, "20", r.URL.Query().Get("maxResults"))
 		require.Equal(t, tokenID, r.URL.Query().Get("token"))
 		require.Empty(t, r.URL.Query().Get("includeDeleted"))
+		require.Empty(t, r.URL.Query().Get("runsTasks"))
+		require.Empty(t, r.URL.Query().Get("proxiesGithub"))
 
 		w.WriteHeader(http.StatusOK)
 		resp := eh.List[*eh.Runner]{
@@ -924,6 +926,8 @@ func TestListRunnersIncludeDeleted(t *testing.T) {
 	maxResults := 20
 	token := tokenID
 	includeDeleted := true
+	runsTasks := true
+	proxiesGithub := false
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
@@ -931,6 +935,8 @@ func TestListRunnersIncludeDeleted(t *testing.T) {
 		require.Equal(t, "20", r.URL.Query().Get("maxResults"))
 		require.Equal(t, tokenID, r.URL.Query().Get("token"))
 		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+		require.Equal(t, "true", r.URL.Query().Get("runsTasks"))
+		require.Equal(t, "false", r.URL.Query().Get("proxiesGithub"))
 
 		w.WriteHeader(http.StatusOK)
 		resp := eh.List[*eh.Runner]{
@@ -943,7 +949,14 @@ func TestListRunnersIncludeDeleted(t *testing.T) {
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	_, err := client.ListRunners(context.Background(), &eh.ListRunnersRequest{TenantID: "abc", MaxResults: &maxResults, Token: &token, IncludeDeleted: &includeDeleted})
+	_, err := client.ListRunners(context.Background(), &eh.ListRunnersRequest{
+		TenantID:       "abc",
+		MaxResults:     &maxResults,
+		Token:          &token,
+		IncludeDeleted: &includeDeleted,
+		RunsTasks:      &runsTasks,
+		ProxiesGithub:  &proxiesGithub,
+	})
 	require.NoError(t, err)
 }
 

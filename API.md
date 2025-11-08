@@ -3989,7 +3989,7 @@ The ListRunners API lists runners associated with a tenant.
 ## 66.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/runners?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+GET /v1/tenants/{tenant_id}/runners?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted}&runsTasks={runsTasks}&proxiesGithub={proxiesGithub} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -4002,6 +4002,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | maxResults                               | query    | *int    | Optional. The maximum number of runners to return. Default is 10. Must be >=1 and <= 500.                       |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted runners in the results.                                                |
+| runsTasks                                | query    | *bool   | Optional. When set, filters runners by whether they execute tasks.                                              |
+| proxiesGithub                            | query    | *bool   | Optional. When set, filters runners by whether they proxy GitHub access.                                        |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                       |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
