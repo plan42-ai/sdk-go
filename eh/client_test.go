@@ -1175,6 +1175,110 @@ func TestRevokeRunnerTokenPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestListRunnerTokens(t *testing.T) {
+	t.Parallel()
+
+	maxResults := 25
+	includeRevoked := true
+	nextToken := "next-token"
+	now := time.Date(2024, time.February, 2, 0, 0, 0, 0, time.UTC)
+	revoked := now.Add(2 * time.Hour)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1/tokens", r.URL.Path)
+		require.Equal(t, "25", r.URL.Query().Get("maxResults"))
+		require.Equal(t, nextToken, r.URL.Query().Get("nextPageToken"))
+		require.Equal(t, "true", r.URL.Query().Get("includeRevoked"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListRunnerTokensResponse{
+			NextPageToken: util.Pointer("more"),
+			Items: []eh.RunnerTokenMetadata{
+				{
+					TokenID:   "token1",
+					CreatedAt: now,
+					ExpiresAt: now.Add(time.Hour),
+					RevokedAt: util.Pointer(revoked),
+					TokenHash: "hash",
+				},
+			},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	resp, err := client.ListRunnerTokens(context.Background(), &eh.ListRunnerTokensRequest{
+		TenantID:       "abc",
+		RunnerID:       "runner1",
+		MaxResults:     &maxResults,
+		NextPageToken:  &nextToken,
+		IncludeRevoked: &includeRevoked,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp.NextPageToken)
+	require.Equal(t, "more", *resp.NextPageToken)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "token1", resp.Items[0].TokenID)
+	require.NotNil(t, resp.Items[0].RevokedAt)
+	if resp.Items[0].RevokedAt != nil {
+		require.True(t, resp.Items[0].RevokedAt.Equal(revoked))
+	}
+}
+
+func TestListRunnerTokensError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListRunnerTokens(context.Background(), &eh.ListRunnerTokensRequest{TenantID: "abc", RunnerID: "runner1"})
+	require.Error(t, err)
+}
+
+func TestListRunnerTokensPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 7, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+		require.Equal(t, "tokens", parts[6], "tokens segment missing in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.ListRunnerTokensResponse{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.ListRunnerTokens(context.Background(), &eh.ListRunnerTokensRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+		RunnerID: runnerIDThatNeedsEscaping,
+	})
+	require.NoError(t, err)
+}
+
+func TestListRunnerTokensValidation(t *testing.T) {
+	t.Parallel()
+
+	client := eh.NewClient("http://example.com")
+	_, err := client.ListRunnerTokens(context.Background(), nil)
+	require.Error(t, err)
+
+	_, err = client.ListRunnerTokens(context.Background(), &eh.ListRunnerTokensRequest{RunnerID: "runner"})
+	require.EqualError(t, err, "tenant id is required")
+
+	_, err = client.ListRunnerTokens(context.Background(), &eh.ListRunnerTokensRequest{TenantID: "tenant"})
+	require.EqualError(t, err, "runner id is required")
+}
+
 // nolint: dupl
 func TestGetEnvironment(t *testing.T) {
 	t.Parallel()
