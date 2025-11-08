@@ -381,70 +381,70 @@ var (
 func init() {
 	ActionToBit, BitToAction = createEnumMaps(
 		[]Action{
-			ActionPerformDelegatedAction,    // 0x0000_0000_0000_0001
-			ActionCreateTenant,              // 0x0000_0000_0000_0002
-			ActionGetTenant,                 // 0x0000_0000_0000_0004
-			ActionGenerateWebUIToken,        // 0x0000_0000_0000_0008
-			ActionListPolicies,              // 0x0000_0000_0000_0010
-			ActionUpdateTurn,                // 0x0000_0000_0000_0020
-			ActionUpdateTask,                // 0x0000_0000_0000_0040
-			ActionGetTask,                   // 0x0000_0000_0000_0080
-			ActionListTasks,                 // 0x0000_0000_0000_0100
-			ActionGetTurn,                   // 0x0000_0000_0000_0200
-			ActionUploadTurnLogs,            // 0x0000_0000_0000_0400
-			ActionGetCurrentUser,            // 0x0000_0000_0000_0800
-			ActionCreateEnvironment,         // 0x0000_0000_0000_1000
-			ActionGetEnvironment,            // 0x0000_0000_0000_2000
-			ActionListEnvironments,          // 0x0000_0000_0000_4000
-			ActionUpdateEnvironment,         // 0x0000_0000_0000_8000
-			ActionDeleteEnvironment,         // 0x0000_0000_0001_0000
-			ActionGetLastTurn,               // 0x0000_0000_0002_0000
-			ActionCreateTask,                // 0x0000_0000_0004_0000
-			ActionGetLastTurnLog,            // 0x0000_0000_0008_0000
-			ActionStreamLogs,                // 0x0000_0000_0010_0000
-			ActionListTurns,                 // 0x0000_0000_0020_0000
-			ActionAddGithubOrg,              // 0x0000_0000_0040_0000
-			ActionUpdateGithubOrg,           // 0x0000_0000_0080_0000
-			ActionDeleteGithubOrg,           // 0x0000_0000_0100_0000
-			ActionListGithubOrgs,            // 0x0000_0000_0200_0000
-			ActionGetGithubOrg,              // 0x0000_0000_0400_0000
-			ActionCreateFeatureFlag,         // 0x0000_0000_0800_0000
-			ActionGetTenantFeatureFlags,     // 0x0000_0000_1000_0000
-			ActionCreateFeatureFlagOverride, // 0x0000_0000_2000_0000
-			ActionListFeatureFlags,          // 0x0000_0000_4000_0000
-			ActionGetFeatureFlag,            // 0x0000_0000_8000_0000
-			ActionUpdateFeatureFlag,         // 0x0000_0001_0000_0000
-			ActionDeleteFeatureFlag,         // 0x0000_0002_0000_0000
-			ActionDeleteFeatureFlagOverride, // 0x0000_0004_0000_0000
-			ActionGetFeatureFlagOverride,    // 0x0000_0008_0000_0000
-			ActionUpdateFeatureFlagOverride, // 0x0000_0010_0000_0000
-			ActionListFeatureFlagOverrides,  // 0x0000_0020_0000_0000
-			ActionGetTenantGithubCreds,      // 0x0000_0040_0000_0000
-			ActionUpdateTenantGithubCreds,   // 0x0000_0080_0000_0000
-			ActionFindGithubUser,            // 0x0000_0100_0000_0000
-			ActionCreateWorkstream,          // 0x0000_0200_0000_0000
-			ActionGetWorkstream,             // 0x0000_0400_0000_0000
-			ActionUpdateWorkstream,          // 0x0000_0800_0000_0000
-			ActionListWorkstreams,           // 0x0000_1000_0000_0000
-			ActionDeleteWorkstream,          // 0x0000_2000_0000_0000
-			ActionAddWorkstreamShortName,    // 0x0000_4000_0000_0000
-			ActionListWorkstreamShortNames,  // 0x0000_8000_0000_0000
-			ActionDeleteWorkstreamShortName, // 0x0001_0000_0000_0000
-			ActionMoveTask,                  // 0x0002_0000_0000_0000
-			ActionMoveShortName,             // 0x0004_0000_0000_0000
-			ActionListTenants,               // 0x0008_0000_0000_0000
-			ActionCreateWorkstreamTask,      // 0x0010_0000_0000_0000
-			ActionListWorkstreamTasks,       // 0x0020_0000_0000_0000
-			ActionDeleteWorkstreamTask,      // 0x0040_0000_0000_0000
-			ActionUpdateWorkstreamTask,      // 0x0080_0000_0000_0000
-			ActionGetWorkstreamTask,         // 0x0100_0000_0000_0000
-			ActionSearchTasks,               // 0x0200_0000_0000_0000
-			ActionCreateRunner,              // 0x0400_0000_0000_0000
-			ActionCreateGithubConnection,    // 0x0800_0000_0000_0000
-			ActionListRunners,               // 0x1000_0000_0000_0000
-			ActionDeleteRunner,              // 0x2000_0000_0000_0000
-			ActionListGithubConnections,     // 0x4000_0000_0000_0000
-			ActionGetRunner,                 // 0x8000_0000_0000_0000
+			ActionPerformDelegatedAction,    // (0, 0x0000_0000_0000_0001)
+			ActionCreateTenant,              // (0, 0x0000_0000_0000_0002)
+			ActionGetTenant,                 // (0, 0x0000_0000_0000_0004)
+			ActionGenerateWebUIToken,        // (0, 0x0000_0000_0000_0008)
+			ActionListPolicies,              // (0, 0x0000_0000_0000_0010)
+			ActionUpdateTurn,                // (0, 0x0000_0000_0000_0020)
+			ActionUpdateTask,                // (0, 0x0000_0000_0000_0040)
+			ActionGetTask,                   // (0, 0x0000_0000_0000_0080)
+			ActionListTasks,                 // (0, 0x0000_0000_0000_0100)
+			ActionGetTurn,                   // (0, 0x0000_0000_0000_0200)
+			ActionUploadTurnLogs,            // (0, 0x0000_0000_0000_0400)
+			ActionGetCurrentUser,            // (0, 0x0000_0000_0000_0800)
+			ActionCreateEnvironment,         // (0, 0x0000_0000_0000_1000)
+			ActionGetEnvironment,            // (0, 0x0000_0000_0000_2000)
+			ActionListEnvironments,          // (0, 0x0000_0000_0000_4000)
+			ActionUpdateEnvironment,         // (0, 0x0000_0000_0000_8000)
+			ActionDeleteEnvironment,         // (0, 0x0000_0000_0001_0000)
+			ActionGetLastTurn,               // (0, 0x0000_0000_0002_0000)
+			ActionCreateTask,                // (0, 0x0000_0000_0004_0000)
+			ActionGetLastTurnLog,            // (0, 0x0000_0000_0008_0000)
+			ActionStreamLogs,                // (0, 0x0000_0000_0010_0000)
+			ActionListTurns,                 // (0, 0x0000_0000_0020_0000)
+			ActionAddGithubOrg,              // (0, 0x0000_0000_0040_0000)
+			ActionUpdateGithubOrg,           // (0, 0x0000_0000_0080_0000)
+			ActionDeleteGithubOrg,           // (0, 0x0000_0000_0100_0000)
+			ActionListGithubOrgs,            // (0, 0x0000_0000_0200_0000)
+			ActionGetGithubOrg,              // (0, 0x0000_0000_0400_0000)
+			ActionCreateFeatureFlag,         // (0, 0x0000_0000_0800_0000)
+			ActionGetTenantFeatureFlags,     // (0, 0x0000_0000_1000_0000)
+			ActionCreateFeatureFlagOverride, // (0, 0x0000_0000_2000_0000)
+			ActionListFeatureFlags,          // (0, 0x0000_0000_4000_0000)
+			ActionGetFeatureFlag,            // (0, 0x0000_0000_8000_0000)
+			ActionUpdateFeatureFlag,         // (0, 0x0000_0001_0000_0000)
+			ActionDeleteFeatureFlag,         // (0, 0x0000_0002_0000_0000)
+			ActionDeleteFeatureFlagOverride, // (0, 0x0000_0004_0000_0000)
+			ActionGetFeatureFlagOverride,    // (0, 0x0000_0008_0000_0000)
+			ActionUpdateFeatureFlagOverride, // (0, 0x0000_0010_0000_0000)
+			ActionListFeatureFlagOverrides,  // (0, 0x0000_0020_0000_0000)
+			ActionGetTenantGithubCreds,      // (0, 0x0000_0040_0000_0000)
+			ActionUpdateTenantGithubCreds,   // (0, 0x0000_0080_0000_0000)
+			ActionFindGithubUser,            // (0, 0x0000_0100_0000_0000)
+			ActionCreateWorkstream,          // (0, 0x0000_0200_0000_0000)
+			ActionGetWorkstream,             // (0, 0x0000_0400_0000_0000)
+			ActionUpdateWorkstream,          // (0, 0x0000_0800_0000_0000)
+			ActionListWorkstreams,           // (0, 0x0000_1000_0000_0000)
+			ActionDeleteWorkstream,          // (0, 0x0000_2000_0000_0000)
+			ActionAddWorkstreamShortName,    // (0, 0x0000_4000_0000_0000)
+			ActionListWorkstreamShortNames,  // (0, 0x0000_8000_0000_0000)
+			ActionDeleteWorkstreamShortName, // (0, 0x0001_0000_0000_0000)
+			ActionMoveTask,                  // (0, 0x0002_0000_0000_0000)
+			ActionMoveShortName,             // (0, 0x0004_0000_0000_0000)
+			ActionListTenants,               // (0, 0x0008_0000_0000_0000)
+			ActionCreateWorkstreamTask,      // (0, 0x0010_0000_0000_0000)
+			ActionListWorkstreamTasks,       // (0, 0x0020_0000_0000_0000)
+			ActionDeleteWorkstreamTask,      // (0, 0x0040_0000_0000_0000)
+			ActionUpdateWorkstreamTask,      // (0, 0x0080_0000_0000_0000)
+			ActionGetWorkstreamTask,         // (0, 0x0100_0000_0000_0000)
+			ActionSearchTasks,               // (0, 0x0200_0000_0000_0000)
+			ActionCreateRunner,              // (0, 0x0400_0000_0000_0000)
+			ActionCreateGithubConnection,    // (0, 0x0800_0000_0000_0000)
+			ActionListRunners,               // (0, 0x1000_0000_0000_0000)
+			ActionDeleteRunner,              // (0, 0x2000_0000_0000_0000)
+			ActionListGithubConnections,     // (0, 0x4000_0000_0000_0000)
+			ActionGetRunner,                 // (0, 0x8000_0000_0000_0000)
 			ActionUpdateRunner,              // (0x0000_0000_0000_0001, 0)
 			ActionDeleteGithubConnection,    // (0x0000_0000_0000_0002, 0)
 			ActionGenerateRunnerToken,       // (0x0000_0000_0000_0004, 0)
