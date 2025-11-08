@@ -28,6 +28,20 @@ type Runner struct {
 // ObjectType returns the object type for ConflictError handling.
 func (Runner) ObjectType() ObjectType { return ObjectTypeRunner }
 
+// RunnerInstance represents a runner instance in Event Horizon.
+type RunnerInstance struct {
+	TenantID        string    `json:"TenantId"`
+	RunnerID        string    `json:"RunnerId"`
+	InstanceID      string    `json:"InstanceId"`
+	PublicKey       string    `json:"PublicKey"`
+	RegisteredAt    time.Time `json:"RegisteredAt"`
+	LastHeartBeatAt time.Time `json:"LastHeartBeatAt"`
+	IsHealthy       bool      `json:"IsHealthy"`
+}
+
+// ObjectType returns the object type for ConflictError handling.
+func (RunnerInstance) ObjectType() ObjectType { return ObjectTypeRunnerInstance }
+
 // CreateRunnerRequest is the request payload for CreateRunner.
 type CreateRunnerRequest struct {
 	FeatureFlags
@@ -549,4 +563,85 @@ func (c *Client) RevokeRunnerToken(ctx context.Context, req *RevokeRunnerTokenRe
 		return decodeError(resp)
 	}
 	return nil
+}
+
+// RegisterRunnerInstanceRequest is the request payload for RegisterRunnerInstance.
+type RegisterRunnerInstanceRequest struct {
+	FeatureFlags
+
+	TenantID   string `json:"-"`
+	RunnerID   string `json:"-"`
+	InstanceID string `json:"-"`
+	PublicKey  string `json:"PublicKey"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *RegisterRunnerInstanceRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "InstanceID":
+		return r.InstanceID, true
+	case "PublicKey":
+		return r.PublicKey, true
+	default:
+		return nil, false
+	}
+}
+
+// RegisterRunnerInstance registers a new runner instance.
+func (c *Client) RegisterRunnerInstance(ctx context.Context, req *RegisterRunnerInstanceRequest) (*RunnerInstance, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return nil, fmt.Errorf("runner id is required")
+	}
+	if req.InstanceID == "" {
+		return nil, fmt.Errorf("instance id is required")
+	}
+	if req.PublicKey == "" {
+		return nil, fmt.Errorf("public key is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID), "instances", url.PathEscape(req.InstanceID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(DelegatedAuthInfo{}, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var instance RunnerInstance
+	if err := json.NewDecoder(resp.Body).Decode(&instance); err != nil {
+		return nil, err
+	}
+
+	return &instance, nil
 }

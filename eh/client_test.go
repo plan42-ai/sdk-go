@@ -843,6 +843,106 @@ func TestCreateRunnerPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestRegisterRunnerInstance(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1/instances/instance1", r.URL.Path)
+
+		var reqBody eh.RegisterRunnerInstanceRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, "public-key", reqBody.PublicKey)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.RunnerInstance{
+			TenantID:        "abc",
+			RunnerID:        "runner1",
+			InstanceID:      "instance1",
+			PublicKey:       "public-key",
+			RegisteredAt:    now,
+			LastHeartBeatAt: now,
+			IsHealthy:       true,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	instance, err := client.RegisterRunnerInstance(context.Background(), &eh.RegisterRunnerInstanceRequest{
+		TenantID:   "abc",
+		RunnerID:   "runner1",
+		InstanceID: "instance1",
+		PublicKey:  "public-key",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "instance1", instance.InstanceID)
+	require.Equal(t, now, instance.RegisteredAt)
+	require.True(t, instance.IsHealthy)
+}
+
+func TestRegisterRunnerInstanceError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.RegisterRunnerInstance(context.Background(), &eh.RegisterRunnerInstanceRequest{
+		TenantID:   "abc",
+		RunnerID:   "runner1",
+		InstanceID: "instance1",
+		PublicKey:  "public-key",
+	})
+
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestRegisterRunnerInstancePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+		require.Equal(t, escapedInstanceID, parts[7], "InstanceID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusCreated)
+		now := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+		resp := eh.RunnerInstance{
+			TenantID:        tenantIDThatNeedsEscaping,
+			RunnerID:        runnerIDThatNeedsEscaping,
+			InstanceID:      instanceIDThatNeedsEscaping,
+			PublicKey:       "public-key",
+			RegisteredAt:    now,
+			LastHeartBeatAt: now,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.RegisterRunnerInstance(context.Background(), &eh.RegisterRunnerInstanceRequest{
+		TenantID:   tenantIDThatNeedsEscaping,
+		RunnerID:   runnerIDThatNeedsEscaping,
+		InstanceID: instanceIDThatNeedsEscaping,
+		PublicKey:  "public-key",
+	})
+	require.NoError(t, err)
+}
+
 func TestGetMessagesBatch(t *testing.T) {
 	t.Parallel()
 
