@@ -164,6 +164,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Github.ListConnections.Run(options.Ctx, &options.SharedOptions)
 	case "github get-connection":
 		return options.Github.GetConnection.Run(options.Ctx, &options.SharedOptions)
+	case "github update-connection":
+		return options.Github.UpdateConnection.Run(options.Ctx, &options.SharedOptions)
 	case "github list-orgs":
 		return options.Github.ListOrgs.Run(options.Ctx, &options.SharedOptions)
 	case "github get-org":

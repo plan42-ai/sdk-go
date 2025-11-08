@@ -14,6 +14,7 @@ type GithubOptions struct {
 	AddConnection     AddGithubConnectionOptions     `cmd:""`
 	ListConnections   ListGithubConnectionsOptions   `cmd:""`
 	GetConnection     GetGithubConnectionOptions     `cmd:""`
+	UpdateConnection  UpdateGithubConnectionOptions  `cmd:""`
 	ListOrgs          ListGithubOrgsOptions          `cmd:""`
 	GetOrg            GetGithubOrgOptions            `cmd:""`
 	UpdateOrg         UpdateGithubOrgOptions         `cmd:""`
@@ -166,6 +167,51 @@ func (o *ListGithubConnectionsOptions) Run(ctx context.Context, s *SharedOptions
 	}
 
 	return nil
+}
+
+type UpdateGithubConnectionOptions struct {
+	TenantID     string `help:"The id of the tenant that owns the connection." name:"tenant-id" short:"i" required:""`
+	ConnectionID string `help:"The ID of the connection to update." name:"connection-id" short:"c" required:""`
+	JSON         string `help:"The JSON file containing the connection updates. Use '-' to read from stdin." name:"json" short:"j" default:"-"`
+}
+
+func (o *UpdateGithubConnectionOptions) Run(ctx context.Context, s *SharedOptions) error {
+	err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	var req eh.UpdateGithubConnectionRequest
+	err = readJsonFile(o.JSON, &req)
+	if err != nil {
+		return err
+	}
+	err = loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	req.TenantID = o.TenantID
+	req.ConnectionID = o.ConnectionID
+
+	getReq := &eh.GetGithubConnectionRequest{
+		TenantID:     o.TenantID,
+		ConnectionID: o.ConnectionID,
+	}
+	getReq.FeatureFlags = req.FeatureFlags
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	current, err := s.Client.GetGithubConnection(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req.Version = current.Version
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateGithubConnection(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
 }
 
 type AddGithubOrgOptions struct {
