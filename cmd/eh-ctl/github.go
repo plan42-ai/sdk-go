@@ -13,6 +13,7 @@ type GithubOptions struct {
 	AddOrg            AddGithubOrgOptions            `cmd:""`
 	AddConnection     AddGithubConnectionOptions     `cmd:""`
 	ListConnections   ListGithubConnectionsOptions   `cmd:""`
+	GetConnection     GetGithubConnectionOptions     `cmd:""`
 	ListOrgs          ListGithubOrgsOptions          `cmd:""`
 	GetOrg            GetGithubOrgOptions            `cmd:""`
 	UpdateOrg         UpdateGithubOrgOptions         `cmd:""`
@@ -97,6 +98,31 @@ func (o *AddGithubConnectionOptions) Run(ctx context.Context, s *SharedOptions) 
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	connection, err := s.Client.CreateGithubConnection(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(connection)
+}
+
+type GetGithubConnectionOptions struct {
+	TenantID     string `help:"The ID of the tenant that owns the connection." name:"tenant-id" short:"i" required:""`
+	ConnectionID string `help:"The ID of the connection to fetch." name:"connection-id" short:"c" required:""`
+}
+
+func (o *GetGithubConnectionOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetGithubConnectionRequest{
+		TenantID:     o.TenantID,
+		ConnectionID: o.ConnectionID,
+	}
+
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	connection, err := s.Client.GetGithubConnection(ctx, req)
 	if err != nil {
 		return err
 	}
