@@ -46,6 +46,8 @@ const (
 	escapedRunnerID                     = "runner%2F..%2F..%2Fid"
 	githubConnectionIDThatNeedsEscaping = "conn/../../id"
 	escapedGithubConnectionID           = "conn%2F..%2F..%2Fid"
+	instanceIDThatNeedsEscaping         = "instance/../../id"
+	escapedInstanceID                   = "instance%2F..%2F..%2Fid"
 
 	tokenID         = "tok"
 	taskTitle       = "new"
@@ -838,6 +840,96 @@ func TestCreateRunnerPathEscaping(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	_, err := client.CreateRunner(context.Background(), &eh.CreateRunnerRequest{TenantID: tenantIDThatNeedsEscaping, RunnerID: runnerIDThatNeedsEscaping, Name: "runner"})
+	require.NoError(t, err)
+}
+
+func TestGetMessagesBatch(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1/instances/instance1/messages/batch", r.URL.Path)
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		require.Empty(t, body)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GetMessagesBatchResponse{
+			Messages: []eh.RunnerMessage{{
+				CallerID:        "caller",
+				MessageID:       "message",
+				MessageType:     "TypeA",
+				CreatedAt:       now,
+				CallerPublicKey: "pub",
+				Payload:         "payload",
+			}},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	resp, err := client.GetMessagesBatch(context.Background(), &eh.GetMessagesBatchRequest{TenantID: "abc", RunnerID: "runner1", InstanceID: "instance1"})
+	require.NoError(t, err)
+	require.Len(t, resp.Messages, 1)
+	require.Equal(t, "message", resp.Messages[0].MessageID)
+	require.Equal(t, now, resp.Messages[0].CreatedAt)
+}
+
+func TestGetMessagesBatchError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.GetMessagesBatch(context.Background(), &eh.GetMessagesBatchRequest{TenantID: "abc", RunnerID: "runner1", InstanceID: "instance1"})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestGetMessagesBatchPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 10, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+		require.Equal(t, escapedInstanceID, parts[7], "InstanceID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GetMessagesBatchResponse{
+			Messages: []eh.RunnerMessage{{
+				CallerID:        "caller",
+				MessageID:       "message",
+				MessageType:     "TypeA",
+				CreatedAt:       now,
+				CallerPublicKey: "pub",
+				Payload:         "payload",
+			}},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetMessagesBatch(context.Background(), &eh.GetMessagesBatchRequest{
+		TenantID:   tenantIDThatNeedsEscaping,
+		RunnerID:   runnerIDThatNeedsEscaping,
+		InstanceID: instanceIDThatNeedsEscaping,
+	})
 	require.NoError(t, err)
 }
 
