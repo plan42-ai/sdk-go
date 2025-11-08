@@ -142,6 +142,7 @@ const (
 	ActionUpdateRunner              Action = "UpdateRunner"
 	ActionDeleteGithubConnection    Action = "DeleteGithubConnection"
 	ActionGenerateRunnerToken       Action = "GenerateRunnerToken"
+	ActionGetGithubConnection       Action = "GetGithubConnection"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -441,6 +442,7 @@ func init() {
 			ActionUpdateRunner,              // (0x0000_0000_0000_0001, 0)
 			ActionDeleteGithubConnection,    // (0x0000_0000_0000_0002, 0)
 			ActionGenerateRunnerToken,       // (0x0000_0000_0000_0004, 0)
+			ActionGetGithubConnection,       // (0x0000_0000_0000_0008, 0)
 		},
 		ActionBitVector{},
 	)

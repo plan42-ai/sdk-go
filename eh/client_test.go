@@ -3408,6 +3408,108 @@ func TestDeleteGithubConnectionPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetGithubConnection(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now().UTC()
+	tokenExpiry := now.Add(time.Hour)
+	stateExpiry := now.Add(2 * time.Hour)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/github-connections/conn", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GithubConnection{
+			TenantID:        "abc",
+			ConnectionID:    "conn",
+			Private:         false,
+			GithubUserLogin: util.Pointer(githubUserLogin),
+			GithubUserID:    util.Pointer(123),
+			OAuthToken:      util.Pointer("token"),
+			RefreshToken:    util.Pointer("refresh"),
+			TokenExpiry:     &tokenExpiry,
+			State:           util.Pointer("pending"),
+			StateExpiry:     &stateExpiry,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+			Version:         2,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	resp, err := client.GetGithubConnection(context.Background(), &eh.GetGithubConnectionRequest{
+		TenantID:     "abc",
+		ConnectionID: "conn",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "conn", resp.ConnectionID)
+	require.NotNil(t, resp.GithubUserLogin)
+	require.Equal(t, githubUserLogin, *resp.GithubUserLogin)
+	require.Equal(t, 2, resp.Version)
+	require.NotNil(t, resp.TokenExpiry)
+	require.Equal(t, tokenExpiry, *resp.TokenExpiry)
+}
+
+func TestGetGithubConnectionError(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusNotFound, Message: "nope", ErrorType: "NotFound"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetGithubConnection(context.Background(), &eh.GetGithubConnectionRequest{
+		TenantID:     "abc",
+		ConnectionID: "conn",
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusNotFound, clientErr.ResponseCode)
+}
+
+func TestGetGithubConnectionPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3])
+		require.Equal(t, escapedGithubConnectionID, parts[5])
+
+		w.WriteHeader(http.StatusOK)
+		now := time.Now().UTC()
+		resp := eh.GithubConnection{
+			TenantID:     tenantIDThatNeedsEscaping,
+			ConnectionID: githubConnectionIDThatNeedsEscaping,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+			Version:      1,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetGithubConnection(context.Background(), &eh.GetGithubConnectionRequest{
+		TenantID:     tenantIDThatNeedsEscaping,
+		ConnectionID: githubConnectionIDThatNeedsEscaping,
+	})
+	require.NoError(t, err)
+}
+
 func TestAddGithubOrg(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

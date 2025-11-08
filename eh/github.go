@@ -285,6 +285,71 @@ func (c *Client) DeleteGithubConnection(ctx context.Context, req *DeleteGithubCo
 	return nil
 }
 
+// GetGithubConnectionRequest is the request payload for GetGithubConnection.
+type GetGithubConnectionRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID     string `json:"-"`
+	ConnectionID string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GetGithubConnectionRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "ConnectionID":
+		return r.ConnectionID, true
+	default:
+		return nil, false
+	}
+}
+
+// GetGithubConnection retrieves a GitHub connection for a tenant.
+// nolint: dupl
+func (c *Client) GetGithubConnection(ctx context.Context, req *GetGithubConnectionRequest) (*GithubConnection, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.ConnectionID == "" {
+		return nil, fmt.Errorf("connection id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github-connections", url.PathEscape(req.ConnectionID))
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out GithubConnection
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // FindGithubUserRequest is the request for FindGithubUser.
 // Exactly one of GithubID or GithubLogin must be provided.
 type FindGithubUserRequest struct {
