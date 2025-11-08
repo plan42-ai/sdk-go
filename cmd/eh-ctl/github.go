@@ -15,6 +15,7 @@ type GithubOptions struct {
 	ListConnections   ListGithubConnectionsOptions   `cmd:""`
 	GetConnection     GetGithubConnectionOptions     `cmd:""`
 	UpdateConnection  UpdateGithubConnectionOptions  `cmd:""`
+	DeleteConnection  DeleteGithubConnectionOptions  `cmd:""`
 	ListOrgs          ListGithubOrgsOptions          `cmd:""`
 	GetOrg            GetGithubOrgOptions            `cmd:""`
 	UpdateOrg         UpdateGithubOrgOptions         `cmd:""`
@@ -212,6 +213,38 @@ func (o *UpdateGithubConnectionOptions) Run(ctx context.Context, s *SharedOption
 		return err
 	}
 	return printJSON(updated)
+}
+
+type DeleteGithubConnectionOptions struct {
+	TenantID     string `help:"The ID of the tenant that owns the connection." name:"tenant-id" short:"i" required:""`
+	ConnectionID string `help:"The ID of the connection to delete." name:"connection-id" short:"c" required:""`
+}
+
+func (o *DeleteGithubConnectionOptions) Run(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetGithubConnectionRequest{
+		TenantID:     o.TenantID,
+		ConnectionID: o.ConnectionID,
+	}
+	err := loadFeatureFlags(s, &getReq.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	connection, err := s.Client.GetGithubConnection(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	req := &eh.DeleteGithubConnectionRequest{
+		TenantID:     o.TenantID,
+		ConnectionID: o.ConnectionID,
+		Version:      connection.Version,
+	}
+	req.FeatureFlags = getReq.FeatureFlags
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	return s.Client.DeleteGithubConnection(ctx, req)
 }
 
 type AddGithubOrgOptions struct {
