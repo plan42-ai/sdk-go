@@ -158,6 +158,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.UIToken.Generate.Run(options.Ctx, &options.SharedOptions)
 	case "github add-org":
 		return options.Github.AddOrg.Run(options.Ctx, &options.SharedOptions)
+	case "github add-connection":
+		return options.Github.AddConnection.Run(options.Ctx, &options.SharedOptions)
 	case "github list-orgs":
 		return options.Github.ListOrgs.Run(options.Ctx, &options.SharedOptions)
 	case "github get-org":
