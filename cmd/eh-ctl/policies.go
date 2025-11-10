@@ -7,7 +7,7 @@ import (
 )
 
 type PolicyOptions struct {
-	List ListPoliciesOptions `cmd:""`
+	List ListPoliciesOptions `cmd:"" help:"List policies for a tenant."`
 }
 
 type ListPoliciesOptions struct {

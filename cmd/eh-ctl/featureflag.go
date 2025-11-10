@@ -8,16 +8,16 @@ import (
 )
 
 type FeatureFlagOptions struct {
-	Add            AddFeatureFlagOptions            `cmd:""`
-	List           ListFeatureFlagsOptions          `cmd:""`
-	Get            GetFeatureFlagOptions            `cmd:""`
-	Delete         DeleteFeatureFlagOptions         `cmd:""`
-	Update         UpdateFeatureFlagOptions         `cmd:""`
-	GetTenantFlags GetTenantFeatureFlagsOptions     `cmd:""`
-	Override       OverrideFeatureFlagOptions       `cmd:""`
-	GetOverride    GetFeatureFlagOverrideOptions    `cmd:""`
-	ListOverrides  ListFeatureFlagOverridesOptions  `cmd:""`
-	DeleteOverride DeleteFeatureFlagOverrideOptions `cmd:""`
+	Add            AddFeatureFlagOptions            `cmd:"" help:"Add a new feature flag."`
+	List           ListFeatureFlagsOptions          `cmd:"" help:"List defined feature flags."`
+	Get            GetFeatureFlagOptions            `cmd:"" help:"Get metadata for a feature flag."`
+	Delete         DeleteFeatureFlagOptions         `cmd:"" help:"Soft delete a feature flag."`
+	Update         UpdateFeatureFlagOptions         `cmd:"" help:"Update an existing feature flag."`
+	GetTenantFlags GetTenantFeatureFlagsOptions     `cmd:"" help:"Get tenant specific feature flag values."`
+	Override       OverrideFeatureFlagOptions       `cmd:"" help:"Add or edit feature flag override for a tenant."`
+	GetOverride    GetFeatureFlagOverrideOptions    `cmd:"" help:"Get a specific feature flag override for a tenant."`
+	ListOverrides  ListFeatureFlagOverridesOptions  `cmd:"" help:"List all feature flag overrides for a tenant."`
+	DeleteOverride DeleteFeatureFlagOverrideOptions `cmd:"" help:"Soft delete a feature flag override for a tenant."`
 }
 
 type AddFeatureFlagOptions struct {

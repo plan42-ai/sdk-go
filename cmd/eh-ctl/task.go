@@ -10,12 +10,12 @@ import (
 )
 
 type TaskOptions struct {
-	Create CreateTaskOptions `cmd:""`
-	Update UpdateTaskOptions `cmd:""`
-	Delete DeleteTaskOptions `cmd:""`
-	List   ListTasksOptions  `cmd:""`
-	Get    GetTaskOptions    `cmd:""`
-	Move   MoveTaskOptions   `cmd:""`
+	Create CreateTaskOptions `cmd:"" help:"Create a new task."`
+	Update UpdateTaskOptions `cmd:"" help:"Update an existing task."`
+	Delete DeleteTaskOptions `cmd:"" help:"Soft delete an existing task."`
+	List   ListTasksOptions  `cmd:"" help:"List tasks for a tenant or workstream."`
+	Get    GetTaskOptions    `cmd:"" help:"Get a task by ID."`
+	Move   MoveTaskOptions   `cmd:"" help:"Move a task from one workstream to another."`
 }
 
 // MoveTaskOptions contains the flags for the `task move` command.

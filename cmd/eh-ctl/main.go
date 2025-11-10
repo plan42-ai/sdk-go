@@ -108,7 +108,7 @@ type Options struct {
 	SharedOptions
 	Tenant      TenantOptions      `cmd:""`
 	Policies    PolicyOptions      `cmd:""`
-	Github      GithubOptions      `cmd:""`
+	Github      GithubOptions      `cmd:"" help:"commands related to github"`
 	UIToken     UITokenOptions     `cmd:""`
 	Environment EnvironmentOptions `cmd:""`
 	Task        TaskOptions        `cmd:""`
@@ -122,7 +122,7 @@ type Options struct {
 
 func main() {
 	var options Options
-	kongctx := kong.Parse(&options)
+	kongctx := kong.Parse(&options, kong.Help(printHelp))
 
 	err := postProcessOptions(&options)
 	if err != nil {
@@ -139,6 +139,17 @@ func main() {
 		}
 		os.Exit(2)
 	}
+}
+
+func printHelp(options kong.HelpOptions, ctx *kong.Context) error {
+	err := kong.DefaultHelpPrinter(options, ctx)
+	if err != nil {
+		return err
+	}
+	if helpText, ok := helpMap[ctx.Command()]; ok && helpText != "" {
+		fmt.Println(helpText)
+	}
+	return nil
 }
 
 // nolint: gocyclo

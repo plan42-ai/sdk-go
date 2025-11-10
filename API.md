@@ -3605,7 +3605,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
     "Prompt": "*string",
     "Parallel": "bool",
     "Model": "*ModelType",
-    "AssignedToTenantID": "string",
+    "AssignedToTenantID": "*string",
     "AssignedToAI": "bool",
     "RepoInfo": {},
     "State": "*TaskState"
@@ -3759,13 +3759,13 @@ If-Match: <version>
 
 {
     "Title": "*string",
-    "EnvironmentID": "**string",
+    "EnvironmentID": "*string",
     "Prompt": "*string",
     "Parallel": "*bool",
     "Model": "*ModelType",
-    "AssignedToTenantID": "**string",
+    "AssignedToTenantID": "*string",
     "AssignedToAI": "*bool",
-    "RepoInfo": "*RepoInfo",
+    "RepoInfo": {},
     "State": "*TaskState",
     "BeforeTaskID": "*string",
     "AfterTaskID": "*string",
@@ -3787,7 +3787,7 @@ If-Match: <version>
 | Prompt                                   | body     | *string                      | Optional. When                                                                                                           |
 | Parallel                                 | body     | *bool                        | Optional. If set, updates whether the task is marked as parallel.                                                        |
 | Model                                    | body     | *[ModelType](#182-modeltype) | Optional. The new AI model of the task.                                                                                  |
-| AssignedToTenantID                       | body     | **string                     | Optional. When set, updates the tenant the task is assigned to.                                                          |
+| AssignedToTenantID                       | body     | *string                      | Optional. When set, updates the tenant the task is assigned to.                                                          |
 | AssignedToAI                             | body     | *bool                        | Optional. When set, updates whether the task is assigned to AI.                                                          |
 | RepoInfo                                 | body     | *[RepoInfo](#185-repoinfo)   | Optional. When set, updates the repository information of the task.                                                      |
 | State                                    | body     | *[TaskState](#186-taskstate) | Optional. When set, updates the state of the task.                                                                       |
