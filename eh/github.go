@@ -369,6 +369,10 @@ type UpdateGithubConnectionRequest struct {
 	StateExpiry     *time.Time `json:"StateExpiry,omitempty"`
 }
 
+func (r *UpdateGithubConnectionRequest) GetVersion() int {
+	return r.Version
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateGithubConnectionRequest) GetField(name string) (any, bool) {
