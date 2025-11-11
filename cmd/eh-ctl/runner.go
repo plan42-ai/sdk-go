@@ -10,14 +10,14 @@ import (
 )
 
 type RunnerOptions struct {
-	Create        CreateRunnerOptions        `cmd:""`
-	List          ListRunnerOptions          `cmd:""`
-	Get           GetRunnerOptions           `cmd:""`
-	Delete        DeleteRunnerOptions        `cmd:""`
-	Update        UpdateRunnerOptions        `cmd:""`
-	GenerateToken GenerateRunnerTokenOptions `cmd:""`
-	ListTokens    ListRunnerTokensOptions    `cmd:""`
-	RevokeToken   RevokeRunnerTokenOptions   `cmd:""`
+	Create        CreateRunnerOptions        `cmd:"" help:"Create a new remote runner."`
+	List          ListRunnerOptions          `cmd:"" help:"List remote runners for a tenant."`
+	Get           GetRunnerOptions           `cmd:"" help:"Get a remote runner by ID."`
+	Delete        DeleteRunnerOptions        `cmd:"" help:"Soft delete a remote runner."`
+	Update        UpdateRunnerOptions        `cmd:"" help:"Update a remote runner."`
+	GenerateToken GenerateRunnerTokenOptions `cmd:"" help:"Generate a new auth token for a remote runner."`
+	ListTokens    ListRunnerTokensOptions    `cmd:"" help:"List auth token metadata for a remote runner."`
+	RevokeToken   RevokeRunnerTokenOptions   `cmd:"" help:"Revoke a remote runner auth token."`
 }
 
 type CreateRunnerOptions struct {

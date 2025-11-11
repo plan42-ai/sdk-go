@@ -10,15 +10,15 @@ import (
 
 // WorkstreamOptions is the root for all workstream related sub-commands.
 type WorkstreamOptions struct {
-	Create          CreateWorkstreamOptions          `cmd:""`
-	Get             GetWorkstreamOptions             `cmd:""`
-	Delete          DeleteWorkstreamOptions          `cmd:""`
-	List            ListWorkstreamsOptions           `cmd:""`
-	Update          UpdateWorkstreamOptions          `cmd:""`
-	AddShortName    AddWorkstreamShortNameOptions    `cmd:""`
-	ListShortNames  ListWorkstreamShortNamesOptions  `cmd:""`
-	DeleteShortName DeleteWorkstreamShortNameOptions `cmd:""`
-	MoveShortName   MoveShortNameOptions             `cmd:""`
+	Create          CreateWorkstreamOptions          `cmd:"" help:"Create a new workstream."`
+	Get             GetWorkstreamOptions             `cmd:"" help:"Get a workstream by ID."`
+	Delete          DeleteWorkstreamOptions          `cmd:"" help:"Soft delete a workstream."`
+	List            ListWorkstreamsOptions           `cmd:"" help:"List workstreams for a tenant."`
+	Update          UpdateWorkstreamOptions          `cmd:"" help:"Update a workstream."`
+	AddShortName    AddWorkstreamShortNameOptions    `cmd:"" help:"Add a short name to a workstream."`
+	ListShortNames  ListWorkstreamShortNamesOptions  `cmd:"" help:"List shortnames for a workstream or tenant."`
+	DeleteShortName DeleteWorkstreamShortNameOptions `cmd:"" help:"Permanently Delete a short name from a tenant."`
+	MoveShortName   MoveShortNameOptions             `cmd:"" help:"Move a short name from one workstream to another."`
 }
 
 // CreateWorkstreamOptions contains the flags for the `workstream create` command.

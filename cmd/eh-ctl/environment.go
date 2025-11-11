@@ -9,11 +9,11 @@ import (
 )
 
 type EnvironmentOptions struct {
-	Create CreateEnvironmentOptions `cmd:""`
-	Get    GetEnvironmentOptions    `cmd:""`
-	Update UpdateEnvironmentOptions `cmd:""`
-	Delete DeleteEnvironmentOptions `cmd:""`
-	List   ListEnvironmentsOptions  `cmd:""`
+	Create CreateEnvironmentOptions `cmd:"" help:"Create a new environment."`
+	Get    GetEnvironmentOptions    `cmd:"" help:"Fetch an environment by ID."`
+	Update UpdateEnvironmentOptions `cmd:"" help:"Update an existing environment."`
+	Delete DeleteEnvironmentOptions `cmd:"" help:"Soft delete an environment."`
+	List   ListEnvironmentsOptions  `cmd:"" help:"List environments for a tenant."`
 }
 
 type CreateEnvironmentOptions struct {

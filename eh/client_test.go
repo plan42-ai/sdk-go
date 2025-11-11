@@ -2125,7 +2125,7 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 		require.Equal(t, taskTitle, *reqBody.Title)
 		require.NotNil(t, reqBody.EnvironmentID)
 		require.NotNil(t, *reqBody.EnvironmentID)
-		require.Equal(t, "env", **reqBody.EnvironmentID)
+		require.Equal(t, "env", *reqBody.EnvironmentID)
 		require.NotNil(t, reqBody.Prompt)
 		require.Equal(t, "prompt", *reqBody.Prompt)
 		require.NotNil(t, reqBody.Parallel)
@@ -2134,7 +2134,7 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 		require.Equal(t, eh.ModelTypeCodexMini, *reqBody.Model)
 		require.NotNil(t, reqBody.AssignedToTenantID)
 		require.NotNil(t, *reqBody.AssignedToTenantID)
-		require.Equal(t, "tenant-b", **reqBody.AssignedToTenantID)
+		require.Equal(t, "tenant-b", *reqBody.AssignedToTenantID)
 		require.NotNil(t, reqBody.AssignedToAI)
 		require.False(t, *reqBody.AssignedToAI)
 		require.NotNil(t, reqBody.RepoInfo)
@@ -2161,11 +2161,9 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	title := util.Pointer(taskTitle)
-	env := util.Pointer("env")
 	prompt := util.Pointer("prompt")
 	parallel := true
 	model := eh.ModelTypeCodexMini
-	assignedTenant := util.Pointer("tenant-b")
 	assignedToAI := false
 	repoInfo := map[string]*eh.RepoInfo{
 		"repo": {
@@ -2183,11 +2181,11 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 		TaskID:             "task",
 		Version:            3,
 		Title:              title,
-		EnvironmentID:      &env,
+		EnvironmentID:      util.Pointer("env"),
 		Prompt:             prompt,
 		Parallel:           &parallel,
 		Model:              &model,
-		AssignedToTenantID: &assignedTenant,
+		AssignedToTenantID: util.Pointer("tenant-b"),
 		AssignedToAI:       util.Pointer(assignedToAI),
 		RepoInfo:           &repoInfo,
 		State:              &state,

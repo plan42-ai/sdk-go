@@ -7,11 +7,11 @@ import (
 )
 
 type TurnOptions struct {
-	Create  CreateTurnOptions  `cmd:""`
-	List    ListTurnsOptions   `cmd:""`
-	Update  UpdateTurnOptions  `cmd:""`
-	Get     GetTurnOptions     `cmd:""`
-	GetLast GetLastTurnOptions `cmd:""`
+	Create  CreateTurnOptions  `cmd:"" help:"Create a new turn for a task."`
+	List    ListTurnsOptions   `cmd:"" help:"List turns for a given task."`
+	Update  UpdateTurnOptions  `cmd:"" help:"Update an existing turn."`
+	Get     GetTurnOptions     `cmd:"" help:"Get a specific turn by index."`
+	GetLast GetLastTurnOptions `cmd:"" help:"Get the last turn for a given task."`
 }
 
 type CreateTurnOptions struct {

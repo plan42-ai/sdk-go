@@ -696,11 +696,11 @@ type UpdateWorkstreamTaskRequest struct {
 	Version      int    `json:"-"`
 
 	Title              *string               `json:"Title,omitempty"`
-	EnvironmentID      **string              `json:"EnvironmentId,omitempty"`
+	EnvironmentID      *string               `json:"EnvironmentId,omitempty"`
 	Prompt             *string               `json:"Prompt,omitempty"`
 	Parallel           *bool                 `json:"Parallel,omitempty"`
 	Model              *ModelType            `json:"Model,omitempty"`
-	AssignedToTenantID **string              `json:"AssignedToTenantId,omitempty"`
+	AssignedToTenantID *string               `json:"AssignedToTenantId,omitempty"`
 	AssignedToAI       *bool                 `json:"AssignedToAI,omitempty"`
 	RepoInfo           *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
 	State              *TaskState            `json:"State,omitempty"`
