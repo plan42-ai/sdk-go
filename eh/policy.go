@@ -69,6 +69,7 @@ const (
 	PrincipalService        PrincipalType = "Service"
 	PrincipalServiceAccount PrincipalType = "ServiceAccount"
 	PrincipalAgent          PrincipalType = "Agent"
+	PrincipalRunner         PrincipalType = "Runner"
 )
 
 // Action defines the actions that a policy can allow or deny.
@@ -156,10 +157,9 @@ const (
 type TokenType string
 
 const (
-	TokenTypeWebUI          TokenType = "WebUIToken"
-	TokenTypeAuthProvider   TokenType = "AuthProviderToken"   // #nosec: G101: This is an enum value, not a hardcoded credential.
-	TokenTypeServiceAccount TokenType = "ServiceAccountToken" // #nosec: G101: This is an enum value, not a hardcoded credential.
-	TokenTypeAgent          TokenType = "AgentToken"
+	TokenTypeWebUI        TokenType = "WebUIToken"
+	TokenTypeAuthProvider TokenType = "AuthProviderToken" // #nosec: G101: This is an enum value, not a hardcoded credential.
+	TokenTypeAPI          TokenType = "APIToken"          // #nosec: G101: This is an enum value, not a hardcoded credential.
 )
 
 // MemberRole defines the role of a user in an organization or enterprise.
@@ -182,6 +182,7 @@ type PolicyPrincipal struct {
 	OrganizationRole    *MemberRole    `json:"OrganizationRole,omitempty"`
 	Enterprise          *string        `json:"Enterprise,omitempty"`
 	EnterpriseRole      *MemberRole    `json:"EnterpriseRole,omitempty"`
+	RunnerID            *string        `json:"RunnerID,omitempty"`
 	TokenTypesBitVector SmallBitVector `json:"-"`
 }
 
@@ -465,8 +466,7 @@ func init() {
 		[]TokenType{
 			TokenTypeWebUI,
 			TokenTypeAuthProvider,
-			TokenTypeServiceAccount,
-			TokenTypeAgent,
+			TokenTypeAPI,
 		},
 		SmallBitVector(0),
 	)
@@ -477,9 +477,8 @@ type AuthorizationType string
 const (
 	AuthorizationTypeWebUIToken           AuthorizationType = "WebUIToken"
 	AuthorizationTypeAuthProviderToken    AuthorizationType = "AuthProviderToken" // #nosec: G101: This is an enum value, not a hardcoded credential.
-	AuthorizationTypeServiceAccountToken  AuthorizationType = "ServiceAccountToken"
+	AuthorizationTypeAPIToken             AuthorizationType = "APIToken"
 	AuthorizationTypeSTSGetCallerIdentity AuthorizationType = "sts:GetCallerIdentity"
-	AuthorizationTypeAgentToken           AuthorizationType = "AgentToken"
 )
 
 // ListPoliciesRequest is the request for ListPolicies.

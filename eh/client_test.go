@@ -480,18 +480,33 @@ func TestGenerateRunnerToken(t *testing.T) {
 	expiresAt := time.Date(2030, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/v1/tenants/abc/runners/runner/generate-token", r.URL.Path)
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner/tokens/token-id", r.URL.Path)
 
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(eh.GenerateRunnerTokenResponse{TokenID: "token-id", Token: "token", ExpiresAt: expiresAt})
+		_ = json.NewEncoder(w).Encode(
+			eh.GenerateRunnerTokenResponse{
+				RunnerTokenMetadata: eh.RunnerTokenMetadata{
+					TokenID:   "token-id",
+					ExpiresAt: expiresAt,
+				},
+				Token: "token",
+			},
+		)
 	})
 
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	resp, err := client.GenerateRunnerToken(context.Background(), &eh.GenerateRunnerTokenRequest{TenantID: "abc", RunnerID: "runner"})
+	resp, err := client.GenerateRunnerToken(
+		context.Background(),
+		&eh.GenerateRunnerTokenRequest{
+			TenantID: "abc",
+			RunnerID: "runner",
+			TokenID:  "token-id",
+		},
+	)
 	require.NoError(t, err)
 	require.Equal(t, "token-id", resp.TokenID)
 	require.Equal(t, "token", resp.Token)
@@ -502,7 +517,14 @@ func TestGenerateRunnerTokenError(t *testing.T) {
 	t.Parallel()
 	srv, client := serveBadRequest()
 	defer srv.Close()
-	_, err := client.GenerateRunnerToken(context.Background(), &eh.GenerateRunnerTokenRequest{TenantID: "abc", RunnerID: "runner"})
+	_, err := client.GenerateRunnerToken(
+		context.Background(),
+		&eh.GenerateRunnerTokenRequest{
+			TenantID: "abc",
+			RunnerID: "runner",
+			TokenID:  "token-id",
+		},
+	)
 	require.Error(t, err)
 }
 
@@ -514,19 +536,35 @@ func TestGenerateRunnerTokenPathEscaping(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		escapedPath := r.URL.EscapedPath()
 		parts := strings.Split(escapedPath, "/")
-		require.Equal(t, 7, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
 		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
 		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+		require.Equal(t, escapedTokenID, parts[7], "RunnerID not properly escaped in URL path")
 
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(eh.GenerateRunnerTokenResponse{TokenID: "token-id", Token: "token", ExpiresAt: expiresAt})
+		_ = json.NewEncoder(w).Encode(
+			eh.GenerateRunnerTokenResponse{
+				RunnerTokenMetadata: eh.RunnerTokenMetadata{
+					TokenID:   "token-id",
+					ExpiresAt: expiresAt,
+				},
+				Token: "token",
+			},
+		)
 	})
 
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
 	client := eh.NewClient(srv.URL)
-	_, err := client.GenerateRunnerToken(context.Background(), &eh.GenerateRunnerTokenRequest{TenantID: tenantIDThatNeedsEscaping, RunnerID: runnerIDThatNeedsEscaping})
+	_, err := client.GenerateRunnerToken(
+		context.Background(),
+		&eh.GenerateRunnerTokenRequest{
+			TenantID: tenantIDThatNeedsEscaping,
+			RunnerID: runnerIDThatNeedsEscaping,
+			TokenID:  tokenIDThatNeedsEscaping,
+		},
+	)
 	require.NoError(t, err)
 }
 
@@ -1584,15 +1622,15 @@ func TestListRunnerTokens(t *testing.T) {
 		require.Equal(t, "true", r.URL.Query().Get("includeRevoked"))
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.ListRunnerTokensResponse{
-			NextPageToken: util.Pointer("more"),
-			Items: []eh.RunnerTokenMetadata{
+		resp := eh.List[*eh.RunnerTokenMetadata]{
+			NextToken: util.Pointer("more"),
+			Items: []*eh.RunnerTokenMetadata{
 				{
-					TokenID:   "token1",
-					CreatedAt: now,
-					ExpiresAt: now.Add(time.Hour),
-					RevokedAt: util.Pointer(revoked),
-					TokenHash: "hash",
+					TokenID:       "token1",
+					CreatedAt:     now,
+					ExpiresAt:     now.Add(time.Hour),
+					RevokedAt:     util.Pointer(revoked),
+					SignatureHash: "hash",
 				},
 			},
 		}
@@ -1611,8 +1649,8 @@ func TestListRunnerTokens(t *testing.T) {
 		IncludeRevoked: &includeRevoked,
 	})
 	require.NoError(t, err)
-	require.NotNil(t, resp.NextPageToken)
-	require.Equal(t, "more", *resp.NextPageToken)
+	require.NotNil(t, resp.NextToken)
+	require.Equal(t, "more", *resp.NextToken)
 	require.Len(t, resp.Items, 1)
 	require.Equal(t, "token1", resp.Items[0].TokenID)
 	require.NotNil(t, resp.Items[0].RevokedAt)
@@ -1642,7 +1680,7 @@ func TestListRunnerTokensPathEscaping(t *testing.T) {
 		require.Equal(t, "tokens", parts[6], "tokens segment missing in URL path")
 
 		w.WriteHeader(http.StatusOK)
-		resp := eh.ListRunnerTokensResponse{}
+		resp := eh.List[*eh.RunnerTokenMetadata]{}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
 
@@ -5353,13 +5391,22 @@ func TestFeatureFlagsHeader(t *testing.T) {
 		{
 			name:   "GenerateRunnerToken",
 			status: http.StatusOK,
-			resp:   eh.GenerateRunnerTokenResponse{TokenID: "id", Token: "tok", ExpiresAt: time.Date(2030, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			resp: eh.GenerateRunnerTokenResponse{
+				RunnerTokenMetadata: eh.RunnerTokenMetadata{
+					TokenID:   "id",
+					ExpiresAt: time.Date(2030, time.January, 1, 0, 0, 0, 0, time.UTC),
+				},
+				Token: "tok",
+			},
 			call: func(c *eh.Client) error {
-				_, err := c.GenerateRunnerToken(context.Background(), &eh.GenerateRunnerTokenRequest{
-					FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
-					TenantID:     "t",
-					RunnerID:     "runner",
-				})
+				_, err := c.GenerateRunnerToken(
+					context.Background(),
+					&eh.GenerateRunnerTokenRequest{
+						FeatureFlags: eh.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+						TenantID:     "t",
+						RunnerID:     "runner",
+						TokenID:      "token-id",
+					})
 				return err
 			},
 		},

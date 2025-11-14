@@ -4443,7 +4443,7 @@ The GenerateRunnerToken API generates a new token for a runner.
 ## 75.1 Request
 
 ```http request
-POST /v1/tenants/{tenant_id}/runners/{runner_id}/generate-token HTTP/1.1
+PUT /v1/tenants/{tenant_id}/runners/{runner_id}/tokens/{tokenID} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -4454,6 +4454,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|---------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
 | runner_id                                | path     | string  | The ID of the runner to generate a token for.                       |
+| tokenID                                  | path     | string  | The ID of the new token to generate. Must be a V4 UUID.             |
 | Authorization                            | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
@@ -4467,17 +4468,29 @@ HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
 
 {
+    "TenantID": "string",
+    "RunnerID": "string",
     "TokenID": "string",
     "Token": "string",
-    "ExpiresAt": "string"
+    "CreatedAt": "string",
+    "ExpiresAt": "string",
+    "Revoked": bool,
+    "RevokedAt": "*string",
+    "Version": int,
+    "SignatureHash": "string"
 }
 ```
 
-| Field     | Type   | Description                           |
-|-----------|--------|---------------------------------------|
-| TokenID   | string | The ID of the generated token.        |
-| Token     | string | The generated token.                  |
-| ExpiresAt | string | The timestamp when the token expires. |
+| Field         | Type    | Description                                                        |
+|---------------|---------|--------------------------------------------------------------------|
+| TokenID       | string  | The ID of the generated token.                                     |
+| Token         | string  | The generated token.                                               |
+| CreatedAt     | string  | The timestamp when the token was created.                          |
+| ExpiresAt     | string  | The timestamp when the token expires.                              |
+| Revoked       | bool    | Whether the token has been revoked.                                |
+| RevokedAt     | *string | The timestamp when the token was revoked. Null if not revoked.     |
+| Version       | int     | The version of the token. Used for optimistic concurrency control. |
+| SignatureHash | string  | The base64 encoding of the sha256 hash of the token signature.     |
 
 # 76. ListRunnerTokens
 
@@ -4515,11 +4528,15 @@ Content-Type: application/json; charset=utf-8
 {
     "NextPageToken": "*string",
     "Items": [{
+        "TenantID": "string",
+        "RunnerID": "string",
         "TokenID": "string",
         "CreatedAt": "string",
         "ExpiresAt": "string",
+        "Revoked": bool,
         "RevokedAt": "*string",
-        "TokenHash": "string"
+        "Version": int,
+        "SignatureHash": "string"
     }]
 }
 ```
@@ -4533,13 +4550,17 @@ Content-Type: application/json; charset=utf-8
 
 The RunnerTokenMetadata object contains metadata about a runner token.
 
-| Field     | Type    | Description                                                                 |
-|-----------|---------|-----------------------------------------------------------------------------|
-| TokenID   | string  | The ID of the token.                                                        |
-| CreatedAt | string  | The timestamp when the token was created.                                   |
-| ExpiresAt | string  | The timestamp when the token expires.                                       |
-| RevokedAt | *string | The timestamp when the token was revoked. Null if the token is not revoked. |
-| TokenHash | string  | The sha256 hash of the token.                                               |
+| Field         | Type    | Description                                                                 |
+|---------------|---------|-----------------------------------------------------------------------------|
+| TenantID      | string  | The ID of the tenant that owns the runner.                                  |
+| RunnerID      | string  | The ID of the runner the token belongs to.                                  |
+| TokenID       | string  | The ID of the token.                                                        |
+| CreatedAt     | string  | The timestamp when the token was created.                                   |
+| ExpiresAt     | string  | The timestamp when the token expires.                                       |
+| Revoked       | bool    | Whether the token has been revoked.                                         |
+| RevokedAt     | *string | The timestamp when the token was revoked. Null if the token is not revoked. |
+| Version       | int     | The version of the token. Used for optimistic concurrency control.          |
+| SignatureHash | string  | The sha256 hash of the token.                                               |
 
 # 77. RevokeRunnerToken
 
@@ -4553,16 +4574,18 @@ Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
 ``` 
 
-| Parameter                                | Location | Type    | Description                                                         |
-|------------------------------------------|----------|---------|---------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
-| runner_id                                | path     | string  | The ID of the runner the token belongs to.                          |
-| token_id                                 | path     | string  | The ID of the token to revoke.                                      |
-| Authorization                            | header   | string  | The authorization header for the request.                           |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+| Parameter                                | Location | Type    | Description                                                                  |
+|------------------------------------------|----------|---------|------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                                   |
+| runner_id                                | path     | string  | The ID of the runner the token belongs to.                                   |
+| token_id                                 | path     | string  | The ID of the token to revoke.                                               | 
+| Authorization                            | header   | string  | The authorization header for the request.                                    |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                       |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.          |
+| Version                                  | header   | string  | The expected version of the token. Used for optimistic concurrency control.  |
 
 ## 77.2 Response
 

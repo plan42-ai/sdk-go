@@ -12,11 +12,19 @@ import (
 
 // RunnerTokenMetadata represents metadata about a runner token.
 type RunnerTokenMetadata struct {
-	TokenID   string     `json:"TokenID"`
-	CreatedAt time.Time  `json:"CreatedAt"`
-	ExpiresAt time.Time  `json:"ExpiresAt"`
-	RevokedAt *time.Time `json:"RevokedAt,omitempty"`
-	TokenHash string     `json:"TokenHash"`
+	TenantID      string     `json:"TenantID"`
+	RunnerID      string     `json:"RunnerID"`
+	TokenID       string     `json:"TokenID"`
+	CreatedAt     time.Time  `json:"CreatedAt"`
+	ExpiresAt     time.Time  `json:"ExpiresAt"`
+	RevokedAt     *time.Time `json:"RevokedAt,omitempty"`
+	Revoked       bool       `json:"Revoked"`
+	Version       int        `json:"Version"`
+	SignatureHash string     `json:"SignatureHash"`
+}
+
+func (r RunnerTokenMetadata) ObjectType() ObjectType {
+	return ObjectTypeRunnerToken
 }
 
 // ListRunnerTokensRequest represents the request payload for ListRunnerTokens.
@@ -50,15 +58,9 @@ func (r *ListRunnerTokensRequest) GetField(name string) (any, bool) {
 	}
 }
 
-// ListRunnerTokensResponse represents the response from ListRunnerTokens.
-type ListRunnerTokensResponse struct {
-	NextPageToken *string               `json:"NextPageToken"`
-	Items         []RunnerTokenMetadata `json:"Items"`
-}
-
 // ListRunnerTokens lists tokens for a runner.
 // nolint: dupl
-func (c *Client) ListRunnerTokens(ctx context.Context, req *ListRunnerTokensRequest) (*ListRunnerTokensResponse, error) {
+func (c *Client) ListRunnerTokens(ctx context.Context, req *ListRunnerTokensRequest) (*List[*RunnerTokenMetadata], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -110,7 +112,7 @@ func (c *Client) ListRunnerTokens(ctx context.Context, req *ListRunnerTokensRequ
 		return nil, decodeError(resp)
 	}
 
-	var out ListRunnerTokensResponse
+	var out List[*RunnerTokenMetadata]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
