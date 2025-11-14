@@ -149,6 +149,7 @@ const (
 	ActionGetMessagesBatch          Action = "GetMessagesBatch"
 	ActionRegisterRunnerInstance    Action = "RegisterRunnerInstance"
 	ActionWriteResponse             Action = "WriteResponse"
+	ActionCreateTurn                Action = "CreateTurn"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -455,6 +456,7 @@ func init() {
 			ActionGetMessagesBatch,          // (0x0000_0000_0000_0080, 0)
 			ActionRegisterRunnerInstance,    // (0x0000_0000_0000_0100, 0)
 			ActionWriteResponse,             // (0x0000_0000_0000_0200, 0)
+			ActionCreateTurn,                // (0x0000_0000_0000_0400, 0)
 
 		},
 		ActionBitVector{},
