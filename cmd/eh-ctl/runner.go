@@ -263,11 +263,11 @@ func (o *ListRunnerTokensOptions) Run(ctx context.Context, s *SharedOptions) err
 			}
 		}
 
-		if resp.NextPageToken == nil {
+		if resp.NextToken == nil {
 			break
 		}
 
-		req.NextPageToken = resp.NextPageToken
+		req.NextPageToken = resp.NextToken
 	}
 
 	return nil

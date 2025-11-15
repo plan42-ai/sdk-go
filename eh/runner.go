@@ -468,6 +468,7 @@ type GenerateRunnerTokenRequest struct {
 
 	TenantID string `json:"-"`
 	RunnerID string `json:"-"`
+	TokenID  string `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -478,6 +479,8 @@ func (r *GenerateRunnerTokenRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "RunnerID":
 		return r.RunnerID, true
+	case "TokenID":
+		return r.TokenID, true
 	default:
 		return nil, false
 	}
@@ -485,9 +488,8 @@ func (r *GenerateRunnerTokenRequest) GetField(name string) (any, bool) {
 
 // GenerateRunnerTokenResponse is the response payload for GenerateRunnerToken.
 type GenerateRunnerTokenResponse struct {
-	TokenID   string    `json:"TokenID"`
-	Token     string    `json:"Token"`
-	ExpiresAt time.Time `json:"ExpiresAt"`
+	RunnerTokenMetadata
+	Token string `json:"Token"`
 }
 
 // GenerateRunnerToken generates a new token for a runner.
@@ -502,8 +504,8 @@ func (c *Client) GenerateRunnerToken(ctx context.Context, req *GenerateRunnerTok
 		return nil, fmt.Errorf("runner id is required")
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID), "generate-token")
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID), "tokens", url.PathEscape(req.TokenID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -538,6 +540,7 @@ type RevokeRunnerTokenRequest struct {
 	TenantID string `json:"-"`
 	RunnerID string `json:"-"`
 	TokenID  string `json:"-"`
+	Version  int    `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -550,9 +553,15 @@ func (r *RevokeRunnerTokenRequest) GetField(name string) (any, bool) {
 		return r.RunnerID, true
 	case "TokenID":
 		return r.TokenID, true
+	case "Version":
+		return r.Version, true
 	default:
 		return nil, false
 	}
+}
+
+func (r *RevokeRunnerTokenRequest) GetVersion() int {
+	return r.Version
 }
 
 // RevokeRunnerToken revokes a runner token.
@@ -577,6 +586,7 @@ func (c *Client) RevokeRunnerToken(ctx context.Context, req *RevokeRunnerTokenRe
 		return err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
 	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {

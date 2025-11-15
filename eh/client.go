@@ -34,6 +34,15 @@ func (h *sigv4AuthHandler) Authenticate(req *http.Request) error {
 	return sigv4clientutil.AddAuthHeaders(req.Context(), req, h.cfg, h.cfg.Region, h.clk)
 }
 
+type apiTokenHandler struct {
+	Token string
+}
+
+func (a apiTokenHandler) Authenticate(req *http.Request) error {
+	req.Header.Set("Authorization", fmt.Sprintf("%s %s", AuthorizationTypeAPIToken, a.Token))
+	return nil
+}
+
 // WithSigv4Auth configures the client to use SigV4 authentication.
 func WithSigv4Auth(cfg aws.Config, clk clock.Clock) Option {
 	return func(c *Client) {
@@ -63,6 +72,12 @@ func WithInsecureSkipVerify() Option {
 		if transport.TLSClientConfig.MinVersion < tls.VersionTLS12 {
 			transport.TLSClientConfig.MinVersion = tls.VersionTLS12
 		}
+	}
+}
+
+func WithAPIToken(token string) Option {
+	return func(c *Client) {
+		c.authHandlers = append(c.authHandlers, &apiTokenHandler{Token: token})
 	}
 }
 
@@ -274,6 +289,7 @@ const (
 	ObjectTypeTurn                   ObjectType = "Turn"
 	ObjectTypeTask                   ObjectType = "Task"
 	ObjectTypeRunner                 ObjectType = "Runner"
+	ObjectTypeRunnerToken            ObjectType = "RunnerToken"
 	ObjectTypeRunnerInstance         ObjectType = "RunnerInstance"
 	ObjectTypeGithubOrg              ObjectType = "GithubOrg"
 	ObjectTypeGithubConnection       ObjectType = "GithubConnection"
@@ -340,6 +356,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Task{}
 		case ObjectTypeRunner:
 			current = &Runner{}
+		case ObjectTypeRunnerToken:
+			current = RunnerTokenMetadata{}
 		case ObjectTypeRunnerInstance:
 			current = &RunnerInstance{}
 		case ObjectTypeGithubOrg:
