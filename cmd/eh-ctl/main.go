@@ -22,7 +22,7 @@ const (
 type SharedOptions struct {
 	Endpoint          string     `help:"Set to override the api endpoint." optional:""`
 	Insecure          bool       `help:"Don't validate the api cert." optional:""`
-	Dev               bool       `help:"Point at the dev api endpoint (api.dev.x2n.ai) by default." optional:""`
+	Dev               bool       `help:"Point at the dev api endpoint (api.dev.plan42.ai) by default." optional:""`
 	Local             bool       `help:"Short for --endpoint localhost:7443 --insecure"`
 	DelegatedAuthType *string    `help:"The delegated auth type to use." optional:""`
 	DelegatedToken    *string    `help:"The delegated JWT token to use." optional:""`
@@ -296,7 +296,7 @@ func postProcessOptions(o *Options) error {
 	}
 
 	if o.Dev && o.Endpoint == "" {
-		o.Endpoint = "https://api.dev.x2n.ai"
+		o.Endpoint = "https://api.dev.plan42.ai"
 	}
 
 	if o.Endpoint == "" {
