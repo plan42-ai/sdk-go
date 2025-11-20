@@ -469,6 +469,7 @@ type GenerateRunnerTokenRequest struct {
 	TenantID string `json:"-"`
 	RunnerID string `json:"-"`
 	TokenID  string `json:"-"`
+	TTLDays  *int   `json:"TTLDays,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -481,6 +482,8 @@ func (r *GenerateRunnerTokenRequest) GetField(name string) (any, bool) {
 		return r.RunnerID, true
 	case "TokenID":
 		return r.TokenID, true
+	case "TTLDays":
+		return evalNullable(r.TTLDays)
 	default:
 		return nil, false
 	}
@@ -494,22 +497,27 @@ type GenerateRunnerTokenResponse struct {
 
 // GenerateRunnerToken generates a new token for a runner.
 func (c *Client) GenerateRunnerToken(ctx context.Context, req *GenerateRunnerTokenRequest) (*GenerateRunnerTokenResponse, error) {
-	if req == nil {
-		return nil, fmt.Errorf("req is nil")
-	}
 	if req.TenantID == "" {
 		return nil, fmt.Errorf("tenant id is required")
 	}
 	if req.RunnerID == "" {
 		return nil, fmt.Errorf("runner id is required")
 	}
+	if req.TokenID == "" {
+		return nil, fmt.Errorf("token id is required")
+	}
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID), "tokens", url.PathEscape(req.TokenID))
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), nil)
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
 	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
@@ -522,7 +530,7 @@ func (c *Client) GenerateRunnerToken(ctx context.Context, req *GenerateRunnerTok
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusCreated {
 		return nil, decodeError(resp)
 	}
 

@@ -483,7 +483,7 @@ func TestGenerateRunnerToken(t *testing.T) {
 		require.Equal(t, http.MethodPut, r.Method)
 		require.Equal(t, "/v1/tenants/abc/runners/runner/tokens/token-id", r.URL.Path)
 
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(
 			eh.GenerateRunnerTokenResponse{
 				RunnerTokenMetadata: eh.RunnerTokenMetadata{
@@ -511,6 +511,36 @@ func TestGenerateRunnerToken(t *testing.T) {
 	require.Equal(t, "token-id", resp.TokenID)
 	require.Equal(t, "token", resp.Token)
 	require.True(t, resp.ExpiresAt.Equal(expiresAt))
+}
+
+func TestGenerateRunnerTokenWithTTL(t *testing.T) {
+	t.Parallel()
+
+	var receivedReq eh.GenerateRunnerTokenRequest
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&receivedReq)
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(eh.GenerateRunnerTokenResponse{})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	ttl := 120
+	_, err := client.GenerateRunnerToken(
+		context.Background(),
+		&eh.GenerateRunnerTokenRequest{
+			TenantID: "abc",
+			RunnerID: "runner",
+			TokenID:  "token-id",
+			TTLDays:  &ttl,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, receivedReq.TTLDays)
+	require.Equal(t, 120, *receivedReq.TTLDays)
 }
 
 func TestGenerateRunnerTokenError(t *testing.T) {
@@ -541,7 +571,7 @@ func TestGenerateRunnerTokenPathEscaping(t *testing.T) {
 		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
 		require.Equal(t, escapedTokenID, parts[7], "RunnerID not properly escaped in URL path")
 
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(
 			eh.GenerateRunnerTokenResponse{
 				RunnerTokenMetadata: eh.RunnerTokenMetadata{
@@ -5390,7 +5420,7 @@ func TestFeatureFlagsHeader(t *testing.T) {
 		},
 		{
 			name:   "GenerateRunnerToken",
-			status: http.StatusOK,
+			status: http.StatusCreated,
 			resp: eh.GenerateRunnerTokenResponse{
 				RunnerTokenMetadata: eh.RunnerTokenMetadata{
 					TokenID:   "id",
@@ -5706,7 +5736,6 @@ func TestFeatureFlagsHeader(t *testing.T) {
 	}
 
 	for _, tt := range cases {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

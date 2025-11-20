@@ -204,6 +204,7 @@ func (o *UpdateRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 type GenerateRunnerTokenOptions struct {
 	TenantID string `help:"The tenant ID that owns the runner." name:"tenant-id" short:"i" required:""`
 	RunnerID string `help:"The runner ID to generate a token for." name:"runner-id" short:"r" required:""`
+	TTLDays  *int   `help:"Optional token lifetime in days (1-365). Defaults to 90 days." name:"ttl-days" optional:""`
 }
 
 func (o *GenerateRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -214,6 +215,8 @@ func (o *GenerateRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) 
 	req := &eh.GenerateRunnerTokenRequest{
 		TenantID: o.TenantID,
 		RunnerID: o.RunnerID,
+		TokenID:  uuid.NewString(),
+		TTLDays:  o.TTLDays,
 	}
 
 	err := loadFeatureFlags(s, &req.FeatureFlags)

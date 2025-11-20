@@ -4448,17 +4448,22 @@ Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
+Content-Type: application/json
+
+{
+    "TTLDays": int
+}
 ```
 
-| Parameter                                | Location | Type    | Description                                                         |
-|------------------------------------------|----------|---------|---------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
-| runner_id                                | path     | string  | The ID of the runner to generate a token for.                       |
-| tokenID                                  | path     | string  | The ID of the new token to generate. Must be a V4 UUID.             |
-| Authorization                            | header   | string  | The authorization header for the request.                           |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
-
+| Parameter                                | Location | Type    | Description                                                                                       |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                                                        |
+| runner_id                                | path     | string  | The ID of the runner to generate a token for.                                                     |
+| tokenID                                  | path     | string  | The ID of the new token to generate. Must be a V4 UUID.                                           |
+| Authorization                            | header   | string  | The authorization header for the request.                                                         |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                               |
+| TTLDays                                  | body     | *int    | Optional. Token lifetime in days. Defaults to 90 when omitted. Must be between 1 and 365, inclusive. |
 ## 75.2 Response
 
 On success a 200 OK is returned with the following JSON body:
