@@ -441,18 +441,18 @@ A PolicyPrincipal is an object that defines the principal that a policy applies 
 }
 ```
 
-| Field            | Type                               | Description                                                                                                                                                                                                                                                               |
-|------------------|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Type             | [PrincipalType](#64-principaltype) | The type of principal.                                                                                                                                                                                                                                                    |
-| Name             | *string                            | The name of the principal. Only used for `Service` and `ServiceAccount` principals.                                                                                                                                                                                       |
-| RoleArn          | *string                            | The ARN of the IAM role. Only used for `IAMRole` principals.                                                                                                                                                                                                              |
-| Tenant           | *string                            | The TenantID of the principal. Only used for `User` and `ServiceAccount` principals. May also be an [Expression](#116-expressions or the value `*`.                                                                                                                       |
-| TokenTypes       | [][TokenType](#67-tokentype)      | When specified, restricts the policy to only apply to principals that authenticated using one of the specified token types.                                                                                                                                               |
-| Provider         | *string                            | The name of the authentication provider for the principal. Only valid for `AuthProviderToken` token types. Currently only "Google" is supported.                                                                                                                          |
+| Field            | Type                               | Description                                                                                                                                                                                                                                                              |
+|------------------|------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Type             | [PrincipalType](#64-principaltype) | The type of principal.                                                                                                                                                                                                                                                   |
+| Name             | *string                            | The name of the principal. Only used for `Service` and `ServiceAccount` principals.                                                                                                                                                                                      |
+| RoleArn          | *string                            | The ARN of the IAM role. Only used for `IAMRole` principals.                                                                                                                                                                                                             |
+| Tenant           | *string                            | The TenantID of the principal. Only used for `User` and `ServiceAccount` principals. May also be an [Expression](#116-expressions or the value `*`.                                                                                                                      |
+| TokenTypes       | [][TokenType](#67-tokentype)       | When specified, restricts the policy to only apply to principals that authenticated using one of the specified token types.                                                                                                                                              |
+| Provider         | *string                            | The name of the authentication provider for the principal. Only valid for `AuthProviderToken` token types. Currently only "Google" is supported.                                                                                                                         |
 | Organization     | *string                            | The TenantID of the organization that the principal is a member of. When set restricts the policy to only apply to principals that are members of the provided org. Only valid for `User` and `ServiceAccount` principals. May also be an [Expression](#66-expressions). |
-| OrganizationRole | [*MemberRole](#68-memberrole)     | The role of the principal in the organization. Only valid for `User` principals. Valid values are "Owner" and "Member".                                                                                                                                                   |
-| Enterprise       | *string                            | The TenantID of the enterprise that the principal is a member of. When set restricts the policy to only apply to principals that are members of the provided enterprise. Only valid for `User` and `ServiceAccount` principals.                                           |
-| EnterpriseRole   | [*MemberRole](#68-memberrole)     | The role of the principal in the enterprise. Only valid for `User` principals. Valid values are "Owner" and "Member".                                                                                                                                                     |
+| OrganizationRole | [*MemberRole](#68-memberrole)      | The role of the principal in the organization. Only valid for `User` principals. Valid values are "Owner" and "Member".                                                                                                                                                  |
+| Enterprise       | *string                            | The TenantID of the enterprise that the principal is a member of. When set restricts the policy to only apply to principals that are members of the provided enterprise. Only valid for `User` and `ServiceAccount` principals.                                          |
+| EnterpriseRole   | [*MemberRole](#68-memberrole)      | The role of the principal in the enterprise. Only valid for `User` principals. Valid values are "Owner" and "Member".                                                                                                                                                    |
 
 ## 6.4 PrincipalType
 
@@ -465,34 +465,89 @@ PrincipalType is an enum that defines the type of principal that a policy applie
 | Service        | An named alias for an IAM Role. This is used to enable policies to refer to event horizon services without exposing our role arns to customers (which would make it impossible to ever change them). Valid Services names are 'WebUI' and 'AdminRole'. |
 | ServiceAccount | A service account.                                                                                                                                                                                                                                     |
 | Agent          | An executing agent invocation.                                                                                                                                                                                                                         |
+| Runner         | A runner instance.                                                                                                                                                                                                                                     |
 
 ## 6.5 Action
 
 Action is an enum that defines the actions that a policy can allow or deny.
 
-| Value                  |
-|------------------------|
-| PerformDelegatedAction |
-| CreateTenant           |
-| GetTenant              |
-| GenerateWebUIToken     |
-| ListTenants            |
-| UpdateTurn             |
-| UpdateTask             |
-| GetTask                |
-| GetTurn                |
-| UploadTurnLogs         |
-| GetCurrentUser         |
-| CreateEnvironment      |
-| GetEnvironment         |
-| ListEnvironments       |
-| UpdateEnvironment      |
-| DeleteEnvironment      |
-| GetLastTurn            |
-| CreateTask             |
-| GetLastTurnLog         |
-| StreamLogs             | 
-| ListTurns              |
+| Value                     |
+|---------------------------|
+| PerformDelegatedAction    |
+| CreateTenant              |
+| GetTenant                 |
+| GenerateWebUIToken        |
+| ListPolicies              |
+| UpdateTurn                |
+| UpdateTask                |
+| GetTask                   |
+| ListTasks                 |
+| GetTurn                   |
+| UploadTurnLogs            |
+| GetCurrentUser            |
+| CreateEnvironment         |
+| GetEnvironment            |
+| ListEnvironments          |
+| UpdateEnvironment         |
+| DeleteEnvironment         |
+| GetLastTurn               |
+| CreateTask                |
+| GetLastTurnLog            |
+| StreamLogs                |
+| ListTurns                 |
+| AddGithubOrg              |
+| UpdateGithubOrg           |
+| DeleteGithubOrg           |
+| ListGithubOrgs            |
+| GetGithubOrg              |
+| CreateFeatureFlag         |
+| GetTenantFeatureFlags     |
+| CreateFeatureFlagOverride |
+| ListFeatureFlags          |
+| GetFeatureFlag            |
+| UpdateFeatureFlag         |
+| DeleteFeatureFlag         |
+| DeleteFeatureFlagOverride |
+| GetFeatureFlagOverride    |
+| UpdateFeatureFlagOverride |
+| ListFeatureFlagOverrides  |
+| GetTenantGithubCreds      |
+| UpdateTenantGithubCreds   |
+| FindGithubUser            |
+| CreateWorkstream          |
+| GetWorkstream             |
+| UpdateWorkstream          |
+| ListWorkstreams           |
+| DeleteWorkstream          |
+| AddWorkstreamShortName    |
+| ListWorkstreamShortNames  |
+| DeleteWorkstreamShortName |
+| MoveTask                  |
+| MoveShortName             |
+| ListTenants               |
+| CreateWorkstreamTask      |
+| ListWorkstreamTasks       |
+| DeleteWorkstreamTask      |
+| UpdateWorkstreamTask      |
+| GetWorkstreamTask         |
+| SearchTasks               |
+| CreateRunner              |
+| CreateGithubConnection    |
+| ListRunners               |
+| DeleteRunner              |
+| ListGithubConnections     |
+| GetRunner                 |
+| UpdateRunner              |
+| DeleteGithubConnection    |
+| GenerateRunnerToken       |
+| GetGithubConnection       |
+| RevokeRunnerToken         |
+| UpdateGithubConnection    |
+| ListRunnerTokens          |
+| GetMessagesBatch          |
+| RegisterRunnerInstance    |
+| WriteResponse             |
+| CreateTurn                |
 
 ## 6.6 Expressions
 
@@ -950,6 +1005,36 @@ This policy allows members of an enterprise to perform non-admin actions on the 
 }
 ```
 
+# 11. Default Runner Policies
+
+When a new runner is created, we create a policy that enables runner tokens for that runner to:
+
+1. Register new runner instances
+2. Get batches of messages
+3. Write runner responses.
+
+```json
+{
+  "Name": "Runner-<runner_id>",
+  "Effect": "Allow",
+  "Tenant": "tenant_id",
+  "Principal": {
+    "Type": "Runner",
+    "Tenant": "$policy.Tenant",
+    "RunnerID": "<runner_id>",
+  },
+  "Actions" : [
+    "RegisterRunnerInstance",
+    "GetMessagesBatch",
+    "WriteResponse"
+  ],
+  "Constraints": [
+    "$request.Tenant == $policy.Tenant",
+    "$request.RunnerID == $policy.Principal.RunnerID"
+  ]
+}
+```
+
 # 11. ListPolicies
 
 The ListPolicies API is used to list all policies for a tenant. 
@@ -987,10 +1072,10 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-| Field     | Type                    | Description                                                                                    |
-|-----------|-------------------------|------------------------------------------------------------------------------------------------|
-| Policies  | [][Policy](#111-policy) | A list of policies for the tenant. See [Policy](#111-policy) for details on the policy object. |
-| NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Field     | Type                          | Description                                                                                          |
+|-----------|-------------------------------|------------------------------------------------------------------------------------------------------|
+| Policies  | [][Policy](#61-policy-schema) | A list of policies for the tenant. See [Policy](#61-policy-schema) for details on the policy object. |
+| NextToken | *string                       | A token to retrieve the next page of results. If there are no more results, this will be null.       |
 
 # 12. GetCurrentUser
 
@@ -4810,3 +4895,49 @@ Content-Type: application/json; charset=utf-8
 | NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
 
 Requests that do not match any tasks return `Tasks: []` with `NextToken` unset. If the supplied `pullRequestId` is invalid or the caller lacks access to the tenant, standard error responses are returned.
+
+# 82. GetRunnerToken
+
+The GetRunnerToken API retrieves metadata for a runner token by its ID.
+
+## 82.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/runners/{runner_id}/tokens/{token_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
+| runner_id                                | path     | string  | The ID of the runner the token belongs to.                          |
+| token_id                                 | path     | string  | The ID of the token to retrieve.                                    | 
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 82.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "RunnerID": "string",
+    "TokenID": "string",
+    "CreatedAt": "string",
+    "ExpiresAt": "string",
+    "Revoked": bool,
+    "RevokedAt": "*string",
+    "Version": int,
+    "SignatureHash": "string"
+}
+```
+
+See [here](#763-RunnerTokenMetadata) for more details.

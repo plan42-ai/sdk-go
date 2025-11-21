@@ -208,6 +208,8 @@ func (p *PolicyPrincipal) GetField(name string) (any, bool) {
 		return evalNullable(p.Enterprise)
 	case "EnterpriseRole":
 		return evalNullable(p.EnterpriseRole)
+	case "RunnerID":
+		return evalNullable(p.RunnerID)
 	default:
 		return nil, false
 	}
