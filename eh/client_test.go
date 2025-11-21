@@ -1674,6 +1674,44 @@ func TestGetRunnerToken(t *testing.T) {
 	require.False(t, token.Revoked)
 }
 
+func TestGetRunnerTokenIncludeDeleted(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2024, time.March, 3, 0, 0, 0, 0, time.UTC)
+	includeDeleted := true
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1/tokens/token1", r.URL.Path)
+		require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.RunnerTokenMetadata{
+			TenantID:      "abc",
+			RunnerID:      "runner1",
+			TokenID:       "token1",
+			CreatedAt:     now,
+			ExpiresAt:     now.Add(time.Hour),
+			Revoked:       true,
+			Version:       2,
+			SignatureHash: "hash",
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetRunnerToken(context.Background(), &eh.GetRunnerTokenRequest{
+		TenantID:       "abc",
+		RunnerID:       "runner1",
+		TokenID:        "token1",
+		IncludeDeleted: &includeDeleted,
+	})
+	require.NoError(t, err)
+}
+
 func TestGetRunnerTokenError(t *testing.T) {
 	t.Parallel()
 
