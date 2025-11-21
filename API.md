@@ -4941,3 +4941,63 @@ Content-Type: application/json; charset=utf-8
 ```
 
 See [here](#763-RunnerTokenMetadata) for more details.
+
+# 83. UpdateTenant
+
+UpdateTenant API updates metadata for a tenant.
+
+## 83.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "DefaultRunnerID" : "*string",
+    "DefaultGithubConnectionID": "*string"
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                 |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant to update.                                                                                             |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                   |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                      |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                         |
+| Version                                  | header   | string  | The expected version of the tenant. Used for optimistic concurrency control.                                                |
+| DefaultRunnerID                          | body     | *string | Optional. When set, updates the default runner ID for the tenant. Use "" to clear the default runner.                       |
+| DefaultGithubConnectionID                | body     | *string | Optional. When set, updates the default GitHub connection ID for the tenant. Use "" to clear the default github connection. |
+
+## 83.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "Type": "TenantType",
+  "Version": int,
+  "Deleted": boolean,
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "FullName": "*string",
+  "OrgName": "*string",
+  "EnterpriseName": "*string",
+  "Email": "*string",
+  "FirstName": "*string",
+  "LastName": "*string",
+  "PictureURL": "*string",
+  "DefaultRunnerID" : "*string",
+  "DefaultGithubConnectionID": "*string"
+}
+```
+
+See [here](#612-response) for more details.
