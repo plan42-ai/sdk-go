@@ -4914,7 +4914,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|---------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
 | runner_id                                | path     | string  | The ID of the runner the token belongs to.                          |
-| token_id                                 | path     | string  | The ID of the token to retrieve.                                    | 
+| token_id                                 | path     | string  | The ID of the token to retrieve.                                    |
+| includeDeleted                           | query    | *bool   | Whether to include deleted tokens in the lookup.                    |
 | Authorization                            | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |

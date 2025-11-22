@@ -32,9 +32,10 @@ type GetRunnerTokenRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID string
-	RunnerID string
-	TokenID  string
+	TenantID       string
+	RunnerID       string
+	TokenID        string
+	IncludeDeleted *bool
 }
 
 // GetField retrieves the value of a field by name.
@@ -47,6 +48,8 @@ func (r *GetRunnerTokenRequest) GetField(name string) (any, bool) {
 		return r.RunnerID, true
 	case "TokenID":
 		return r.TokenID, true
+	case "IncludeDeleted":
+		return evalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -77,6 +80,11 @@ func (c *Client) GetRunnerToken(ctx context.Context, req *GetRunnerTokenRequest)
 		"tokens",
 		url.PathEscape(req.TokenID),
 	)
+	q := u.Query()
+	if req.IncludeDeleted != nil {
+		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	u.RawQuery = q.Encode()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
