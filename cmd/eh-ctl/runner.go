@@ -13,6 +13,7 @@ type RunnerOptions struct {
 	Create        CreateRunnerOptions        `cmd:"" help:"Create a new remote runner."`
 	List          ListRunnerOptions          `cmd:"" help:"List remote runners for a tenant."`
 	Get           GetRunnerOptions           `cmd:"" help:"Get a remote runner by ID."`
+	GetToken      GetRunnerTokenOptions      `cmd:"" help:"Get metadata for a remote runner token."`
 	Delete        DeleteRunnerOptions        `cmd:"" help:"Soft delete a remote runner."`
 	Update        UpdateRunnerOptions        `cmd:"" help:"Update a remote runner."`
 	GenerateToken GenerateRunnerTokenOptions `cmd:"" help:"Generate a new auth token for a remote runner."`
@@ -274,6 +275,39 @@ func (o *ListRunnerTokensOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 
 	return nil
+}
+
+type GetRunnerTokenOptions struct {
+	TenantID       string `help:"The tenant ID that owns the runner." name:"tenant-id" short:"i" required:""`
+	RunnerID       string `help:"The runner ID that owns the token." name:"runner-id" short:"r" required:""`
+	TokenID        string `help:"The token ID to fetch metadata for." name:"token-id" short:"k" required:""`
+	IncludeDeleted bool   `help:"Set to return metadata for a revoked token." name:"include-deleted" short:"d" optional:""`
+}
+
+func (o *GetRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if s.ShowSecrets {
+		return errors.New("invalid `-s`: runner token values cannot be fetched after they are generated")
+	}
+
+	req := &eh.GetRunnerTokenRequest{
+		TenantID:       o.TenantID,
+		RunnerID:       o.RunnerID,
+		TokenID:        o.TokenID,
+		IncludeDeleted: pointer(o.IncludeDeleted),
+	}
+
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	token, err := s.Client.GetRunnerToken(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return printJSON(token)
 }
 
 type RevokeRunnerTokenOptions struct {
