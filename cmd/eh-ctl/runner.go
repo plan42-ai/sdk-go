@@ -317,16 +317,31 @@ type RevokeRunnerTokenOptions struct {
 }
 
 func (o *RevokeRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetRunnerTokenRequest{
+		TenantID:       o.TenantID,
+		RunnerID:       o.RunnerID,
+		TokenID:        o.TokenID,
+		IncludeDeleted: pointer(true),
+	}
+
+	err := loadFeatureFlags(s, &getReq.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	token, err := s.Client.GetRunnerToken(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
 	req := &eh.RevokeRunnerTokenRequest{
 		TenantID: o.TenantID,
 		RunnerID: o.RunnerID,
 		TokenID:  o.TokenID,
+		Version:  token.Version,
 	}
-
-	err := loadFeatureFlags(s, &req.FeatureFlags)
-	if err != nil {
-		return err
-	}
+	req.FeatureFlags = getReq.FeatureFlags
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	err = s.Client.RevokeRunnerToken(ctx, req)
