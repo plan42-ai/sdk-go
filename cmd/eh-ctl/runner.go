@@ -235,8 +235,9 @@ func (o *GenerateRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) 
 }
 
 type ListRunnerTokensOptions struct {
-	TenantID string `help:"The tenant ID to list tokens for." name:"tenant-id" short:"i" required:""`
-	RunnerID string `help:"The runner ID to list tokens for." name:"runner-id" short:"r" required:""`
+	TenantID       string `help:"The tenant ID to list tokens for." name:"tenant-id" short:"i" required:""`
+	RunnerID       string `help:"The runner ID to list tokens for." name:"runner-id" short:"r" required:""`
+	IncludeDeleted *bool  `help:"When set, includes deleted (revoked) tokens in the results." short:"d" optional:""`
 }
 
 func (o *ListRunnerTokensOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -245,8 +246,9 @@ func (o *ListRunnerTokensOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 
 	req := &eh.ListRunnerTokensRequest{
-		TenantID: o.TenantID,
-		RunnerID: o.RunnerID,
+		TenantID:       o.TenantID,
+		RunnerID:       o.RunnerID,
+		IncludeRevoked: o.IncludeDeleted,
 	}
 
 	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
