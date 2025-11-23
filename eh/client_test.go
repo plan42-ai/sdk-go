@@ -913,6 +913,116 @@ func TestCreateRunnerPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestRegisterRunnerQueue(t *testing.T) {
+	t.Parallel()
+
+	publicKey := "-----BEGIN PUBLIC KEY-----"
+	now := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+	lastHealthCheck := now.Add(time.Minute)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1/queues/queue1", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		var reqBody struct {
+			PublicKey string `json:"PublicKey"`
+		}
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.Equal(t, publicKey, reqBody.PublicKey)
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.RunnerQueue{
+			TenantID:                           "abc",
+			RunnerID:                           "runner1",
+			QueueID:                            "queue1",
+			PublicKey:                          publicKey,
+			CreatedAt:                          now,
+			Version:                            1,
+			IsHealthy:                          true,
+			NConsecutiveFailedHealthChecks:     0,
+			NConsecutiveSuccessfulHealthChecks: 1,
+			LastHealthCheckAt:                  util.Pointer(lastHealthCheck),
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	queue, err := client.RegisterRunnerQueue(context.Background(), &eh.RegisterRunnerQueueRequest{
+		TenantID:  "abc",
+		RunnerID:  "runner1",
+		QueueID:   "queue1",
+		PublicKey: publicKey,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "queue1", queue.QueueID)
+	require.Equal(t, 1, queue.Version)
+	require.NotNil(t, queue.LastHealthCheckAt)
+	require.Equal(t, lastHealthCheck, *queue.LastHealthCheckAt)
+}
+
+func TestRegisterRunnerQueueError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.RegisterRunnerQueue(context.Background(), &eh.RegisterRunnerQueueRequest{
+		TenantID:  "abc",
+		RunnerID:  "runner1",
+		QueueID:   "queue1",
+		PublicKey: "key",
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestRegisterRunnerQueuePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	publicKey := "key"
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+		require.Equal(t, escapedQueueID, parts[7], "QueueID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusCreated)
+		resp := eh.RunnerQueue{
+			TenantID:  tenantIDThatNeedsEscaping,
+			RunnerID:  runnerIDThatNeedsEscaping,
+			QueueID:   queueIDThatNeedsEscaping,
+			PublicKey: publicKey,
+			CreatedAt: time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Version:   1,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.RegisterRunnerQueue(context.Background(), &eh.RegisterRunnerQueueRequest{
+		TenantID:  tenantIDThatNeedsEscaping,
+		RunnerID:  runnerIDThatNeedsEscaping,
+		QueueID:   queueIDThatNeedsEscaping,
+		PublicKey: publicKey,
+	})
+	require.NoError(t, err)
+}
+
 func TestGetRunner(t *testing.T) {
 	t.Parallel()
 

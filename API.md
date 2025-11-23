@@ -4741,6 +4741,7 @@ Content-Type: application/json; charset=utf-8
     "QueueID": "string",
     "PublicKey": "string",
     "CreatedAt": "string",
+    "Version": int,
     "IsHealthy": bool,
     "NConsecutiveFailedHealthChecks": int,
     "NConsecutiveSuccessfulHealthChecks": int,
@@ -4757,6 +4758,7 @@ Content-Type: application/json; charset=utf-8
 | QueueID                            | string | The ID of the registered queue.                         |
 | PublicKey                          | string | The PEM encoded public key of the queue.                |
 | CreatedAt                          | string | The timestamp when the queue was registered.            |
+| Version                            | int    | The current version of the queue record.                |
 | IsHealthy                          | bool   | Whether the queue is currently healthy.                 | 
 | NConsecutiveFailedHealthChecks     | int    | The number of consecutive failed health checks.         |
 | NConsecutiveSuccessfulHealthChecks | int    | The number of consecutive successful health checks.     |
