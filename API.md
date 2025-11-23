@@ -10,7 +10,7 @@ following types of tokens:
 
 ## 1.1 Web UI Tokens
 
-Web UI Tokens are JWT tokens signed by Event Horizon that authenticate users of the web ui. When users login,
+Web UI Tokens are JWT tokens signed by Plan 42 that authenticate users of the web ui. When users login,
 the website will exchange their login-provider credentials for a Web UI Auth Token, which can be stored in the browser
 and used to authenticate callbacks from JavaScript.
 
@@ -31,14 +31,14 @@ Generally, AuthProvider tokens are used for 2 purposes:
 
 ## 1.3 Service Account Tokens
 
-Service Account Tokens are JWT tokens signed by Event Horizon that authenticate automation scripts that interact with
+Service Account Tokens are JWT tokens signed by Plan 42 that authenticate automation scripts that interact with
 the API. Service Account Tokens are typically long-lived (up to 366 days). 
 
 If you automation has access to AWS IAM credentials, consider using Sigv4 Auth instead.
 
 ## 1.4 Agent Tokens
 
-Agent Tokens are JWT tokens signed by Event Horizon that authenticate agents that run tasks on behalf of users.
+Agent Tokens are JWT tokens signed by Plan 42 that authenticate agents that run tasks on behalf of users.
 They are used to update turn status and to upload turn logs. 
 
 ## 1.5 Sigv4 Auth
@@ -46,7 +46,7 @@ They are used to update turn status and to upload turn logs.
 Sigv4 Auth uses AWS IAM Role credentials to sign requests to the API using Sigv4. For automation scripts that have access to
 AWS, this is the preferred method of authentication, as it does not require explicit secret management or rotation.
 
-This is also the mechanism Event Horizon uses internally, for example, to authenticate between the web ui and the API.
+This is also the mechanism Plan 42 uses internally, for example, to authenticate between the web ui and the API.
 
 ## 1.6 Delegation
 
@@ -137,7 +137,7 @@ Horizon platform. There are 3 types of tenants:
 
 1. Users
 
-   When a user logs in to Event Horizon for the first time, a new tenant is created for them. Resources created under
+   When a user logs in to Plan 42 for the first time, a new tenant is created for them. Resources created under
    the user's tenant are private to that user. 
 
 2. Organizations
@@ -458,14 +458,14 @@ A PolicyPrincipal is an object that defines the principal that a policy applies 
 
 PrincipalType is an enum that defines the type of principal that a policy applies to.
 
-| Value          | Description                                                                                                                                                                                                                                            |
-|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| User           | A human user.                                                                                                                                                                                                                                          |
-| IAMRole        | An AWS IAM Role authenticating via Sigv4.                                                                                                                                                                                                              |
-| Service        | An named alias for an IAM Role. This is used to enable policies to refer to event horizon services without exposing our role arns to customers (which would make it impossible to ever change them). Valid Services names are 'WebUI' and 'AdminRole'. |
-| ServiceAccount | A service account.                                                                                                                                                                                                                                     |
-| Agent          | An executing agent invocation.                                                                                                                                                                                                                         |
-| Runner         | A runner instance.                                                                                                                                                                                                                                     |
+| Value          | Description                                                                                                                                                                                                                                      |
+|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| User           | A human user.                                                                                                                                                                                                                                    |
+| IAMRole        | An AWS IAM Role authenticating via Sigv4.                                                                                                                                                                                                        |
+| Service        | An named alias for an IAM Role. This is used to enable policies to refer to Plan 42 services without exposing our role arns to customers (which would make it impossible to ever change them). Valid Services names are 'WebUI' and 'AdminRole'. |
+| ServiceAccount | A service account.                                                                                                                                                                                                                               |
+| Agent          | An executing agent invocation.                                                                                                                                                                                                                   |
+| Runner         | A runner instance.                                                                                                                                                                                                                               |
 
 ## 6.5 Action
 
@@ -545,7 +545,7 @@ Action is an enum that defines the actions that a policy can allow or deny.
 | UpdateGithubConnection    |
 | ListRunnerTokens          |
 | GetMessagesBatch          |
-| RegisterRunnerInstance    |
+| RegisterRunnerQueue       |
 | WriteResponse             |
 | CreateTurn                |
 
@@ -1009,7 +1009,7 @@ This policy allows members of an enterprise to perform non-admin actions on the 
 
 When a new runner is created, we create a policy that enables runner tokens for that runner to:
 
-1. Register new runner instances
+1. Register new runner queues
 2. Get batches of messages
 3. Write runner responses.
 
@@ -1024,7 +1024,7 @@ When a new runner is created, we create a policy that enables runner tokens for 
     "RunnerID": "<runner_id>",
   },
   "Actions" : [
-    "RegisterRunnerInstance",
+    "RegisterRunnerQueue",
     "GetMessagesBatch",
     "WriteResponse"
   ],
@@ -1167,7 +1167,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Context                                  | body     | string                  | Context describing the environment to provide to AI agents that use this environment.                                                                                                                                 |
 | Repos                                    | body     | []string                | A list of repositories to use in the environment, of the form org/repo. At most 50 repos can be specified.                                                                                                            |
 | SetupScript                              | body     | string                  | A script to run to set up the environment. Size must be <= 512 KB                                                                                                                                                     |
-| DockerImage                              | body     | *string                 | The Docker image to use for the environment. Optional. Defaults to the latest event horizon agent wrapper image.                                                                                                      |
+| DockerImage                              | body     | *string                 | The Docker image to use for the environment. Optional. Defaults to the latest Plan 42 agent wrapper image.                                                                                                      |
 | AllowedHosts                             | body     | []string                | A list of outbound hostnames the environment is allowed to connect to. Only TLS connections to hosts with public trusted certs or internal event-horizon oss mirrors are allowed.  At most 50 hosts can be specified. |
 | EnvVars                                  | body     | [][EnvVar](#132-envvar) | A list of environment variables to set in the environment. At most 50 env vars may be specified.                                                                                                                      |
 | RunnerID                                 | body     | string                  | The ID of the runner to use for the environment. Must be the id of a runner or the value "default".                                                                                                                   |
@@ -4681,28 +4681,34 @@ If-Match: <version>
 
 On success a 204 NO CONTENT is returned with no body.
 
-# 78. RegisterRunnerInstance
+# 78. RegisterRunnerQueue
 
-The RegisterRunnerInstance API registers a new runner instance. 
+The RegisterRunnerQueue API registers a new "queue" for a runner.
 
-When customers deploy runners in their own environments, they can deploy multiple instances to
-provide high availability and load balancing. These instances all correspond to a single logical runner. Each time
-the runner software starts up, it will generate a random instance ID and register its self. Instances fetch messages by
-calling GetMessageBatch. Each call to GetMessageBatch also heartbeats that instances. If an instance
-goes 60s without heart beating, it will be marked as unhealthy and traffic will no longer be routed to it.  
+When customers deploy runners in their own environments, they can deploy multiple instances for high availability and
+load balancing. Each runner instance will poll the api service for batches of messages to process, invoke them, and 
+post the responses back to the api service. Instances dynamically adjust the number
+of concurrent pollers they use based on load. Each runner instance will use at least one poller. We use a single
+queue per poller. Thus a single logical runner can have multiple queues associated with it.
 
-New instances are available for traffic immediately upon registration. 
+PLan 42 will load balance across a runner's queues using a round robin strategy. It applies health checks to
+identify which queues are healthy, and only delivers messages to healthy queues. Health checks are run by sending
+"ping" messages to each queue every 30 seconds, and waiting for a response with a 5 second timeout. After 2 consecutive
+failed health checks, a queue is marked as unhealthy. After 10 consecutive failed health checks, a queue is automatically
+deleted.
 
-Instances that become unhealthy must heart beat successfully 10 times (150 seconds) before traffic will be routed to
-them. Unlike a load balancer, we do not implement a mode where we route traffic to all instances when they are all unhealthy.
+Each queue and each API service instance have an associated ECC P-256 key pair. API service instances generate their
+key pair at startup. Runners generate a key pair each time they call RegisterRunnerQueue. ECIES is used to encrypt
+messages sent to a queue, and to encrypt responses sent back to the API service. This uses ECDH and SHA256 to derive
+the AES Key and IV used to encrypt the message payloads.
 
-We enforce that the PublicKey provided is unique and has not been seen by Plan 42 before. Any attempt to re-use
-an existing PublicKey will result in a 404 BAD REQUEST error.
+Plan 42 enforces that the public keys supplied to RegisterRunnerQueue are unique and have not been seen by the service
+before.
 
 ## 78.1 Request
 
 ```http request
-PUT /v1/tenants/{tenant_id}/runners/{runner_id}/instances/{instance_id} HTTP/1.1
+PUT /v1/tenants/{tenant_id}/runners/{runner_id}/queues/{queue_id} HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Authorization: <authorization>
 
@@ -4711,13 +4717,13 @@ Authorization: <authorization>
 }
 ```
 
-| Parameter     | Location | Type   | Description                                        |
-|---------------|----------|--------|----------------------------------------------------|
-| tenant_id     | path     | string | The ID of the tenant that owns the runner.         |
-| runner_id     | path     | string | The ID of the runner to register the instance for. |
-| instance_id   | path     | string | The ID of the instance to register.                |
-| Authorization | header   | string | The authorization header for the request.          |
-| PublicKey     | body     | string | The PEM encoded public key of the instance.        |
+| Parameter     | Location | Type   | Description                                     |
+|---------------|----------|--------|-------------------------------------------------|
+| tenant_id     | path     | string | The ID of the tenant that owns the runner.      |
+| runner_id     | path     | string | The ID of the runner to register the queue for. |
+| queue_id      | path     | string | The ID of the queue to register.                |
+| Authorization | header   | string | The authorization header for the request.       |
+| PublicKey     | body     | string | The PEM encoded public key for the queue.       |
 
 Note that this api does not support delegation.
 
@@ -4732,27 +4738,33 @@ Content-Type: application/json; charset=utf-8
 {
     "TenantID": "string",
     "RunnerID": "string",
-    "InstanceID": "string",
+    "QueueID": "string",
     "PublicKey": "string",
-    "RegisteredAt": "string",
-    "LastHeartBeatAt": "string",
-    "IsHealthy": bool
+    "CreatedAt": "string",
+    "IsHealthy": bool,
+    "NConsecutiveFailedHealthChecks": int,
+    "NConsecutiveSuccessfulHealthChecks": int,
+    "LastHealthCheckAt": "string"
+    
+    
 }
 ```
 
-| Field           | Type   | Description                                          |
-|-----------------|--------|------------------------------------------------------|
-| TenantID        | string | The ID of the tenant that owns the runner.           |
-| RunnerID        | string | The ID of the runner the instance is registered for. |
-| InstanceID      | string | The ID of the registered instance.                   |
-| PublicKey       | string | The PEM encoded public key of the instance.          |
-| RegisteredAt    | string | The timestamp when the instance was registered.      |
-| LastHeartBeatAt | string | The timestamp when the instance last heart beated.   |
-| IsHealthy       | bool   | Whether the instance is currently healthy.           | 
+| Field                              | Type   | Description                                             |
+|------------------------------------|--------|---------------------------------------------------------|
+| TenantID                           | string | The ID of the tenant that owns the runner.              |
+| RunnerID                           | string | The ID of the runner the queue is registered for.       |
+| QueueID                            | string | The ID of the registered queue.                         |
+| PublicKey                          | string | The PEM encoded public key of the queue.                |
+| CreatedAt                          | string | The timestamp when the queue was registered.            |
+| IsHealthy                          | bool   | Whether the queue is currently healthy.                 | 
+| NConsecutiveFailedHealthChecks     | int    | The number of consecutive failed health checks.         |
+| NConsecutiveSuccessfulHealthChecks | int    | The number of consecutive successful health checks.     |
+| LastHealthCheckAt                  | string | The timestamp when the last health check was performed. |
 
 # 79. GetMessagesBatch
 
-The GetMessagesBatch API retrieves a batch of messages for a runner instance.
+The GetMessagesBatch API retrieves a batch of messages for a runner queue
 
 We use "at most once" semantics for messages. Messages are implemented asynchronously because the api service
 (which sends messages to runners) doesn't have line of site the them. However, messages are used in syncronous request
@@ -4761,23 +4773,23 @@ response scenarios (for example, when calling a github api to search for repos, 
 We don't implement "at least once" semantics because by the time we attempt to re-drive delivery, the original
 caller would have already timed out and marked it's request as failed.
 
-So, when messages are returned from this API, the are deleted from the instance's queue before they are returned.
+So, when messages are returned from this API, the are deleted from the queue before they are returned.
 
 ## 79.1 Request
 
 ```http request
-POST /v1/tenants/{tenant_id}/runners/{runner_id}/instances/{instance_id}/messages/batch HTTP/1.1
+GET /v1/tenants/{tenant_id}/runners/{runner_id}/queues/{queue_id}/messages HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Accept: application/json
 Authorization: <authorization>
 ```
 
-| Parameter     | Location | Type   | Description                                          |
-|---------------|----------|--------|------------------------------------------------------|
-| tenant_id     | path     | string | The ID of the tenant that owns the runner.           |
-| runner_id     | path     | string | The ID of the runner the instance is registered for. |
-| instance_id   | path     | string | The ID of the instance to retrieve messages for.     |
-| Authorization | header   | string | The authorization header for the request.            |
+| Parameter     | Location | Type   | Description                                 |
+|---------------|----------|--------|---------------------------------------------|
+| tenant_id     | path     | string | The ID of the tenant that owns the runner.  |
+| runner_id     | path     | string | The ID of the runner to fetch messages for. |
+| queue_id      | path     | string | The ID of the queue to fetch messages from. |
+| Authorization | header   | string | The authorization header for the request.   |
 
 Note that this api does not support delegation.
 
@@ -4790,40 +4802,44 @@ Content-Type: application/json; charset=utf-8
 
 {
     "Messages": [{
-        "CallerID": "string",
+        "TenantID": "string",
+        "RunnerID": "string",
+        "QueueID": "string",
         "MessageID": "string",
-        "MessageType": "string",
-        "CreatedAt": "string",
+        "CallerID": "string",
         "CallerPublicKey": "string",
+        "CreatedAt": "string",
         "Payload": "string",
     }]
 }
 ```
 
-| Field         | Type                                  | Description                                                                   |
-|---------------|---------------------------------------|-------------------------------------------------------------------------------|
-| Messages      | [][RunnerMessage](#793-RunnerMessage) | A list of messages for the runner instance. At most 10 messages are returned. |
+| Field         | Type                                  | Description                                                         |
+|---------------|---------------------------------------|---------------------------------------------------------------------|
+| Messages      | [][RunnerMessage](#793-RunnerMessage) | A list of messages for the queue. At most 10 messages are returned. |
 
 ## 79.3 RunnerMessage
-The RunnerMessage object contains information about a message sent to a runner instance.
+The RunnerMessage object contains information about a message sent to a queue.
 
-| Field           | Type   | Description                                                                                                                                                                |
-|-----------------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| CallerID        | string | The ID of the caller that sent the message.                                                                                                                                |
-| MessageID       | string | The ID of the message.                                                                                                                                                     |
-| MessageType     | string | The type of the message.                                                                                                                                                   |
-| CreatedAt       | string | The timestamp when the message was created.                                                                                                                                |
-| CallerPublicKey | string | The PEM encoded public key of the caller that sent message.                                                                                                                |
-| Payload         | string | The base64 encoded payload of the message. The payload is encrypted using ECIES, with a key dervied from the private key of the caller and the public key of the instance. |
+| Field           | Type   | Description                                                                                                                                                             |
+|-----------------|--------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| TenantID        | string | The ID of the tenant that owns the runner.                                                                                                                              |
+| RunnerID        | string | The ID of the runner the queue is registered for.                                                                                                                       |
+| QueueID         | string | The ID of the queue the message was sent to.                                                                                                                            |
+| MessageID       | string | The ID of the message.                                                                                                                                                  |
+| CallerID        | string | The ID of the caller that sent the message.                                                                                                                             |
+| CallerPublicKey | string | The PEM encoded public key of the caller that sent message.                                                                                                             |
+| CreatedAt       | string | The timestamp when the message was created.                                                                                                                             |
+| Payload         | string | The base64 encoded payload of the message. The payload is encrypted using ECIES, with a key dervied from the private key of the caller and the public key of the queue. |
 
 # 80. WriteResponse
 
-The WriteResponse API is used by a runner instance to respond to a message it received via a call to GetMessagesBatch.
+The WriteResponse API is used by a runner to respond to a message it received via a call to GetMessagesBatch.
 
 ## 80.1 Request
 
 ```http request
-PUT /v1/tenants/{tenant_id}/runners/{runner_id}/instances/{instance_id}/messages/{message_id}/response HTTP/1.1
+PUT /v1/tenants/{tenant_id}/runners/{runner_id}/queues/{queue_id}/messages/{message_id}/response HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Authorization: <authorization>
 
@@ -4833,15 +4849,15 @@ Authorization: <authorization>
 }
 ```
 
-| Parameter     | Location | Type   | Description                                                                                                                                                                 |
-|---------------|----------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id     | path     | string | The ID of the tenant that owns the runner.                                                                                                                                  |
-| runner_id     | path     | string | The ID of the runner the instance is registered for.                                                                                                                        |
-| instance_id   | path     | string | The ID of the instance responding to the message.                                                                                                                           |
-| message_id    | path     | string | The ID of the message being responded to.                                                                                                                                   |
-| Authorization | header   | string | The authorization header for the request.                                                                                                                                   |
-| CallerID      | body     | string | The ID of the caller that sent the original message.                                                                                                                        |
-| Payload       | body     | string | The base64 encoded payload of the response. The payload is encrypted using ECIES, with a key dervied from the private key of the instance and the public key of the caller. |
+| Parameter     | Location | Type   | Description                                                                                                                                                              |
+|---------------|----------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id     | path     | string | The ID of the tenant that owns the runner.                                                                                                                               |
+| runner_id     | path     | string | The ID of the runner writing the response.                                                                                                                               |
+| queue_id      | path     | string | The ID of the queue the response is associated with.                                                                                                                     |
+| message_id    | path     | string | The ID of the message being responded to.                                                                                                                                |
+| Authorization | header   | string | The authorization header for the request.                                                                                                                                |
+| CallerID      | body     | string | The ID of the caller that sent the original message.                                                                                                                     |
+| Payload       | body     | string | The base64 encoded payload of the response. The payload is encrypted using ECIES, with a key dervied from the private key of the queue and the public key of the caller. |
 
 Note that this api does not support delegation.
 
