@@ -148,7 +148,7 @@ const (
 	ActionUpdateGithubConnection    Action = "UpdateGithubConnection"
 	ActionListRunnerTokens          Action = "ListRunnerTokens"
 	ActionGetMessagesBatch          Action = "GetMessagesBatch"
-	ActionRegisterRunnerInstance    Action = "RegisterRunnerInstance"
+	ActionRegisterRunnerQueue       Action = "RegisterRunnerQueue"
 	ActionWriteResponse             Action = "WriteResponse"
 	ActionCreateTurn                Action = "CreateTurn"
 	ActionGetRunnerToken            Action = "GetRunnerToken"
@@ -458,7 +458,7 @@ func init() {
 			ActionUpdateGithubConnection,    // (0x0000_0000_0000_0020, 0)
 			ActionListRunnerTokens,          // (0x0000_0000_0000_0040, 0)
 			ActionGetMessagesBatch,          // (0x0000_0000_0000_0080, 0)
-			ActionRegisterRunnerInstance,    // (0x0000_0000_0000_0100, 0)
+			ActionRegisterRunnerQueue,       // (0x0000_0000_0000_0100, 0)
 			ActionWriteResponse,             // (0x0000_0000_0000_0200, 0)
 			ActionCreateTurn,                // (0x0000_0000_0000_0400, 0)
 			ActionGetRunnerToken,            // (0x0000_0000_0000_0800, 0)
