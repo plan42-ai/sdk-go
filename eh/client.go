@@ -186,6 +186,35 @@ func (r *CreateTenantRequest) GetField(name string) (any, bool) {
 	}
 }
 
+// UpdateTenantRequest is the request payload for UpdateTenant.
+type UpdateTenantRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	Version  int    `json:"-"`
+
+	DefaultRunnerID           *string `json:"DefaultRunnerID,omitempty"`
+	DefaultGithubConnectionID *string `json:"DefaultGithubConnectionID,omitempty"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *UpdateTenantRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "Version":
+		return r.Version, true
+	case "DefaultRunnerID":
+		return evalNullable(r.DefaultRunnerID)
+	case "DefaultGithubConnectionID":
+		return evalNullable(r.DefaultGithubConnectionID)
+	default:
+		return nil, false
+	}
+}
+
 // GetTenantRequest is the request for GetTenant.
 type GetTenantRequest struct {
 	FeatureFlags
@@ -216,19 +245,21 @@ func (r *GetTenantRequest) GetField(name string) (any, bool) {
 
 // Tenant is the representation of a tenant returned by the API.
 type Tenant struct {
-	TenantID       string     `json:"TenantId"`
-	Type           TenantType `json:"Type"`
-	Version        int        `json:"Version"`
-	Deleted        bool       `json:"Deleted"`
-	CreatedAt      time.Time  `json:"CreatedAt"`
-	UpdatedAt      time.Time  `json:"UpdatedAt"`
-	FullName       *string    `json:"FullName,omitempty"`
-	OrgName        *string    `json:"OrgName,omitempty"`
-	EnterpriseName *string    `json:"EnterpriseName,omitempty"`
-	Email          *string    `json:"Email,omitempty"`
-	FirstName      *string    `json:"FirstName,omitempty"`
-	LastName       *string    `json:"LastName,omitempty"`
-	PictureURL     *string    `json:"PictureUrl,omitempty"`
+	TenantID                  string     `json:"TenantId"`
+	Type                      TenantType `json:"Type"`
+	Version                   int        `json:"Version"`
+	Deleted                   bool       `json:"Deleted"`
+	CreatedAt                 time.Time  `json:"CreatedAt"`
+	UpdatedAt                 time.Time  `json:"UpdatedAt"`
+	FullName                  *string    `json:"FullName,omitempty"`
+	OrgName                   *string    `json:"OrgName,omitempty"`
+	EnterpriseName            *string    `json:"EnterpriseName,omitempty"`
+	Email                     *string    `json:"Email,omitempty"`
+	FirstName                 *string    `json:"FirstName,omitempty"`
+	LastName                  *string    `json:"LastName,omitempty"`
+	PictureURL                *string    `json:"PictureUrl,omitempty"`
+	DefaultRunnerID           *string    `json:"DefaultRunnerID,omitempty"`
+	DefaultGithubConnectionID *string    `json:"DefaultGithubConnectionID,omitempty"`
 }
 
 func (t Tenant) ObjectType() ObjectType {
@@ -495,6 +526,52 @@ func (c *Client) GetTenant(ctx context.Context, req *GetTenantRequest) (*Tenant,
 		return nil, err
 	}
 	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var tenant Tenant
+	if err := json.NewDecoder(resp.Body).Decode(&tenant); err != nil {
+		return nil, err
+	}
+	return &tenant, nil
+}
+
+// UpdateTenant updates metadata for a tenant.
+// nolint: dupl
+func (c *Client) UpdateTenant(ctx context.Context, req *UpdateTenantRequest) (*Tenant, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
 	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {

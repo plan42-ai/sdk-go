@@ -290,6 +290,103 @@ func TestGetTenantPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestUpdateTenant(t *testing.T) {
+	t.Parallel()
+
+	defaultRunnerID := "runner-123"
+	clearConnection := ""
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/tenant-1", r.URL.Path)
+		require.Equal(t, "3", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateTenantRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&reqBody))
+		require.NotNil(t, reqBody.DefaultRunnerID)
+		require.Equal(t, defaultRunnerID, *reqBody.DefaultRunnerID)
+		require.NotNil(t, reqBody.DefaultGithubConnectionID)
+		require.Equal(t, clearConnection, *reqBody.DefaultGithubConnectionID)
+		require.Zero(t, reqBody.Version)
+		require.Empty(t, reqBody.TenantID)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Tenant{
+			TenantID:                  "tenant-1",
+			Type:                      eh.TenantTypeOrganization,
+			Version:                   3,
+			DefaultRunnerID:           &defaultRunnerID,
+			DefaultGithubConnectionID: nil,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	updated, err := client.UpdateTenant(context.Background(), &eh.UpdateTenantRequest{
+		TenantID:                  "tenant-1",
+		Version:                   3,
+		DefaultRunnerID:           &defaultRunnerID,
+		DefaultGithubConnectionID: &clearConnection,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "tenant-1", updated.TenantID)
+	require.NotNil(t, updated.DefaultRunnerID)
+	require.Equal(t, defaultRunnerID, *updated.DefaultRunnerID)
+	require.Nil(t, updated.DefaultGithubConnectionID)
+}
+
+func TestUpdateTenantError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UpdateTenant(context.Background(), &eh.UpdateTenantRequest{TenantID: "abc", Version: 1})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestUpdateTenantPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	defaultRunnerID := "runner"
+	clearConnection := ""
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, len(parts), 4, "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Tenant{
+			TenantID:                  tenantIDThatNeedsEscaping,
+			DefaultRunnerID:           &defaultRunnerID,
+			DefaultGithubConnectionID: nil,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UpdateTenant(context.Background(), &eh.UpdateTenantRequest{
+		TenantID:                  tenantIDThatNeedsEscaping,
+		Version:                   1,
+		DefaultRunnerID:           &defaultRunnerID,
+		DefaultGithubConnectionID: &clearConnection,
+	})
+	require.NoError(t, err)
+}
+
 func verifySigv4(t *testing.T, r *http.Request, cfg *aws.Config, expected string, clk clock.Clock) {
 	t.Helper()
 	auth := r.Header.Get("Authorization")
