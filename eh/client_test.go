@@ -1139,6 +1139,7 @@ func TestRegisterRunnerQueue(t *testing.T) {
 			CreatedAt:                          now,
 			Version:                            1,
 			IsHealthy:                          true,
+			Draining:                           false,
 			NConsecutiveFailedHealthChecks:     0,
 			NConsecutiveSuccessfulHealthChecks: 1,
 			LastHealthCheckAt:                  util.Pointer(lastHealthCheck),
@@ -1216,6 +1217,135 @@ func TestRegisterRunnerQueuePathEscaping(t *testing.T) {
 		RunnerID:  runnerIDThatNeedsEscaping,
 		QueueID:   queueIDThatNeedsEscaping,
 		PublicKey: publicKey,
+	})
+	require.NoError(t, err)
+}
+
+func TestUpdateRunnerQueue(t *testing.T) {
+	t.Parallel()
+
+	isHealthy := false
+	draining := true
+	failedChecks := 3
+	successfulChecks := 1
+	lastHealthCheck := time.Date(2024, time.January, 1, 12, 30, 0, 0, time.UTC)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1/queues/queue1", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+		require.Equal(t, "2", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateRunnerQueueRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.IsHealthy)
+		require.Equal(t, isHealthy, *reqBody.IsHealthy)
+		require.NotNil(t, reqBody.Draining)
+		require.Equal(t, draining, *reqBody.Draining)
+		require.NotNil(t, reqBody.NConsecutiveFailedHealthChecks)
+		require.Equal(t, failedChecks, *reqBody.NConsecutiveFailedHealthChecks)
+		require.NotNil(t, reqBody.NConsecutiveSuccessfulHealthChecks)
+		require.Equal(t, successfulChecks, *reqBody.NConsecutiveSuccessfulHealthChecks)
+		require.NotNil(t, reqBody.LastHealthCheckAt)
+		require.Equal(t, lastHealthCheck, *reqBody.LastHealthCheckAt)
+		require.Empty(t, reqBody.TenantID)
+		require.Empty(t, reqBody.RunnerID)
+		require.Empty(t, reqBody.QueueID)
+		require.Zero(t, reqBody.Version)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.RunnerQueue{
+			TenantID:                           "abc",
+			RunnerID:                           "runner1",
+			QueueID:                            "queue1",
+			PublicKey:                          "pub",
+			CreatedAt:                          time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Version:                            3,
+			IsHealthy:                          isHealthy,
+			Draining:                           draining,
+			NConsecutiveFailedHealthChecks:     failedChecks,
+			NConsecutiveSuccessfulHealthChecks: successfulChecks,
+			LastHealthCheckAt:                  util.Pointer(lastHealthCheck),
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	queue, err := client.UpdateRunnerQueue(context.Background(), &eh.UpdateRunnerQueueRequest{
+		TenantID:                           "abc",
+		RunnerID:                           "runner1",
+		QueueID:                            "queue1",
+		Version:                            2,
+		IsHealthy:                          util.Pointer(isHealthy),
+		Draining:                           util.Pointer(draining),
+		NConsecutiveFailedHealthChecks:     util.Pointer(failedChecks),
+		NConsecutiveSuccessfulHealthChecks: util.Pointer(successfulChecks),
+		LastHealthCheckAt:                  util.Pointer(lastHealthCheck),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "queue1", queue.QueueID)
+	require.Equal(t, 3, queue.Version)
+	require.NotNil(t, queue.LastHealthCheckAt)
+	require.Equal(t, lastHealthCheck, *queue.LastHealthCheckAt)
+}
+
+func TestUpdateRunnerQueueError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UpdateRunnerQueue(context.Background(), &eh.UpdateRunnerQueueRequest{
+		TenantID: "abc",
+		RunnerID: "runner1",
+		QueueID:  "queue1",
+		Version:  1,
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestUpdateRunnerQueuePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+		require.Equal(t, escapedQueueID, parts[7], "QueueID not properly escaped in URL path")
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.RunnerQueue{
+			TenantID:  tenantIDThatNeedsEscaping,
+			RunnerID:  runnerIDThatNeedsEscaping,
+			QueueID:   queueIDThatNeedsEscaping,
+			PublicKey: "pub",
+			CreatedAt: time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Version:   2,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.UpdateRunnerQueue(context.Background(), &eh.UpdateRunnerQueueRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+		RunnerID: runnerIDThatNeedsEscaping,
+		QueueID:  queueIDThatNeedsEscaping,
+		Version:  1,
 	})
 	require.NoError(t, err)
 }
