@@ -321,6 +321,7 @@ const (
 	ObjectTypeTask                   ObjectType = "Task"
 	ObjectTypeRunner                 ObjectType = "Runner"
 	ObjectTypeRunnerToken            ObjectType = "RunnerToken"
+	ObjectTypeRunnerQueue            ObjectType = "RunnerQueue"
 	ObjectTypeGithubOrg              ObjectType = "GithubOrg"
 	ObjectTypeGithubConnection       ObjectType = "GithubConnection"
 	ObjectTypeFeatureFlag            ObjectType = "FeatureFlag"
@@ -388,6 +389,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &Runner{}
 		case ObjectTypeRunnerToken:
 			current = RunnerTokenMetadata{}
+		case ObjectTypeRunnerQueue:
+			current = &RunnerQueue{}
 		case ObjectTypeGithubOrg:
 			current = &GithubOrg{}
 		case ObjectTypeGithubConnection:
