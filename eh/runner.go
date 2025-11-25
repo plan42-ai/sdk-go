@@ -598,3 +598,91 @@ func (c *Client) RevokeRunnerToken(ctx context.Context, req *RevokeRunnerTokenRe
 	}
 	return nil
 }
+
+// RunnerQueue represents a queue registered for a runner.
+type RunnerQueue struct {
+	TenantID                           string     `json:"TenantID"`
+	RunnerID                           string     `json:"RunnerID"`
+	QueueID                            string     `json:"QueueID"`
+	PublicKey                          string     `json:"PublicKey"`
+	CreatedAt                          time.Time  `json:"CreatedAt"`
+	Version                            int        `json:"Version"`
+	IsHealthy                          bool       `json:"IsHealthy"`
+	NConsecutiveFailedHealthChecks     int        `json:"NConsecutiveFailedHealthChecks"`
+	NConsecutiveSuccessfulHealthChecks int        `json:"NConsecutiveSuccessfulHealthChecks"`
+	LastHealthCheckAt                  *time.Time `json:"LastHealthCheckAt,omitempty"`
+}
+
+// RegisterRunnerQueueRequest contains parameters for RegisterRunnerQueue.
+type RegisterRunnerQueueRequest struct {
+	FeatureFlags
+
+	TenantID  string `json:"-"`
+	RunnerID  string `json:"-"`
+	QueueID   string `json:"-"`
+	PublicKey string `json:"PublicKey"`
+}
+
+// RegisterRunnerQueue registers a queue for a runner.
+func (c *Client) RegisterRunnerQueue(ctx context.Context, req *RegisterRunnerQueueRequest) (*RunnerQueue, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return nil, fmt.Errorf("runner id is required")
+	}
+	if req.QueueID == "" {
+		return nil, fmt.Errorf("queue id is required")
+	}
+	if req.PublicKey == "" {
+		return nil, fmt.Errorf("public key is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"runners",
+		url.PathEscape(req.RunnerID),
+		"queues",
+		url.PathEscape(req.QueueID),
+	)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(DelegatedAuthInfo{}, httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var queue RunnerQueue
+	err = json.NewDecoder(resp.Body).Decode(&queue)
+	if err != nil {
+		return nil, err
+	}
+	return &queue, nil
+}
