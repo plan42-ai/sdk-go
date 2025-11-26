@@ -152,6 +152,8 @@ const (
 	ActionWriteResponse             Action = "WriteResponse"
 	ActionCreateTurn                Action = "CreateTurn"
 	ActionGetRunnerToken            Action = "GetRunnerToken"
+	ActionListRunnerQueues          Action = "ListRunnerQueues"
+	ActionListAllRunnerQueues       Action = "ListAllRunnerQueues"
 	ActionUpdateTenant              Action = "UpdateTenant"
 )
 
@@ -464,6 +466,8 @@ func init() {
 			ActionCreateTurn,                // (0x0000_0000_0000_0400, 0)
 			ActionGetRunnerToken,            // (0x0000_0000_0000_0800, 0)
 			ActionUpdateTenant,              // (0x0000_0000_0000_1000, 0)
+			ActionListRunnerQueues,          // (0x0000_0000_0000_2000, 0)
+			ActionListAllRunnerQueues,       // (0x0000_0000_0000_4000, 0)
 
 		},
 		ActionBitVector{},

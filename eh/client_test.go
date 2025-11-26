@@ -1010,6 +1010,106 @@ func TestCreateRunnerPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestListRunnerQueues(t *testing.T) {
+	t.Parallel()
+
+	tenantID := "abc"
+	runnerID := "runner1"
+	includeUnhealthy := true
+	maxResults := 25
+	token := "next"
+	minQueueID := "queue-0001"
+	maxQueueID := "queue-0100"
+	now := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/runner-queues", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		query := r.URL.Query()
+		require.Equal(t, tenantID, query.Get("tenantID"))
+		require.Equal(t, runnerID, query.Get("runnerID"))
+		require.Equal(t, "true", query.Get("includeUnhealthy"))
+		require.Equal(t, "25", query.Get("maxResults"))
+		require.Equal(t, token, query.Get("token"))
+		require.Equal(t, minQueueID, query.Get("minQueueID"))
+		require.Equal(t, maxQueueID, query.Get("maxQueueID"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.List[*eh.RunnerQueue]{
+			NextToken: util.Pointer("more"),
+			Items: []*eh.RunnerQueue{
+				{
+					TenantID:  tenantID,
+					RunnerID:  runnerID,
+					QueueID:   "queue-1",
+					PublicKey: "key",
+					CreatedAt: now,
+					Version:   1,
+					IsHealthy: false,
+				},
+			},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	resp, err := client.ListRunnerQueues(context.Background(), &eh.ListRunnerQueuesRequest{
+		TenantID:         &tenantID,
+		RunnerID:         &runnerID,
+		IncludeUnhealthy: &includeUnhealthy,
+		MaxResults:       &maxResults,
+		Token:            &token,
+		MinQueueID:       &minQueueID,
+		MaxQueueID:       &maxQueueID,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp.NextToken)
+	require.Equal(t, "more", *resp.NextToken)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "queue-1", resp.Items[0].QueueID)
+	require.Equal(t, tenantID, resp.Items[0].TenantID)
+}
+
+func TestListRunnerQueuesError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListRunnerQueues(context.Background(), &eh.ListRunnerQueuesRequest{})
+	require.Error(t, err)
+}
+
+func TestListRunnerQueuesValidation(t *testing.T) {
+	t.Parallel()
+
+	client := eh.NewClient("http://example.com")
+
+	_, err := client.ListRunnerQueues(context.Background(), nil)
+	require.EqualError(t, err, "req is nil")
+
+	tenantID := "tenant"
+	_, err = client.ListRunnerQueues(context.Background(), &eh.ListRunnerQueuesRequest{TenantID: &tenantID})
+	require.EqualError(t, err, "tenant id and runner id must be provided together")
+
+	runnerID := "runner"
+	_, err = client.ListRunnerQueues(context.Background(), &eh.ListRunnerQueuesRequest{RunnerID: &runnerID})
+	require.EqualError(t, err, "tenant id and runner id must be provided together")
+
+	minQueueID := "queue-1"
+	_, err = client.ListRunnerQueues(context.Background(), &eh.ListRunnerQueuesRequest{MinQueueID: &minQueueID})
+	require.EqualError(t, err, "min queue id and max queue id must be provided together")
+
+	maxQueueID := "queue-2"
+	_, err = client.ListRunnerQueues(context.Background(), &eh.ListRunnerQueuesRequest{MaxQueueID: &maxQueueID})
+	require.EqualError(t, err, "min queue id and max queue id must be provided together")
+}
+
 func TestRegisterRunnerQueue(t *testing.T) {
 	t.Parallel()
 

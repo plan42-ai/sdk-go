@@ -613,6 +613,107 @@ type RunnerQueue struct {
 	LastHealthCheckAt                  *time.Time `json:"LastHealthCheckAt,omitempty"`
 }
 
+// ListRunnerQueuesRequest contains parameters for ListRunnerQueues.
+type ListRunnerQueuesRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID         *string
+	RunnerID         *string
+	IncludeUnhealthy *bool
+	MaxResults       *int
+	Token            *string
+	MinQueueID       *string
+	MaxQueueID       *string
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *ListRunnerQueuesRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return evalNullable(r.TenantID)
+	case "RunnerID":
+		return evalNullable(r.RunnerID)
+	case "IncludeUnhealthy":
+		return evalNullable(r.IncludeUnhealthy)
+	case "MaxResults":
+		return evalNullable(r.MaxResults)
+	case "Token":
+		return evalNullable(r.Token)
+	case "MinQueueID":
+		return evalNullable(r.MinQueueID)
+	case "MaxQueueID":
+		return evalNullable(r.MaxQueueID)
+	default:
+		return nil, false
+	}
+}
+
+// ListRunnerQueues retrieves runner queues, optionally filtered by tenant, runner, health status, and queue range.
+// nolint: dupl
+func (c *Client) ListRunnerQueues(ctx context.Context, req *ListRunnerQueuesRequest) (*List[*RunnerQueue], error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if (req.TenantID == nil) != (req.RunnerID == nil) {
+		return nil, fmt.Errorf("tenant id and runner id must be provided together")
+	}
+	if (req.MinQueueID == nil) != (req.MaxQueueID == nil) {
+		return nil, fmt.Errorf("min queue id and max queue id must be provided together")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "runner-queues")
+	q := u.Query()
+	if req.TenantID != nil && req.RunnerID != nil {
+		q.Set("tenantID", *req.TenantID)
+		q.Set("runnerID", *req.RunnerID)
+	}
+	if req.IncludeUnhealthy != nil {
+		q.Set("includeUnhealthy", strconv.FormatBool(*req.IncludeUnhealthy))
+	}
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	if req.MinQueueID != nil {
+		q.Set("minQueueID", *req.MinQueueID)
+	}
+	if req.MaxQueueID != nil {
+		q.Set("maxQueueID", *req.MaxQueueID)
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out List[*RunnerQueue]
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // RegisterRunnerQueueRequest contains parameters for RegisterRunnerQueue.
 type RegisterRunnerQueueRequest struct {
 	FeatureFlags
