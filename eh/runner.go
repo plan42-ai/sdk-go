@@ -608,6 +608,7 @@ type RunnerQueue struct {
 	CreatedAt                          time.Time  `json:"CreatedAt"`
 	Version                            int        `json:"Version"`
 	IsHealthy                          bool       `json:"IsHealthy"`
+	Draining                           bool       `json:"Draining"`
 	NConsecutiveFailedHealthChecks     int        `json:"NConsecutiveFailedHealthChecks"`
 	NConsecutiveSuccessfulHealthChecks int        `json:"NConsecutiveSuccessfulHealthChecks"`
 	LastHealthCheckAt                  *time.Time `json:"LastHealthCheckAt,omitempty"`
@@ -724,6 +725,54 @@ type RegisterRunnerQueueRequest struct {
 	PublicKey string `json:"PublicKey"`
 }
 
+// UpdateRunnerQueueRequest contains parameters for UpdateRunnerQueue.
+type UpdateRunnerQueueRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	RunnerID string `json:"-"`
+	QueueID  string `json:"-"`
+	Version  int    `json:"-"`
+
+	IsHealthy                          *bool      `json:"IsHealthy,omitempty"`
+	Draining                           *bool      `json:"Draining,omitempty"`
+	NConsecutiveFailedHealthChecks     *int       `json:"NConsecutiveFailedHealthChecks,omitempty"`
+	NConsecutiveSuccessfulHealthChecks *int       `json:"NConsecutiveSuccessfulHealthChecks,omitempty"`
+	LastHealthCheckAt                  *time.Time `json:"LastHealthCheckAt,omitempty"`
+}
+
+func (r *UpdateRunnerQueueRequest) GetVersion() int {
+	return r.Version
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *UpdateRunnerQueueRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "QueueID":
+		return r.QueueID, true
+	case "Version":
+		return r.Version, true
+	case "IsHealthy":
+		return evalNullable(r.IsHealthy)
+	case "Draining":
+		return evalNullable(r.Draining)
+	case "NConsecutiveFailedHealthChecks":
+		return evalNullable(r.NConsecutiveFailedHealthChecks)
+	case "NConsecutiveSuccessfulHealthChecks":
+		return evalNullable(r.NConsecutiveSuccessfulHealthChecks)
+	case "LastHealthCheckAt":
+		return evalNullable(r.LastHealthCheckAt)
+	default:
+		return nil, false
+	}
+}
+
 // RegisterRunnerQueue registers a queue for a runner.
 func (c *Client) RegisterRunnerQueue(ctx context.Context, req *RegisterRunnerQueueRequest) (*RunnerQueue, error) {
 	if req == nil {
@@ -777,6 +826,69 @@ func (c *Client) RegisterRunnerQueue(ctx context.Context, req *RegisterRunnerQue
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var queue RunnerQueue
+	err = json.NewDecoder(resp.Body).Decode(&queue)
+	if err != nil {
+		return nil, err
+	}
+	return &queue, nil
+}
+
+// UpdateRunnerQueue updates metadata for a runner queue.
+// nolint: dupl
+func (c *Client) UpdateRunnerQueue(ctx context.Context, req *UpdateRunnerQueueRequest) (*RunnerQueue, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return nil, fmt.Errorf("runner id is required")
+	}
+	if req.QueueID == "" {
+		return nil, fmt.Errorf("queue id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"runners",
+		url.PathEscape(req.RunnerID),
+		"queues",
+		url.PathEscape(req.QueueID),
+	)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
 		return nil, decodeError(resp)
 	}
 
