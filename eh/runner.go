@@ -686,3 +686,99 @@ func (c *Client) RegisterRunnerQueue(ctx context.Context, req *RegisterRunnerQue
 	}
 	return &queue, nil
 }
+
+// WriteResponseRequest is the request payload for WriteResponse.
+type WriteResponseRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID  string `json:"-"`
+	RunnerID  string `json:"-"`
+	QueueID   string `json:"-"`
+	MessageID string `json:"-"`
+	CallerID  string `json:"CallerId"`
+	Payload   string `json:"Payload"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *WriteResponseRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "QueueID":
+		return r.QueueID, true
+	case "MessageID":
+		return r.MessageID, true
+	case "CallerID":
+		return r.CallerID, true
+	case "Payload":
+		return r.Payload, true
+	default:
+		return nil, false
+	}
+}
+
+// WriteResponse sends a response for a runner message.
+// nolint:dupl
+func (c *Client) WriteResponse(ctx context.Context, req *WriteResponseRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return fmt.Errorf("runner id is required")
+	}
+	if req.QueueID == "" {
+		return fmt.Errorf("queue id is required")
+	}
+	if req.MessageID == "" {
+		return fmt.Errorf("message id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"runners",
+		url.PathEscape(req.RunnerID),
+		"queues",
+		url.PathEscape(req.QueueID),
+		"messages",
+		url.PathEscape(req.MessageID),
+		"response",
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+
+	return nil
+}

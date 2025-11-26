@@ -1820,6 +1820,110 @@ func TestListRunnerTokensValidation(t *testing.T) {
 	require.EqualError(t, err, "runner id is required")
 }
 
+func TestWriteResponse(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPut, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1/queues/queue1/messages/message1/response", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		var reqBody eh.WriteResponseRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&reqBody))
+		require.Equal(t, "caller", reqBody.CallerID)
+		require.Equal(t, "payload", reqBody.Payload)
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.WriteResponse(context.Background(), &eh.WriteResponseRequest{
+		TenantID:  "abc",
+		RunnerID:  "runner1",
+		QueueID:   "queue1",
+		MessageID: "message1",
+		CallerID:  "caller",
+		Payload:   "payload",
+	})
+	require.NoError(t, err)
+}
+
+func TestWriteResponseError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.WriteResponse(context.Background(), &eh.WriteResponseRequest{
+		TenantID:  "abc",
+		RunnerID:  "runner1",
+		QueueID:   "queue1",
+		MessageID: "message1",
+		CallerID:  "caller",
+		Payload:   "payload",
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestWriteResponsePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 11, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+		require.Equal(t, escapedQueueID, parts[7], "QueueID not properly escaped in URL path")
+		require.Equal(t, escapedMessageID, parts[9], "MessageID not properly escaped in URL path")
+		require.Equal(t, "response", parts[10], "response segment missing in URL path")
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.WriteResponse(context.Background(), &eh.WriteResponseRequest{
+		TenantID:  tenantIDThatNeedsEscaping,
+		RunnerID:  runnerIDThatNeedsEscaping,
+		QueueID:   queueIDThatNeedsEscaping,
+		MessageID: messageIDThatNeedsEscaping,
+		CallerID:  "caller",
+	})
+	require.NoError(t, err)
+}
+
+func TestWriteResponseValidation(t *testing.T) {
+	t.Parallel()
+
+	client := eh.NewClient("http://example.com")
+
+	err := client.WriteResponse(context.Background(), nil)
+	require.EqualError(t, err, "req is nil")
+
+	err = client.WriteResponse(context.Background(), &eh.WriteResponseRequest{})
+	require.EqualError(t, err, "tenant id is required")
+
+	err = client.WriteResponse(context.Background(), &eh.WriteResponseRequest{TenantID: "tenant"})
+	require.EqualError(t, err, "runner id is required")
+
+	err = client.WriteResponse(context.Background(), &eh.WriteResponseRequest{TenantID: "tenant", RunnerID: "runner"})
+	require.EqualError(t, err, "queue id is required")
+
+	err = client.WriteResponse(context.Background(), &eh.WriteResponseRequest{TenantID: "tenant", RunnerID: "runner", QueueID: "queue"})
+	require.EqualError(t, err, "message id is required")
+}
+
 // nolint: dupl
 func TestGetEnvironment(t *testing.T) {
 	t.Parallel()
