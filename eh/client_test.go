@@ -1350,6 +1350,71 @@ func TestUpdateRunnerQueuePathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestDeleteRunnerQueue(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1/queues/queue1", r.URL.Path)
+		require.Equal(t, "1", r.Header.Get("If-Match"))
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteRunnerQueue(context.Background(), &eh.DeleteRunnerQueueRequest{
+		TenantID: "abc",
+		RunnerID: "runner1",
+		QueueID:  "queue1",
+		Version:  1,
+	})
+	require.NoError(t, err)
+}
+
+func TestDeleteRunnerQueueError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.DeleteRunnerQueue(context.Background(), &eh.DeleteRunnerQueueRequest{
+		TenantID: "abc",
+		RunnerID: "runner1",
+		QueueID:  "queue1",
+		Version:  1,
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestDeleteRunnerQueuePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/v1/tenants/"+escapedTenantID+"/runners/"+escapedRunnerID+"/queues/"+escapedQueueID, r.URL.EscapedPath())
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	err := client.DeleteRunnerQueue(context.Background(), &eh.DeleteRunnerQueueRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+		RunnerID: runnerIDThatNeedsEscaping,
+		QueueID:  queueIDThatNeedsEscaping,
+		Version:  1,
+	})
+	require.NoError(t, err)
+}
+
 func TestGetRunner(t *testing.T) {
 	t.Parallel()
 

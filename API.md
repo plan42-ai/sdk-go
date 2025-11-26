@@ -4750,18 +4750,18 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-| Field                              | Type   | Description                                             |
-|------------------------------------|--------|---------------------------------------------------------|
-| TenantID                           | string | The ID of the tenant that owns the runner.              |
-| RunnerID                           | string | The ID of the runner the queue is registered for.       |
-| QueueID                            | string | The ID of the registered queue.                         |
-| PublicKey                          | string | The PEM encoded public key of the queue.                |
-| CreatedAt                          | string | The timestamp when the queue was registered.            |
-| Version                            | int    | The current version of the queue record.                |
-| IsHealthy                          | bool   | Whether the queue is currently healthy.                 | 
-| NConsecutiveFailedHealthChecks     | int    | The number of consecutive failed health checks.         |
-| NConsecutiveSuccessfulHealthChecks | int    | The number of consecutive successful health checks.     |
-| LastHealthCheckAt                  | string | The timestamp when the last health check was performed. |
+| Field                              | Type   | Description                                                   |
+|------------------------------------|--------|---------------------------------------------------------------|
+| TenantID                           | string | The ID of the tenant that owns the runner.                    |
+| RunnerID                           | string | The ID of the runner the queue is registered for.             |
+| QueueID                            | string | The ID of the registered queue.                               |
+| PublicKey                          | string | The PEM encoded public key of the queue.                      |
+| CreatedAt                          | string | The timestamp when the queue was registered.                  |
+| Version                            | int    | The current version of the queue record.                      |
+| IsHealthy                          | bool   | Whether the queue is currently healthy.                       | 
+| NConsecutiveFailedHealthChecks     | int    | The number of consecutive failed health checks.               |
+| NConsecutiveSuccessfulHealthChecks | int    | The number of consecutive successful health checks.           |
+| LastHealthCheckAt                  | string | The timestamp when the last health check was performed.       |
 | Draining                           | bool   | Whether the queue is draining (no longer receiving messages). |
 
 # 79. GetMessagesBatch

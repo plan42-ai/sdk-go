@@ -900,6 +900,89 @@ func (c *Client) UpdateRunnerQueue(ctx context.Context, req *UpdateRunnerQueueRe
 	return &queue, nil
 }
 
+// DeleteRunnerQueueRequest contains parameters for DeleteRunnerQueue.
+type DeleteRunnerQueueRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	RunnerID string `json:"-"`
+	QueueID  string `json:"-"`
+	Version  int    `json:"-"`
+}
+
+func (r *DeleteRunnerQueueRequest) GetVersion() int {
+	return r.Version
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *DeleteRunnerQueueRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "QueueID":
+		return r.QueueID, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteRunnerQueue removes a queue registered for a runner.
+func (c *Client) DeleteRunnerQueue(ctx context.Context, req *DeleteRunnerQueueRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return fmt.Errorf("runner id is required")
+	}
+	if req.QueueID == "" {
+		return fmt.Errorf("queue id is required")
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"runners",
+		url.PathEscape(req.RunnerID),
+		"queues",
+		url.PathEscape(req.QueueID),
+	)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+
+	return nil
+}
+
 // WriteResponseRequest is the request payload for WriteResponse.
 type WriteResponseRequest struct {
 	FeatureFlags
