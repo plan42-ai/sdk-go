@@ -4745,9 +4745,8 @@ Content-Type: application/json; charset=utf-8
     "IsHealthy": bool,
     "NConsecutiveFailedHealthChecks": int,
     "NConsecutiveSuccessfulHealthChecks": int,
-    "LastHealthCheckAt": "string"
-    
-    
+    "LastHealthCheckAt": "string",
+    "Draining": bool
 }
 ```
 
@@ -4763,6 +4762,7 @@ Content-Type: application/json; charset=utf-8
 | NConsecutiveFailedHealthChecks     | int    | The number of consecutive failed health checks.         |
 | NConsecutiveSuccessfulHealthChecks | int    | The number of consecutive successful health checks.     |
 | LastHealthCheckAt                  | string | The timestamp when the last health check was performed. |
+| Draining                           | bool   | Whether the queue is draining (no longer receiving messages). |
 
 # 79. GetMessagesBatch
 
@@ -5020,3 +5020,167 @@ Content-Type: application/json; charset=utf-8
 ```
 
 See [here](#612-response) for more details.
+
+# 89. ListRunnerQueues
+
+The ListRunnerQueues API returns a list of runner queues, optionally filtered by tenant, runner, health status, and
+queue ID range.
+
+## 89.1 Request
+
+```http request
+GET /v1/runner-queues?tenantID={tenantID}&runnerID={runnerID}&includeUnhealthy={includeUnhealthy}&maxResults={maxResults}&token={token}&minQueueID={minQueueID}&maxQueueID={maxQueueID} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                 |
+|------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenantID                                 | query    | *string | Optional. The ID of the tenant to filter queues by. Must be combined with runnerID.                                                                         |
+| runnerID                                 | query    | *string | Optional. The ID of the runner to filter queues by. Must be combined with tenantID.                                                                         |
+| includeUnhealthy                         | query    | *bool   | Optional. Whether to include unhealthy queues in the results. Default is false.                                                                             |
+| maxResults                               | query    | *int    | Optional. The maximum number of queues to return. Default is 10. Must be >=1 and < 500.                                                                     |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                                                                                     |
+| minQueueID                               | query    | *string | Optional. The minimum queue ID to include in the results. Useful when partioning queues between health checker insances. Must be combined with maxQueueID.  |
+| maxQueueID                               | query    | *string | Optional. The maximum queue ID to include in the results. Useful when partioning queues between health checker instances. Must be combined with minQueueID. |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                   |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                      |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
+
+
+## 89.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextToken": "*string",
+    "Items": [{
+        "TenantID": "string",
+        "RunnerID": "string",
+        "QueueID": "string",
+        "PublicKey": "string",
+        "CreatedAt": "string",
+        "Version": int,
+        "IsHealthy": bool,
+        "NConsecutiveFailedHealthChecks": int,
+        "NConsecutiveSuccessfulHealthChecks": int,
+        "LastHealthCheckAt": "string",
+        "Draining": bool
+    }]
+}
+```
+
+| Field     | Type                           | Description                                                                                    |
+|-----------|--------------------------------|------------------------------------------------------------------------------------------------|
+| NextToken | *string                        | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Items     | [][RunnerQueue](#782-response) | A list of runner queue objects.                                                                |
+
+
+## 89.3 AuthZ Requirements
+
+We define 2 separate actions related to listing runner queues:
+
+* ListRunnerQueues
+* ListAllRunnerQueues
+
+The ListAllRunnerQueues action is an admin permission required to list queues across multiple tenants / runners,
+applies globally, and can only be granted to internal plan 42 service principals. The ListRunnerQueues is a tenant
+scoped permission that allows listing queues within a specific tenant.
+
+# 90. UpdateRunnerQueue
+
+The UpdateRunnerQueue API updates metadata for a runner queue.
+
+## 90.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/runners/{runner_id}/queues/{queue_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+    "IsHealthy": *bool,
+    "NConsecutiveFailedHealthChecks": *int,
+    "NConsecutiveSuccessfulHealthChecks": *int,
+    "LastHealthCheckAt": "*string",
+    "Draining": *bool
+}
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                                                                  |
+|------------------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                                                                                                                                                                   |
+| runner_id                                | path     | string  | The ID of the runner the queue is registered for.                                                                                                                                                            |
+| queue_id                                 | path     | string  | The ID of the queue to update.                                                                                                                                                                               |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                                                                    |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                                       |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                          |
+| Version                                  | header   | string  | The expected version of the queue. Used for optimistic concurrency control.                                                                                                                                  |
+| IsHealthy                                | body     | *bool   | Optional. When set, updates the health status of the queue. This will be updated when health checks fail. It can also be expictly set to false by a runner when it is draining a queue prior to deleting it. |
+| NConsecutiveFailedHealthChecks           | body     | *int    | Optional. When set, updates the number of consecutive failed health checks for the queue.                                                                                                                    |
+| NConsecutiveSuccessfulHealthChecks       | body     | *int    | Optional. When set, updates the number of consecutive successful health checks for the queue.                                                                                                                |
+| LastHealthCheckAt                        | body     | *string | Optional. When set, updates the timestamp of the last health check for the queue.                                                                                                                            |
+| Draining                                 | body     | *bool   | Optional. Set to true to mark the queue as draining. Must be combined with `IsHealthy = false`. Draining queues are not marked as health by the health checker.                                              |
+
+## 90.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "RunnerID": "string",
+    "QueueID": "string",
+    "PublicKey": "string",
+    "CreatedAt": "string",
+    "Version": int,
+    "IsHealthy": bool,
+    "NConsecutiveFailedHealthChecks": int,
+    "NConsecutiveSuccessfulHealthChecks": int,
+    "LastHealthCheckAt": "string",
+    "Draining": bool
+}
+```
+
+See [here](#782-response) for more details.
+
+# 91. DeleteRunnerQueue
+
+The DeleteRunnerQueue API hard deletes a runner queue.
+
+## 91.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/runners/{runner_id}/queues/{queue_id} HTTP/1.1
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+```
+
+| Parameter                                | Location | Type    | Description                                                                 |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                                  |
+| runner_id                                | path     | string  | The ID of the runner the queue is registered for.                           |
+| queue_id                                 | path     | string  | The ID of the queue to delete.                                              |
+| Authorization                            | header   | string  | The authorization header for the request.                                   |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                      |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.         |
+| Version                                  | header   | string  | The expected version of the queue. Used for optimistic concurrency control. |
+
+## 91.2 Response
+
+On success a 204 NO CONTENT is returned with no body.
