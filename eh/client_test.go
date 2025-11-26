@@ -1608,6 +1608,114 @@ func TestGetRunnerTokenValidation(t *testing.T) {
 	require.EqualError(t, err, "token id is required")
 }
 
+func TestGetMessagesBatch(t *testing.T) {
+	t.Parallel()
+
+	createdAt := time.Unix(0, 0).UTC()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/run/queues/queue/messages", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GetMessagesBatchResponse{
+			Messages: []eh.RunnerMessage{{
+				TenantID:        "abc",
+				RunnerID:        "run",
+				QueueID:         "queue",
+				MessageID:       "msg",
+				CallerID:        "caller",
+				CallerPublicKey: "pk",
+				CreatedAt:       createdAt,
+				Payload:         "payload",
+			}},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	resp, err := client.GetMessagesBatch(context.Background(), &eh.GetMessagesBatchRequest{
+		TenantID: "abc",
+		RunnerID: "run",
+		QueueID:  "queue",
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Messages, 1)
+	msg := resp.Messages[0]
+	require.Equal(t, "msg", msg.MessageID)
+	require.True(t, msg.CreatedAt.Equal(createdAt))
+}
+
+func TestGetMessagesBatchError(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(eh.Error{ResponseCode: http.StatusBadRequest, Message: "bad", ErrorType: "BadRequest"})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetMessagesBatch(context.Background(), &eh.GetMessagesBatchRequest{
+		TenantID: "tenant",
+		RunnerID: "runner",
+		QueueID:  "queue",
+	})
+	require.Error(t, err)
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestGetMessagesBatchPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/"+escapedTenantID+"/runners/"+escapedRunnerID+"/queues/"+escapedQueueID+"/messages", r.URL.EscapedPath())
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.GetMessagesBatchResponse{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetMessagesBatch(context.Background(), &eh.GetMessagesBatchRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+		RunnerID: runnerIDThatNeedsEscaping,
+		QueueID:  queueIDThatNeedsEscaping,
+	})
+	require.NoError(t, err)
+}
+
+func TestGetMessagesBatchValidation(t *testing.T) {
+	t.Parallel()
+
+	client := eh.NewClient("http://example.com")
+	_, err := client.GetMessagesBatch(context.Background(), nil)
+	require.Error(t, err)
+
+	_, err = client.GetMessagesBatch(context.Background(), &eh.GetMessagesBatchRequest{RunnerID: "runner", QueueID: "queue"})
+	require.EqualError(t, err, "tenant id is required")
+
+	_, err = client.GetMessagesBatch(context.Background(), &eh.GetMessagesBatchRequest{TenantID: "tenant", QueueID: "queue"})
+	require.EqualError(t, err, "runner id is required")
+
+	_, err = client.GetMessagesBatch(context.Background(), &eh.GetMessagesBatchRequest{TenantID: "tenant", RunnerID: "runner"})
+	require.EqualError(t, err, "queue id is required")
+}
+
 func TestListRunnerTokens(t *testing.T) {
 	t.Parallel()
 
