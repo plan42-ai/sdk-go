@@ -50,6 +50,12 @@ func WithSigv4Auth(cfg aws.Config, clk clock.Clock) Option {
 	}
 }
 
+func WithAPIToken(token string) Option {
+	return func(c *Client) {
+		c.authHandlers = append(c.authHandlers, &apiTokenHandler{Token: token})
+	}
+}
+
 func WithInsecureSkipVerify() Option {
 	return func(c *Client) {
 		if c.HTTPClient == nil {
@@ -72,12 +78,6 @@ func WithInsecureSkipVerify() Option {
 		if transport.TLSClientConfig.MinVersion < tls.VersionTLS12 {
 			transport.TLSClientConfig.MinVersion = tls.VersionTLS12
 		}
-	}
-}
-
-func WithAPIToken(token string) Option {
-	return func(c *Client) {
-		c.authHandlers = append(c.authHandlers, &apiTokenHandler{Token: token})
 	}
 }
 
@@ -166,21 +166,21 @@ func (r *CreateTenantRequest) GetField(name string) (any, bool) {
 	case "Type":
 		return r.Type, true
 	case "FullName":
-		return evalNullable(r.FullName)
+		return EvalNullable(r.FullName)
 	case "OrgName":
-		return evalNullable(r.OrgName)
+		return EvalNullable(r.OrgName)
 	case "EnterpriseName":
-		return evalNullable(r.EnterpriseName)
+		return EvalNullable(r.EnterpriseName)
 	case "Email":
-		return evalNullable(r.Email)
+		return EvalNullable(r.Email)
 	case "FirstName":
-		return evalNullable(r.FirstName)
+		return EvalNullable(r.FirstName)
 	case "LastName":
-		return evalNullable(r.LastName)
+		return EvalNullable(r.LastName)
 	case "InitialOwner":
-		return evalNullable(r.InitialOwner)
+		return EvalNullable(r.InitialOwner)
 	case "PictureUrl":
-		return evalNullable(r.PictureURL)
+		return EvalNullable(r.PictureURL)
 	default:
 		return nil, false
 	}
@@ -207,9 +207,9 @@ func (r *UpdateTenantRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "DefaultRunnerID":
-		return evalNullable(r.DefaultRunnerID)
+		return EvalNullable(r.DefaultRunnerID)
 	case "DefaultGithubConnectionID":
-		return evalNullable(r.DefaultGithubConnectionID)
+		return EvalNullable(r.DefaultGithubConnectionID)
 	default:
 		return nil, false
 	}
@@ -277,9 +277,9 @@ type ListTenantsRequest struct {
 func (r *ListTenantsRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	default:
 		return nil, false
 	}
@@ -862,7 +862,7 @@ func (r *GetLastTurnLogRequest) GetField(name string) (any, bool) {
 	case "TurnIndex":
 		return r.TurnIndex, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -966,9 +966,9 @@ func (r *StreamTurnLogsRequest) GetField(name string) (any, bool) {
 	case "TurnIndex":
 		return r.TurnIndex, true
 	case "LastEventID":
-		return evalNullable(r.LastEventID)
+		return EvalNullable(r.LastEventID)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}

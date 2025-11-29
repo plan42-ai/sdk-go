@@ -139,7 +139,7 @@ func (r *GetTurnRequest) GetField(name string) (any, bool) {
 	case "TurnIndex":
 		return r.TurnIndex, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -213,7 +213,7 @@ func (r *GetLastTurnRequest) GetField(name string) (any, bool) {
 	case "TaskID":
 		return r.TaskID, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -295,17 +295,17 @@ func (r *UpdateTurnRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "PreviousResponseID":
-		return evalNullable(r.PreviousResponseID)
+		return EvalNullable(r.PreviousResponseID)
 	case "CommitInfo":
-		return evalNullable(r.CommitInfo)
+		return EvalNullable(r.CommitInfo)
 	case "Status":
-		return evalNullable(r.Status)
+		return EvalNullable(r.Status)
 	case "OutputMessage":
-		return evalNullable(r.OutputMessage)
+		return EvalNullable(r.OutputMessage)
 	case "ErrorMessage":
-		return evalNullable(r.ErrorMessage)
+		return EvalNullable(r.ErrorMessage)
 	case "CompletedAt":
-		return evalNullable(r.CompletedAt)
+		return EvalNullable(r.CompletedAt)
 	default:
 		return nil, false
 	}
@@ -382,11 +382,11 @@ func (r *ListTurnsRequest) GetField(name string) (any, bool) {
 	case "TaskID":
 		return r.TaskID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}

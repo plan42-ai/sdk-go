@@ -94,7 +94,7 @@ func (r *GetTaskRequest) GetField(name string) (any, bool) {
 	case "TaskID":
 		return r.TaskID, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -254,7 +254,7 @@ func (r *GetWorkstreamTaskRequest) GetField(name string) (any, bool) {
 	case "TaskID":
 		return r.TaskID, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -347,7 +347,7 @@ func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 	case "Prompt":
 		return r.Prompt, true
 	case "Model":
-		return evalNullable(r.Model)
+		return EvalNullable(r.Model)
 	case "RepoInfo":
 		return r.RepoInfo, true
 	default:
@@ -434,21 +434,21 @@ func (r *CreateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 	case "Title":
 		return r.Title, true
 	case "EnvironmentID":
-		return evalNullable(r.EnvironmentID)
+		return EvalNullable(r.EnvironmentID)
 	case "Prompt":
-		return evalNullable(r.Prompt)
+		return EvalNullable(r.Prompt)
 	case "Parallel":
-		return evalNullable(r.Parallel)
+		return EvalNullable(r.Parallel)
 	case "Model":
-		return evalNullable(r.Model)
+		return EvalNullable(r.Model)
 	case "AssignedToTenantID":
-		return evalNullable(r.AssignedToTenantID)
+		return EvalNullable(r.AssignedToTenantID)
 	case "AssignedToAI":
 		return r.AssignedToAI, true
 	case "RepoInfo":
 		return r.RepoInfo, true
 	case "State":
-		return evalNullable(r.State)
+		return EvalNullable(r.State)
 	default:
 		return nil, false
 	}
@@ -536,11 +536,11 @@ func (r *ListWorkstreamTasksRequest) GetField(name string) (any, bool) {
 	case "WorkstreamID":
 		return r.WorkstreamID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -722,29 +722,29 @@ func (r *UpdateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "Title":
-		return evalNullable(r.Title)
+		return EvalNullable(r.Title)
 	case "EnvironmentID":
-		return evalNullable(r.EnvironmentID)
+		return EvalNullable(r.EnvironmentID)
 	case "Prompt":
-		return evalNullable(r.Prompt)
+		return EvalNullable(r.Prompt)
 	case "Parallel":
-		return evalNullable(r.Parallel)
+		return EvalNullable(r.Parallel)
 	case "Model":
-		return evalNullable(r.Model)
+		return EvalNullable(r.Model)
 	case "AssignedToTenantID":
-		return evalNullable(r.AssignedToTenantID)
+		return EvalNullable(r.AssignedToTenantID)
 	case "AssignedToAI":
-		return evalNullable(r.AssignedToAI)
+		return EvalNullable(r.AssignedToAI)
 	case "RepoInfo":
-		return evalNullable(r.RepoInfo)
+		return EvalNullable(r.RepoInfo)
 	case "State":
-		return evalNullable(r.State)
+		return EvalNullable(r.State)
 	case "BeforeTaskID":
-		return evalNullable(r.BeforeTaskID)
+		return EvalNullable(r.BeforeTaskID)
 	case "AfterTaskID":
-		return evalNullable(r.AfterTaskID)
+		return EvalNullable(r.AfterTaskID)
 	case "Deleted":
-		return evalNullable(r.Deleted)
+		return EvalNullable(r.Deleted)
 	default:
 		return nil, false
 	}
@@ -840,15 +840,15 @@ func (r *UpdateTaskRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "Title":
-		return evalNullable(r.Title)
+		return EvalNullable(r.Title)
 	case "Prompt":
-		return evalNullable(r.Prompt)
+		return EvalNullable(r.Prompt)
 	case "Model":
-		return evalNullable(r.Model)
+		return EvalNullable(r.Model)
 	case "RepoInfo":
-		return evalNullable(r.RepoInfo)
+		return EvalNullable(r.RepoInfo)
 	case "Deleted":
-		return evalNullable(r.Deleted)
+		return EvalNullable(r.Deleted)
 	default:
 		return nil, false
 	}
@@ -981,11 +981,11 @@ func (r *ListTasksRequest) GetField(name string) (any, bool) {
 	case "TenantID":
 		return r.TenantID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}

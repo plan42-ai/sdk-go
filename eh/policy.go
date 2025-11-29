@@ -196,25 +196,25 @@ func (p *PolicyPrincipal) GetField(name string) (any, bool) {
 	case "Type":
 		return p.Type, true
 	case "Name": //nolint:goconst
-		return evalNullable(p.Name)
+		return EvalNullable(p.Name)
 	case "RoleArn":
-		return evalNullable(p.RoleArn)
+		return EvalNullable(p.RoleArn)
 	case "Tenant":
-		return evalNullable(p.Tenant)
+		return EvalNullable(p.Tenant)
 	case "TokenTypes":
 		return p.TokenTypes, true
 	case "Provider":
-		return evalNullable(p.Provider)
+		return EvalNullable(p.Provider)
 	case "Organization":
-		return evalNullable(p.Organization)
+		return EvalNullable(p.Organization)
 	case "OrganizationRole":
-		return evalNullable(p.OrganizationRole)
+		return EvalNullable(p.OrganizationRole)
 	case "Enterprise":
-		return evalNullable(p.Enterprise)
+		return EvalNullable(p.Enterprise)
 	case "EnterpriseRole":
-		return evalNullable(p.EnterpriseRole)
+		return EvalNullable(p.EnterpriseRole)
 	case "RunnerID":
-		return evalNullable(p.RunnerID)
+		return EvalNullable(p.RunnerID)
 	default:
 		return nil, false
 	}
@@ -258,7 +258,7 @@ func (p *Policy) GetField(name string) (any, bool) {
 	case "Effect":
 		return p.Effect, true
 	case "Tenant":
-		return evalNullable(p.Tenant)
+		return EvalNullable(p.Tenant)
 	case "Principal":
 		return p.Principal, true
 	case "Actions":
@@ -266,7 +266,7 @@ func (p *Policy) GetField(name string) (any, bool) {
 	case "DelegatedActions":
 		return p.DelegatedActions, true
 	case "DelegatedPrincipal":
-		return evalNullable(p.DelegatedPrincipal)
+		return EvalNullable(p.DelegatedPrincipal)
 	case "Constraints":
 		return p.Constraints, true
 	case "CreatedAt":
@@ -278,7 +278,7 @@ func (p *Policy) GetField(name string) (any, bool) {
 	}
 }
 
-func evalNullable[T any](ptr *T) (any, bool) {
+func EvalNullable[T any](ptr *T) (any, bool) {
 	if ptr == nil {
 		return nil, true
 	}
@@ -508,9 +508,9 @@ func (r *ListPoliciesRequest) GetField(name string) (any, bool) {
 	case "TenantID":
 		return r.TenantID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	default:
 		return nil, false
 	}

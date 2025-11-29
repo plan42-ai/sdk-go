@@ -56,7 +56,7 @@ func (r *GetWorkstreamRequest) GetField(name string) (any, bool) {
 	case "WorkstreamID":
 		return r.WorkstreamID, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -141,15 +141,15 @@ func (r *UpdateWorkstreamRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "Name":
-		return evalNullable(r.Name)
+		return EvalNullable(r.Name)
 	case "Description":
-		return evalNullable(r.Description)
+		return EvalNullable(r.Description)
 	case "Paused":
-		return evalNullable(r.Paused)
+		return EvalNullable(r.Paused)
 	case "Deleted":
-		return evalNullable(r.Deleted)
+		return EvalNullable(r.Deleted)
 	case "DefaultShortName":
-		return evalNullable(r.DefaultShortName)
+		return EvalNullable(r.DefaultShortName)
 	default:
 		return nil, false
 	}
@@ -224,11 +224,11 @@ func (r *ListWorkstreamsRequest) GetField(name string) (any, bool) {
 	case "TenantID":
 		return r.TenantID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -397,13 +397,13 @@ func (r *ListWorkstreamShortNamesRequest) GetField(name string) (any, bool) {
 	case "TenantID":
 		return r.TenantID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	case "WorkstreamID":
-		return evalNullable(r.WorkstreamID)
+		return EvalNullable(r.WorkstreamID)
 	default:
 		return nil, false
 	}
@@ -506,7 +506,7 @@ func (r *MoveShortNameRequest) GetField(name string) (any, bool) {
 	case "DestinationWorkstreamVersion":
 		return r.DestinationWorkstreamVersion, true
 	case "ReplacementName":
-		return evalNullable(r.ReplacementName)
+		return EvalNullable(r.ReplacementName)
 	case "SetDefaultOnDestination":
 		return r.SetDefaultOnDestination, true
 	default:
@@ -725,7 +725,7 @@ func (r *CreateWorkstreamRequest) GetField(name string) (any, bool) {
 	case "Description":
 		return r.Description, true
 	case "DefaultShortName":
-		return evalNullable(r.DefaultShortName)
+		return EvalNullable(r.DefaultShortName)
 	default:
 		return nil, false
 	}

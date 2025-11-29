@@ -55,7 +55,7 @@ func (r *CreateRunnerRequest) GetField(name string) (any, bool) {
 	case "Name":
 		return r.Name, true
 	case "Description":
-		return evalNullable(r.Description)
+		return EvalNullable(r.Description)
 	case "IsCloud":
 		return r.IsCloud, true
 	case "RunsTasks":
@@ -99,17 +99,17 @@ func (r *UpdateRunnerRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "Name":
-		return evalNullable(r.Name)
+		return EvalNullable(r.Name)
 	case "Description":
-		return evalNullable(r.Description)
+		return EvalNullable(r.Description)
 	case "IsCloud":
-		return evalNullable(r.IsCloud)
+		return EvalNullable(r.IsCloud)
 	case "RunsTasks":
-		return evalNullable(r.RunsTasks)
+		return EvalNullable(r.RunsTasks)
 	case "ProxiesGithub":
-		return evalNullable(r.ProxiesGithub)
+		return EvalNullable(r.ProxiesGithub)
 	case "Deleted":
-		return evalNullable(r.Deleted)
+		return EvalNullable(r.Deleted)
 	default:
 		return nil, false
 	}
@@ -183,15 +183,15 @@ func (r *ListRunnersRequest) GetField(name string) (any, bool) {
 	case "TenantID":
 		return r.TenantID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	case "RunsTasks":
-		return evalNullable(r.RunsTasks)
+		return EvalNullable(r.RunsTasks)
 	case "ProxiesGithub":
-		return evalNullable(r.ProxiesGithub)
+		return EvalNullable(r.ProxiesGithub)
 	default:
 		return nil, false
 	}
@@ -341,7 +341,7 @@ func (r *GetRunnerRequest) GetField(name string) (any, bool) {
 	case "RunnerID":
 		return r.RunnerID, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -469,7 +469,7 @@ func (r *GenerateRunnerTokenRequest) GetField(name string) (any, bool) {
 	case "TokenID":
 		return r.TokenID, true
 	case "TTLDays":
-		return evalNullable(r.TTLDays)
+		return EvalNullable(r.TTLDays)
 	default:
 		return nil, false
 	}
@@ -635,19 +635,19 @@ type ListRunnerQueuesRequest struct {
 func (r *ListRunnerQueuesRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
-		return evalNullable(r.TenantID)
+		return EvalNullable(r.TenantID)
 	case "RunnerID":
-		return evalNullable(r.RunnerID)
+		return EvalNullable(r.RunnerID)
 	case "IncludeUnhealthy":
-		return evalNullable(r.IncludeUnhealthy)
+		return EvalNullable(r.IncludeUnhealthy)
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "MinQueueID":
-		return evalNullable(r.MinQueueID)
+		return EvalNullable(r.MinQueueID)
 	case "MaxQueueID":
-		return evalNullable(r.MaxQueueID)
+		return EvalNullable(r.MaxQueueID)
 	default:
 		return nil, false
 	}
@@ -761,15 +761,15 @@ func (r *UpdateRunnerQueueRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "IsHealthy":
-		return evalNullable(r.IsHealthy)
+		return EvalNullable(r.IsHealthy)
 	case "Draining":
-		return evalNullable(r.Draining)
+		return EvalNullable(r.Draining)
 	case "NConsecutiveFailedHealthChecks":
-		return evalNullable(r.NConsecutiveFailedHealthChecks)
+		return EvalNullable(r.NConsecutiveFailedHealthChecks)
 	case "NConsecutiveSuccessfulHealthChecks":
-		return evalNullable(r.NConsecutiveSuccessfulHealthChecks)
+		return EvalNullable(r.NConsecutiveSuccessfulHealthChecks)
 	case "LastHealthCheckAt":
-		return evalNullable(r.LastHealthCheckAt)
+		return EvalNullable(r.LastHealthCheckAt)
 	default:
 		return nil, false
 	}

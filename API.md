@@ -766,27 +766,46 @@ This policy allows users to access their own tenant.
 }
 ```
 
-## 8.5 AgentAccess
+## 8.5 AgentTurnAccess
 
 ```json
 {
-    "Name": "AgentAccess",
+    "Name": "AgentTurnAccess",
     "Effect": "Allow",
     "Tenant": "tenant_id",
     "Principal": {
         "Type": "Agent"
     },
-    "Actions": ["UpdateTurn", "UpdateTask", "GetTask", "GetTurn", "UploadTurnLogs"],
+    "Actions": ["UpdateTurn", "UploadTurnLogs", "GetLastTurnLog"],
     "Constraints": [
         "$request.Tenant == $policy.Tenant",
-        "$request.Tenant == $Principal.Tenant",
-        "$request.TaskID == $Principal.TaskID",
-        "$request.TurnID == $Principal.TurnID"
+        "$request.Tenant == $principal.Tenant",
+        "$request.TaskID == $principal.TaskID",
+        "$request.TurnIndex == $principal.TurnIndex"
     ]
 }
 ```
 
-## 8.6 GetCurrentUser
+## 8.6 AgentTaskAccess
+
+```json
+{
+    "Name": "AgentTaskAccess",
+    "Effect": "Allow",
+    "Tenant": "tenant_id",
+    "Principal": {
+        "Type": "Agent"
+    },
+    "Actions": ["UpdateTask"],
+    "Constraints": [
+        "$request.Tenant == $policy.Tenant",
+        "$request.Tenant == $principal.Tenant",
+        "$request.TaskID == $principal.TaskID"
+    ]
+}
+```
+
+## 8.7 GetCurrentUser
 
 ```json
 {
@@ -808,7 +827,7 @@ This policy allows users to access their own tenant.
 }
 ```
 
-## 8.7 GetCurrentUser
+## 8.8 GetCurrentUser
 
 ```json
 {
@@ -830,198 +849,15 @@ This policy allows users to access their own tenant.
 }
 ```
 
-# 9. Default Organization Tenant Policies
-
-This section defines the default policies that are created when an organization tenant is created.
-
-## 9.1 EnableWebUIDelegation
-
-This enables the Web UI to perform delegated actions on an Organization by members of the organization that authenticate via Web UI Tokens.
+## 8.9 Runner Access
 
 ```json
 {
-  "Name": "EnableWebUIDelegation",
+  "Name": "RunnerAccess",
   "Effect": "Allow",
   "Tenant": "tenant_id",
   "Principal": {
-    "Type": "Service",
-    "Name": "WebUI"
-  },
-  "Actions": ["PerformDelegatedAction"],
-  "DelegatedActions": ["*"],
-  "DelegatedPrincipal": {
-    "Type": "User",
-    "Organization" : "$policy.Tenant",
-    "TokenTypes": ["WebUIToken"]
-  }
-}
-```
-
-## 9.2 OwnerAccess
-
-This policy allows owners of an organization to perform any action on the organization.
-
-```json
-{
-  "Name": "OwnerAccess",
-  "Effect": "Allow",
-  "Tenant": "tenant_id",
-  "Principal": {
-    "Type": "User",
-    "Tenant": "*", 
-    "Organization" : "$policy.Tenant",
-    "OrganizationRole": "Owner"
-  },
-  "Actions": ["*"]
-}
-```
-
-## 9.3 MemberAccess
-
-This policy allows members of an organization to perform non-admin actions on the organization.
-
-> TODO: Define the actions members are allowed to perform. Right now the list is empty, which means no actions are allowed.
-
-```json
-{
-  "Name": "MemberAccess",
-  "Effect": "Allow",
-  "Tenant": "tenant_id",
-  "Principal": {
-    "Type": "User", 
-    "Tenant": "*",
-    "Organization" : "$policy.Tenant",
-    "OrganizationRole": "Member"
-  },
-  "Actions": [
-     ...
-  ]
-}
-```
-
-## 9.4 TaskAccess
-
-```json
-{
-    "Name": "AgentAccess",
-    "Effect": "Allow",
-    "Tenant": "tenant_id",
-    "Principal": {
-        "Type": "Agent"
-    },
-    "Actions": ["UpdateTurn", "UpdateTask", "GetTask", "GetTurn", "UploadTurnLogs"],
-    "Constraints": [
-        "$request.Tenant == $policy.Tenant",
-        "$request.Tenant == $principal.Tenant",
-        "$request.TaskID == $principal.TaskID",
-        "$request.TurnID == $principal.TurnID"
-    ]
-}
-```
-
-# 10. Default Enterprise Tenant Policies
-
-This section defines the default policies that are created when an enterprise tenant is created.
-
-## 10.1 EnableWebUIDelegation
-
-This enables the Web UI to perform delegated actions on an enterprise by members of the enterprise that authenticate via Web UI Tokens.
-
-```json
-{
-  "Name": "EnableWebUIDelegation",
-  "Effect": "Allow",
-  "Tenant": "tenant_id",
-  "Principal": {
-    "Type": "Service",
-    "Name": "WebUI"
-  },
-  "Actions": ["PerformDelegatedAction"],
-  "DelegatedActions": ["*"],
-  "DelegatedPrincipal": {
-    "Type": "User",
-    "Enterprise" : "$policy.Tenant",
-    "TokenTypes": ["WebUIToken"]
-  }
-}
-```
-
-## 10.2 OwnerAccess
-
-This policy allows owners of an enterprise to perform any action on the enterprise.
-
-```json
-{
-  "Name": "OwnerAccess",
-  "Effect": "Allow",
-  "Tenant": "tenant_id",
-  "Principal": {
-    "Type": "User",
-    "Enterprise" : "$policy.Tenant",
-    "EnterpriseRole": "Owner"
-  },
-  "Actions": ["*"]
-}
-```
-
-## 10.3 MemberAccess
-
-This policy allows members of an enterprise to perform non-admin actions on the enterprise.
-
-> TODO: Define the actions members are allowed to perform. Right now the list is empty, which means no actions are allowed.
-
-```json
-{
-  "Name": "MemberAccess",
-  "Effect": "Allow",
-  "Tenant": "tenant_id",
-  "Principal": {
-    "Type": "User",
-    "Enterprise" : "$policy.Tenant",
-    "EnterpriseRole": "Member"
-  },
-  "Actions": [
-  ]
-}
-```
-
-## 10.4 AgentAccess
-
-```json
-{
-    "Name": "AgentAccess",
-    "Effect": "Allow",
-    "Tenant": "tenant_id",
-    "Principal": {
-        "Type": "Agent"
-    },
-    "Actions": ["UpdateTurn", "UpdateTask", "GetTask", "GetTurn", "UploadTurnLogs"],
-    "Constraints": [
-        "$request.Tenant == $policy.Tenant",
-        "$request.Tenant == $principal.Tenant",
-        "$request.TaskID == $principal.TaskID",
-        "$request.TurnID == $principal.TurnID"
-    ]
-}
-```
-
-# 11. Default Runner Policies
-
-When a new runner is created, we create a policy that enables runner tokens for that runner to:
-
-1. Register new runner queues
-2. Get batches of messages
-3. Write runner responses.
-
-```json
-{
-  "Name": "Runner-<runner_id>",
-  "Effect": "Allow",
-  "Tenant": "tenant_id",
-  "Principal": {
-    "Type": "Runner",
-    "Tenant": "$policy.Tenant",
-    "RunnerID": "<runner_id>",
+    "Type": "Runner"
   },
   "Actions" : [
     "RegisterRunnerQueue",
@@ -1030,7 +866,7 @@ When a new runner is created, we create a policy that enables runner tokens for 
   ],
   "Constraints": [
     "$request.Tenant == $policy.Tenant",
-    "$request.RunnerID == $policy.Principal.RunnerID"
+    "$request.RunnerID == $principal.RunnerID"
   ]
 }
 ```
