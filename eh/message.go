@@ -7,18 +7,77 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/debugging-sucks/ecies"
 )
+
+type WrappedSecret interface {
+	EncryptionAlgorithm() string
+}
 
 // RunnerMessage represents a message retrieved from a runner queue.
 type RunnerMessage struct {
-	TenantID        string    `json:"TenantID"`
-	RunnerID        string    `json:"RunnerID"`
-	QueueID         string    `json:"QueueID"`
-	MessageID       string    `json:"MessageID"`
-	CallerID        string    `json:"CallerID"`
-	CallerPublicKey string    `json:"CallerPublicKey"`
-	CreatedAt       time.Time `json:"CreatedAt"`
-	Payload         string    `json:"Payload"`
+	TenantID        string        `json:"TenantID"`
+	RunnerID        string        `json:"RunnerID"`
+	QueueID         string        `json:"QueueID"`
+	MessageID       string        `json:"MessageID"`
+	CallerID        string        `json:"CallerID"`
+	CallerPublicKey string        `json:"CallerPublicKey"`
+	CreatedAt       time.Time     `json:"CreatedAt"`
+	Payload         WrappedSecret `json:"Payload"`
+}
+
+func (m *RunnerMessage) UnmarshalJSON(bytes []byte) error {
+	type runnerMessage struct {
+		TenantID        string          `json:"TenantID"`
+		RunnerID        string          `json:"RunnerID"`
+		QueueID         string          `json:"QueueID"`
+		MessageID       string          `json:"MessageID"`
+		CallerID        string          `json:"CallerID"`
+		CallerPublicKey string          `json:"CallerPublicKey"`
+		CreatedAt       time.Time       `json:"CreatedAt"`
+		Payload         json.RawMessage `json:"Payload"`
+	}
+	var tmp runnerMessage
+	err := json.Unmarshal(bytes, &tmp)
+	if err != nil {
+		return err
+	}
+
+	type payloadWrapper struct {
+		EncryptionAlgorithm string `json:"EncryptionAlgorithm"`
+	}
+	var pw payloadWrapper
+	err = json.Unmarshal(tmp.Payload, &pw)
+	if err != nil {
+		return err
+	}
+	var payload WrappedSecret
+	switch pw.EncryptionAlgorithm {
+	case ecies.EciesCofactorVariableIVX963SHA256AESGCM:
+		payload = &ecies.WrappedSecret{}
+	default:
+		return fmt.Errorf("unknown encryption algorithm: %s", pw.EncryptionAlgorithm)
+	}
+	err = json.Unmarshal(tmp.Payload, payload)
+	if err != nil {
+		return err
+	}
+	*m = RunnerMessage{
+		TenantID:        tmp.TenantID,
+		RunnerID:        tmp.RunnerID,
+		QueueID:         tmp.QueueID,
+		MessageID:       tmp.MessageID,
+		CallerID:        tmp.CallerID,
+		CallerPublicKey: tmp.CallerPublicKey,
+		CreatedAt:       tmp.CreatedAt,
+		Payload:         payload,
+	}
+	return nil
+}
+
+func (RunnerMessage) ObjectType() ObjectType {
+	return ObjectTypeRunnerMessage
 }
 
 // GetMessagesBatchRequest contains the parameters for GetMessagesBatch.
@@ -47,7 +106,7 @@ func (r *GetMessagesBatchRequest) GetField(name string) (any, bool) {
 
 // GetMessagesBatchResponse is the response payload for GetMessagesBatch.
 type GetMessagesBatchResponse struct {
-	Messages []RunnerMessage `json:"Messages"`
+	Messages []*RunnerMessage `json:"Messages"`
 }
 
 // GetMessagesBatch retrieves a batch of messages for a runner queue.
