@@ -330,6 +330,7 @@ const (
 	ObjectTypeWorkstreamShortName    ObjectType = "WorkstreamShortName"
 	ObjectTypeTenantGithubCreds      ObjectType = "TenantGithubCreds" // #nosec: G101: This is not a hard coded credential, it's an enum member that contains the work "cred".
 	ObjectTypeWorkstreamTaskConflict ObjectType = "WorkstreamTaskConflict"
+	ObjectTypeRunnerMessage          ObjectType = "RunnerMessage"
 )
 
 type ConflictObj interface {

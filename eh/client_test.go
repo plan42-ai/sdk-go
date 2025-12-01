@@ -2,6 +2,9 @@ package eh_test
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -16,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/debugging-sucks/clock"
+	"github.com/debugging-sucks/ecies"
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/debugging-sucks/event-horizon-sdk-go/internal/util"
 	sigv4auth "github.com/debugging-sucks/sigv4util/server/sigv4auth"
@@ -1998,6 +2002,13 @@ func TestGetRunnerTokenValidation(t *testing.T) {
 	require.EqualError(t, err, "token id is required")
 }
 
+func generatePublicKey(t *testing.T) *ecdsa.PublicKey {
+	t.Helper()
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	return &priv.PublicKey
+}
+
 func TestGetMessagesBatch(t *testing.T) {
 	t.Parallel()
 
@@ -2010,7 +2021,7 @@ func TestGetMessagesBatch(t *testing.T) {
 
 		w.WriteHeader(http.StatusOK)
 		resp := eh.GetMessagesBatchResponse{
-			Messages: []eh.RunnerMessage{{
+			Messages: []*eh.RunnerMessage{{
 				TenantID:        "abc",
 				RunnerID:        "run",
 				QueueID:         "queue",
@@ -2018,7 +2029,10 @@ func TestGetMessagesBatch(t *testing.T) {
 				CallerID:        "caller",
 				CallerPublicKey: "pk",
 				CreatedAt:       createdAt,
-				Payload:         "payload",
+				Payload: &ecies.WrappedSecret{
+					EncryptedData:      []byte("data"),
+					EphemeralPublicKey: generatePublicKey(t),
+				},
 			}},
 		}
 		_ = json.NewEncoder(w).Encode(resp)

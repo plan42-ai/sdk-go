@@ -4811,7 +4811,7 @@ Content-Type: application/json; charset=utf-8
         "CallerID": "string",
         "CallerPublicKey": "string",
         "CreatedAt": "string",
-        "Payload": "string",
+        "Payload": {},
     }]
 }
 ```
@@ -4823,16 +4823,49 @@ Content-Type: application/json; charset=utf-8
 ## 79.3 RunnerMessage
 The RunnerMessage object contains information about a message sent to a queue.
 
-| Field           | Type   | Description                                                                                                                                                             |
-|-----------------|--------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| TenantID        | string | The ID of the tenant that owns the runner.                                                                                                                              |
-| RunnerID        | string | The ID of the runner the queue is registered for.                                                                                                                       |
-| QueueID         | string | The ID of the queue the message was sent to.                                                                                                                            |
-| MessageID       | string | The ID of the message.                                                                                                                                                  |
-| CallerID        | string | The ID of the caller that sent the message.                                                                                                                             |
-| CallerPublicKey | string | The PEM encoded public key of the caller that sent message.                                                                                                             |
-| CreatedAt       | string | The timestamp when the message was created.                                                                                                                             |
-| Payload         | string | The base64 encoded payload of the message. The payload is encrypted using ECIES, with a key dervied from the private key of the caller and the public key of the queue. |
+| Field           | Type                                | Description                                                 |
+|-----------------|-------------------------------------|-------------------------------------------------------------|
+| TenantID        | string                              | The ID of the tenant that owns the runner.                  |
+| RunnerID        | string                              | The ID of the runner the queue is registered for.           |
+| QueueID         | string                              | The ID of the queue the message was sent to.                |
+| MessageID       | string                              | The ID of the message.                                      |
+| CallerID        | string                              | The ID of the caller that sent the message.                 |
+| CallerPublicKey | string                              | The PEM encoded public key of the caller that sent message. |
+| CreatedAt       | string                              | The timestamp when the message was created.                 |
+| Payload         | [WrappedSecret](#794-WrappedSecret) | The encrypted message.                                      |
+
+## 79.4 WrappedSecret
+
+WrappedSecret is a polymorphic type that represents an encrypted secret. Currently the only supported encryption
+algorithm is `ECIES.Cofactor.VariableIV.X963.SHA256.AESGCM`, though we may add more in the future.
+
+``json
+{
+    "EncryptionAlgorithm": "string",
+    ...
+}
+``
+
+| EncryptionAlgorithm                          | Type                                           | Description                                                                                                         |
+|----------------------------------------------|------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| ECIES.Cofactor.VariableIV.X963.SHA256.AESGCM | [ecies.WrappedSecret](#795-eciesWrappedSecret) | The secret is encrypted using ECIES with an ephemeral private key and the public key of the target queue or caller. |
+
+## 79.5 ecies.WrappedSecret
+
+```json
+
+{
+    "EncryptionAlgorithm": "ECIES.Cofactor.VariableIV.X963.SHA256.AESGCM",
+    "EncryptedData": "string",
+    "EphemeralPublicKey": "string",
+}
+```
+
+| Field               | Type   | Description                                                                                     |
+|---------------------|--------|-------------------------------------------------------------------------------------------------|
+| EncryptionAlgorithm | string | The encryption algorithm used. Currently always `ECIES.Cofactor.VariableIV.X963.SHA256.AESGCM`. |
+| EncryptedData       | string | The base64 encoded ciphertext and gcm tag of the secret.                                        |
+| EphemeralPublicKey  | string | The PEM encoded ephemeral public key used to encrypt the secret.                                |
 
 # 80. WriteResponse
 
