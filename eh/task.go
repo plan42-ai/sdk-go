@@ -20,6 +20,7 @@ const (
 	ModelTypeO3Pro         ModelType = "O3 Pro"
 	ModelTypeGpt5          ModelType = "GPT-5"
 	ModelTypeGpt5Codex     ModelType = "GPT-5 Codex"
+	ModelTypeGpt51Codex    ModelType = "GPT-5.1 Codex"
 	ModelTypeClaude4Opus   ModelType = "Claude 4 Opus"
 	ModelTypeClaude4Sonnet ModelType = "Claude 4 Sonnet"
 )
