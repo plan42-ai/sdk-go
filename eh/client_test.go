@@ -1142,7 +1142,7 @@ func TestRegisterRunnerQueue(t *testing.T) {
 			Draining:                           false,
 			NConsecutiveFailedHealthChecks:     0,
 			NConsecutiveSuccessfulHealthChecks: 1,
-			LastHealthCheckAt:                  util.Pointer(lastHealthCheck),
+			LastHealthCheckAt:                  lastHealthCheck,
 		}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
@@ -1160,8 +1160,7 @@ func TestRegisterRunnerQueue(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "queue1", queue.QueueID)
 	require.Equal(t, 1, queue.Version)
-	require.NotNil(t, queue.LastHealthCheckAt)
-	require.Equal(t, lastHealthCheck, *queue.LastHealthCheckAt)
+	require.Equal(t, lastHealthCheck, queue.LastHealthCheckAt)
 }
 
 func TestRegisterRunnerQueueError(t *testing.T) {
@@ -1267,7 +1266,7 @@ func TestUpdateRunnerQueue(t *testing.T) {
 			Draining:                           draining,
 			NConsecutiveFailedHealthChecks:     failedChecks,
 			NConsecutiveSuccessfulHealthChecks: successfulChecks,
-			LastHealthCheckAt:                  util.Pointer(lastHealthCheck),
+			LastHealthCheckAt:                  lastHealthCheck,
 		}
 		_ = json.NewEncoder(w).Encode(resp)
 	})
@@ -1290,8 +1289,7 @@ func TestUpdateRunnerQueue(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "queue1", queue.QueueID)
 	require.Equal(t, 3, queue.Version)
-	require.NotNil(t, queue.LastHealthCheckAt)
-	require.Equal(t, lastHealthCheck, *queue.LastHealthCheckAt)
+	require.Equal(t, lastHealthCheck, queue.LastHealthCheckAt)
 }
 
 func TestUpdateRunnerQueueError(t *testing.T) {

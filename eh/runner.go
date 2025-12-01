@@ -601,18 +601,20 @@ func (c *Client) RevokeRunnerToken(ctx context.Context, req *RevokeRunnerTokenRe
 
 // RunnerQueue represents a queue registered for a runner.
 type RunnerQueue struct {
-	TenantID                           string     `json:"TenantID"`
-	RunnerID                           string     `json:"RunnerID"`
-	QueueID                            string     `json:"QueueID"`
-	PublicKey                          string     `json:"PublicKey"`
-	CreatedAt                          time.Time  `json:"CreatedAt"`
-	Version                            int        `json:"Version"`
-	IsHealthy                          bool       `json:"IsHealthy"`
-	Draining                           bool       `json:"Draining"`
-	NConsecutiveFailedHealthChecks     int        `json:"NConsecutiveFailedHealthChecks"`
-	NConsecutiveSuccessfulHealthChecks int        `json:"NConsecutiveSuccessfulHealthChecks"`
-	LastHealthCheckAt                  *time.Time `json:"LastHealthCheckAt,omitempty"`
+	TenantID                           string    `json:"TenantID"`
+	RunnerID                           string    `json:"RunnerID"`
+	QueueID                            string    `json:"QueueID"`
+	PublicKey                          string    `json:"PublicKey"`
+	CreatedAt                          time.Time `json:"CreatedAt"`
+	Version                            int       `json:"Version"`
+	IsHealthy                          bool      `json:"IsHealthy"`
+	Draining                           bool      `json:"Draining"`
+	NConsecutiveFailedHealthChecks     int       `json:"NConsecutiveFailedHealthChecks"`
+	NConsecutiveSuccessfulHealthChecks int       `json:"NConsecutiveSuccessfulHealthChecks"`
+	LastHealthCheckAt                  time.Time `json:"LastHealthCheckAt"`
 }
+
+func (RunnerQueue) ObjectType() ObjectType { return ObjectTypeRunnerQueue }
 
 // ListRunnerQueuesRequest contains parameters for ListRunnerQueues.
 type ListRunnerQueuesRequest struct {

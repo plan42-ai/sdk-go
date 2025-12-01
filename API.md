@@ -5112,7 +5112,7 @@ If-Match: <version>
     "IsHealthy": *bool,
     "NConsecutiveFailedHealthChecks": *int,
     "NConsecutiveSuccessfulHealthChecks": *int,
-    "LastHealthCheckAt": "*string",
+    "LastHealthCheckAt": "string",
     "Draining": *bool
 }
 ```
