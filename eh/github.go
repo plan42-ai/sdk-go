@@ -72,11 +72,11 @@ func (r *CreateGithubConnectionRequest) GetField(name string) (any, bool) {
 	case "Private":
 		return r.Private, true
 	case "RunnerID":
-		return evalNullable(r.RunnerID)
+		return EvalNullable(r.RunnerID)
 	case "GithubUserLogin":
-		return evalNullable(r.GithubUserLogin)
+		return EvalNullable(r.GithubUserLogin)
 	case "GithubUserID":
-		return evalNullable(r.GithubUserID)
+		return EvalNullable(r.GithubUserID)
 	default:
 		return nil, false
 	}
@@ -158,9 +158,9 @@ func (r *ListGithubConnectionsRequest) GetField(name string) (any, bool) {
 	case "TenantID":
 		return r.TenantID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	default:
 		return nil, false
 	}
@@ -384,21 +384,21 @@ func (r *UpdateGithubConnectionRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "Private":
-		return evalNullable(r.Private)
+		return EvalNullable(r.Private)
 	case "RunnerID":
-		return evalNullable(r.RunnerID)
+		return EvalNullable(r.RunnerID)
 	case "GithubUserLogin":
-		return evalNullable(r.GithubUserLogin)
+		return EvalNullable(r.GithubUserLogin)
 	case "GithubUserID":
-		return evalNullable(r.GithubUserID)
+		return EvalNullable(r.GithubUserID)
 	case "OAuthToken":
-		return evalNullable(r.OAuthToken)
+		return EvalNullable(r.OAuthToken)
 	case "RefreshToken":
-		return evalNullable(r.RefreshToken)
+		return EvalNullable(r.RefreshToken)
 	case "State":
-		return evalNullable(r.State)
+		return EvalNullable(r.State)
 	case "StateExpiry":
-		return evalNullable(r.StateExpiry)
+		return EvalNullable(r.StateExpiry)
 	default:
 		return nil, false
 	}
@@ -469,15 +469,15 @@ type FindGithubUserRequest struct {
 func (r *FindGithubUserRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "GithubID":
-		return evalNullable(r.GithubID)
+		return EvalNullable(r.GithubID)
 	case "GithubLogin":
-		return evalNullable(r.GithubLogin)
+		return EvalNullable(r.GithubLogin)
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -599,21 +599,21 @@ func (r *UpdateTenantGithubCredsRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "SkipOnboarding":
-		return evalNullable(r.SkipOnboarding)
+		return EvalNullable(r.SkipOnboarding)
 	case "OAuthToken":
-		return evalNullable(r.OAuthToken)
+		return EvalNullable(r.OAuthToken)
 	case "RefreshToken":
-		return evalNullable(r.RefreshToken)
+		return EvalNullable(r.RefreshToken)
 	case "TokenExpiry":
-		return evalNullable(r.TokenExpiry)
+		return EvalNullable(r.TokenExpiry)
 	case "State":
-		return evalNullable(r.State)
+		return EvalNullable(r.State)
 	case "StateExpiry":
-		return evalNullable(r.StateExpiry)
+		return EvalNullable(r.StateExpiry)
 	case "GithubUserLogin":
-		return evalNullable(r.GithubUserLogin)
+		return EvalNullable(r.GithubUserLogin)
 	case "GithubUserID":
-		return evalNullable(r.GithubUserID)
+		return EvalNullable(r.GithubUserID)
 	default:
 		return nil, false
 	}
@@ -803,7 +803,7 @@ func (r *GetGithubOrgRequest) GetField(name string) (any, bool) {
 	case "OrgID":
 		return r.OrgID, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -865,13 +865,13 @@ type ListGithubOrgsRequest struct {
 func (r *ListGithubOrgsRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "Name":
-		return evalNullable(r.Name)
+		return EvalNullable(r.Name)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -949,11 +949,11 @@ func (r *UpdateGithubOrgRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "OrgName":
-		return evalNullable(r.OrgName)
+		return EvalNullable(r.OrgName)
 	case "InstallationID":
-		return evalNullable(r.InstallationID)
+		return EvalNullable(r.InstallationID)
 	case "Deleted":
-		return evalNullable(r.Deleted)
+		return EvalNullable(r.Deleted)
 	default:
 		return nil, false
 	}

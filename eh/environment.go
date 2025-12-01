@@ -150,7 +150,7 @@ func (r *GetEnvironmentRequest) GetField(name string) (any, bool) {
 	case "EnvironmentID":
 		return r.EnvironmentID, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -236,23 +236,23 @@ func (r *UpdateEnvironmentRequest) GetField(name string) (any, bool) {
 	case "Version": //nolint: goconst
 		return r.Version, true
 	case "Name":
-		return evalNullable(r.Name)
+		return EvalNullable(r.Name)
 	case "Description":
-		return evalNullable(r.Description)
+		return EvalNullable(r.Description)
 	case "Context":
-		return evalNullable(r.Context)
+		return EvalNullable(r.Context)
 	case "Repos":
-		return evalNullable(r.Repos)
+		return EvalNullable(r.Repos)
 	case "SetupScript":
-		return evalNullable(r.SetupScript)
+		return EvalNullable(r.SetupScript)
 	case "DockerImage":
-		return evalNullable(r.DockerImage)
+		return EvalNullable(r.DockerImage)
 	case "AllowedHosts":
-		return evalNullable(r.AllowedHosts)
+		return EvalNullable(r.AllowedHosts)
 	case "EnvVars":
-		return evalNullable(r.EnvVars)
+		return EvalNullable(r.EnvVars)
 	case "Deleted":
-		return evalNullable(r.Deleted)
+		return EvalNullable(r.Deleted)
 	default:
 		return nil, false
 	}
@@ -324,11 +324,11 @@ func (r *ListEnvironmentsRequest) GetField(name string) (any, bool) {
 	case "TenantID":
 		return r.TenantID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}

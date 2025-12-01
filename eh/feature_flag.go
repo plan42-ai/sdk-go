@@ -106,7 +106,7 @@ func (r *GetFeatureFlagRequest) GetField(name string) (any, bool) {
 	case "FlagName":
 		return r.FlagName, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -168,11 +168,11 @@ type ListFeatureFlagsRequest struct {
 func (r *ListFeatureFlagsRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -248,11 +248,11 @@ func (r *UpdateFeatureFlagRequest) GetField(name string) (any, bool) {
 	case "Version": //nolint: goconst
 		return r.Version, true
 	case "Description":
-		return evalNullable(r.Description)
+		return EvalNullable(r.Description)
 	case "DefaultPct":
-		return evalNullable(r.DefaultPct)
+		return EvalNullable(r.DefaultPct)
 	case "Deleted":
-		return evalNullable(r.Deleted)
+		return EvalNullable(r.Deleted)
 	default:
 		return nil, false
 	}
@@ -516,7 +516,7 @@ func (r *GetFeatureFlagOverrideRequest) GetField(name string) (any, bool) {
 	case "FlagName":
 		return r.FlagName, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -590,9 +590,9 @@ func (r *UpdateFeatureFlagOverrideRequest) GetField(name string) (any, bool) {
 	case "Version":
 		return r.Version, true
 	case "Enabled":
-		return evalNullable(r.Enabled)
+		return EvalNullable(r.Enabled)
 	case "Deleted":
-		return evalNullable(r.Deleted)
+		return EvalNullable(r.Deleted)
 	default:
 		return nil, false
 	}
@@ -662,11 +662,11 @@ func (r *ListFeatureFlagOverridesRequest) GetField(name string) (any, bool) {
 	case "TenantID":
 		return r.TenantID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "Token":
-		return evalNullable(r.Token)
+		return EvalNullable(r.Token)
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}

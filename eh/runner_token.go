@@ -49,7 +49,7 @@ func (r *GetRunnerTokenRequest) GetField(name string) (any, bool) {
 	case "TokenID":
 		return r.TokenID, true
 	case "IncludeDeleted":
-		return evalNullable(r.IncludeDeleted)
+		return EvalNullable(r.IncludeDeleted)
 	default:
 		return nil, false
 	}
@@ -137,11 +137,11 @@ func (r *ListRunnerTokensRequest) GetField(name string) (any, bool) {
 	case "RunnerID":
 		return r.RunnerID, true
 	case "MaxResults":
-		return evalNullable(r.MaxResults)
+		return EvalNullable(r.MaxResults)
 	case "NextPageToken":
-		return evalNullable(r.NextPageToken)
+		return EvalNullable(r.NextPageToken)
 	case "IncludeRevoked":
-		return evalNullable(r.IncludeRevoked)
+		return EvalNullable(r.IncludeRevoked)
 	default:
 		return nil, false
 	}
