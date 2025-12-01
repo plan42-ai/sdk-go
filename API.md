@@ -5184,3 +5184,29 @@ If-Match: <version>
 ## 91.2 Response
 
 On success a 204 NO CONTENT is returned with no body.
+
+# 92. PingRunnerQueue
+
+PingRunnerQueue sends a "ping" message to a runner, and then synchronously waits for a response. This is used by the
+health checker to determine if a queue is healthy.
+
+## 92.1 Request
+
+```http request
+POST /v1/tenants/{tenant_id}/runners/{runner_id}/queues/{queue_id}/ping HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
+| runner_id                                | path     | string  | The ID of the runner to ping.                                       |
+| queue_id                                 | path     | string  | The ID of the queue to ping.                                        |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
