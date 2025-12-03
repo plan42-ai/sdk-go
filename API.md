@@ -4742,7 +4742,7 @@ The SearchTasks API searches for tasks within a tenant. Currently the only suppo
 ## 81.1 Request
 
 ```http request
-POST /v1/tenants/{tenant_id}/tasks/search?pullRequestId={pullRequestId} HTTP/1.1
+POST /v1/tasks/search?pullRequestId={pullRequestId} HTTP/1.1
 Accept: application/json
 Content-Type: application/json; charset=utf-8
 Authorization: <authorization>
@@ -4754,7 +4754,6 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 | Parameter                                | Location | Type    | Description                                                                                                           |
 |------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to search.                                                                                       |
 | pullRequestId                            | query    | *int    | The GitHub pull request ID to search for. Required when searching by pull request.                                    |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                             |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                |
