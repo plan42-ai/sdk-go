@@ -778,8 +778,8 @@ This policy allows users to access their own tenant.
     },
     "Actions": ["UpdateTurn", "UploadTurnLogs", "GetLastTurnLog"],
     "Constraints": [
-        "$request.Tenant == $policy.Tenant",
-        "$request.Tenant == $principal.Tenant",
+        "$request.TenantID == $policy.Tenant",
+        "$request.TenantID == $principal.Tenant",
         "$request.TaskID == $principal.TaskID",
         "$request.TurnIndex == $principal.TurnIndex"
     ]
@@ -798,8 +798,8 @@ This policy allows users to access their own tenant.
     },
     "Actions": ["UpdateTask"],
     "Constraints": [
-        "$request.Tenant == $policy.Tenant",
-        "$request.Tenant == $principal.Tenant",
+        "$request.TenantID == $policy.Tenant",
+        "$request.TenantID == $principal.Tenant",
         "$request.TaskID == $principal.TaskID"
     ]
 }
@@ -4716,19 +4716,19 @@ Authorization: <authorization>
 
 {
     "CallerID": "string",
-    "Payload": "string"
+    "Payload": {}
 }
 ```
 
-| Parameter     | Location | Type   | Description                                                                                                                                                              |
-|---------------|----------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id     | path     | string | The ID of the tenant that owns the runner.                                                                                                                               |
-| runner_id     | path     | string | The ID of the runner writing the response.                                                                                                                               |
-| queue_id      | path     | string | The ID of the queue the response is associated with.                                                                                                                     |
-| message_id    | path     | string | The ID of the message being responded to.                                                                                                                                |
-| Authorization | header   | string | The authorization header for the request.                                                                                                                                |
-| CallerID      | body     | string | The ID of the caller that sent the original message.                                                                                                                     |
-| Payload       | body     | string | The base64 encoded payload of the response. The payload is encrypted using ECIES, with a key dervied from the private key of the queue and the public key of the caller. |
+| Parameter     | Location | Type                                | Description                                          |
+|---------------|----------|-------------------------------------|------------------------------------------------------|
+| tenant_id     | path     | string                              | The ID of the tenant that owns the runner.           |
+| runner_id     | path     | string                              | The ID of the runner writing the response.           |
+| queue_id      | path     | string                              | The ID of the queue the response is associated with. |
+| message_id    | path     | string                              | The ID of the message being responded to.            |
+| Authorization | header   | string                              | The authorization header for the request.            |
+| CallerID      | body     | string                              | The ID of the caller that sent the original message. |
+| Payload       | body     | [WrappedSecret](#794-wrappedsecret) | The encrypted response.                              |
 
 Note that this api does not support delegation.
 
@@ -5078,4 +5078,3 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Authorization                            | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
-
