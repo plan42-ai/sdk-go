@@ -106,7 +106,6 @@ type SearchTasksRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID      string         `json:"-"`
 	PullRequestID *int64         `json:"-"`
 	Body          map[string]any `json:"-"`
 }
@@ -114,8 +113,6 @@ type SearchTasksRequest struct {
 // GetField retrieves the value of a field by name.
 func (r *SearchTasksRequest) GetField(name string) (any, bool) {
 	switch name {
-	case "TenantID":
-		return r.TenantID, true
 	case "PullRequestID":
 		if r.PullRequestID == nil {
 			return nil, false
@@ -174,13 +171,10 @@ func (c *Client) GetTask(ctx context.Context, req *GetTaskRequest) (*Task, error
 	return &out, nil
 }
 
-// SearchTasks performs a task search within a tenant.
+// SearchTasks performs an admin-scoped task search.
 func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*ListTasksResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
-	}
-	if req.TenantID == "" {
-		return nil, fmt.Errorf("tenant id is required")
 	}
 	if req.PullRequestID == nil {
 		return nil, fmt.Errorf("pull request id is required")
@@ -189,7 +183,7 @@ func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*Lis
 		return nil, fmt.Errorf("pull request id must be positive")
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", "search")
+	u := c.BaseURL.JoinPath("v1", "tasks", "search")
 	q := u.Query()
 	q.Set("pullRequestId", strconv.FormatInt(*req.PullRequestID, 10))
 	u.RawQuery = q.Encode()
