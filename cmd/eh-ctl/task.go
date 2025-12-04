@@ -10,12 +10,13 @@ import (
 )
 
 type TaskOptions struct {
-	Create CreateTaskOptions `cmd:"" help:"Create a new task."`
-	Update UpdateTaskOptions `cmd:"" help:"Update an existing task."`
-	Delete DeleteTaskOptions `cmd:"" help:"Soft delete an existing task."`
-	List   ListTasksOptions  `cmd:"" help:"List tasks for a tenant or workstream."`
-	Get    GetTaskOptions    `cmd:"" help:"Get a task by ID."`
-	Move   MoveTaskOptions   `cmd:"" help:"Move a task from one workstream to another."`
+	Create CreateTaskOptions  `cmd:"" help:"Create a new task."`
+	Update UpdateTaskOptions  `cmd:"" help:"Update an existing task."`
+	Delete DeleteTaskOptions  `cmd:"" help:"Soft delete an existing task."`
+	List   ListTasksOptions   `cmd:"" help:"List tasks for a tenant or workstream."`
+	Search SearchTasksOptions `cmd:"" help:"Search for tasks by pull request."`
+	Get    GetTaskOptions     `cmd:"" help:"Get a task by ID."`
+	Move   MoveTaskOptions    `cmd:"" help:"Move a task from one workstream to another."`
 }
 
 // MoveTaskOptions contains the flags for the `task move` command.
@@ -399,6 +400,39 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 		req.Token = resp.NextToken
 	}
 	return nil
+}
+
+type SearchTasksOptions struct {
+	PullRequestID int64  `help:"The GitHub pull request ID to search for." name:"pull-request-id" short:"p" required:""`
+	JSON          string `help:"Optional path to the JSON request body. Use '-' to read from stdin." short:"j" optional:""`
+}
+
+func (o *SearchTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.SearchTasksRequest{
+		PullRequestID: pointer(o.PullRequestID),
+	}
+
+	if o.JSON != "" {
+		if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+			return err
+		}
+		var body map[string]any
+		if err := readJsonFile(o.JSON, &body); err != nil {
+			return err
+		}
+		req.Body = body
+	}
+
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	resp, err := s.Client.SearchTasks(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(resp)
 }
 
 type GetTaskOptions struct {

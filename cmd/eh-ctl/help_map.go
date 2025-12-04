@@ -131,6 +131,13 @@ var helpMap = map[string]string{
 * Failed
 
 `,
+	"task search": `
+
+--- Input JSON Schema ---
+
+{}
+
+`,
 	"task update": `
 --- Input JSON Schema ---
 

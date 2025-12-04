@@ -211,6 +211,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Task.Delete.Run(options.Ctx, &options.SharedOptions)
 	case "task list":
 		return options.Task.List.Run(options.Ctx, &options.SharedOptions)
+	case "task search":
+		return options.Task.Search.Run(options.Ctx, &options.SharedOptions)
 	case "task get":
 		return options.Task.Get.Run(options.Ctx, &options.SharedOptions)
 	case "turn create":
