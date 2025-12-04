@@ -472,7 +472,10 @@ func init() {
 			ActionDeleteRunnerQueue,         // (0x0000_0000_0000_8000, 0)
 
 		},
-		ActionBitVector{},
+		ActionBitVector{
+			High: 0,
+			Low:  1,
+		},
 	)
 	TokenTypeToBit, BitToTokenType = createEnumMaps(
 		[]TokenType{
@@ -480,7 +483,7 @@ func init() {
 			TokenTypeAuthProvider,
 			TokenTypeAPI,
 		},
-		SmallBitVector(0),
+		SmallBitVector(1),
 	)
 }
 
