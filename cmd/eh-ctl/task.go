@@ -14,7 +14,7 @@ type TaskOptions struct {
 	Update UpdateTaskOptions  `cmd:"" help:"Update an existing task."`
 	Delete DeleteTaskOptions  `cmd:"" help:"Soft delete an existing task."`
 	List   ListTasksOptions   `cmd:"" help:"List tasks for a tenant or workstream."`
-	Search SearchTasksOptions `cmd:"" help:"Search for tasks by pull request."`
+	Search SearchTasksOptions `cmd:"" help:"Search for tasks by pull request or task id."`
 	Get    GetTaskOptions     `cmd:"" help:"Get a task by ID."`
 	Move   MoveTaskOptions    `cmd:"" help:"Move a task from one workstream to another."`
 }
@@ -403,13 +403,23 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 }
 
 type SearchTasksOptions struct {
-	PullRequestID int64  `help:"The GitHub pull request ID to search for." name:"pull-request-id" short:"p" required:""`
+	PullRequestID int64  `help:"The GitHub pull request ID to search for." name:"pull-request-id" short:"p" optional:""`
+	TaskID        string `help:"The task ID to search for." name:"task-id" short:"t" optional:""`
 	JSON          string `help:"Optional path to the JSON request body. Use '-' to read from stdin." short:"j" optional:""`
 }
 
 func (o *SearchTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
-	req := &eh.SearchTasksRequest{
-		PullRequestID: pointer(o.PullRequestID),
+	var req eh.SearchTasksRequest
+
+	if o.PullRequestID > 0 {
+		req.PullRequestID = pointer(o.PullRequestID)
+	}
+	if o.TaskID != "" {
+		req.TaskID = pointer(o.TaskID)
+	}
+
+	if req.PullRequestID == nil && req.TaskID == nil {
+		return fmt.Errorf("either pull-request-id or task-id must be provided")
 	}
 
 	if o.JSON != "" {
@@ -428,7 +438,7 @@ func (o *SearchTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
-	resp, err := s.Client.SearchTasks(ctx, req)
+	resp, err := s.Client.SearchTasks(ctx, &req)
 	if err != nil {
 		return err
 	}

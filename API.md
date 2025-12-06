@@ -4737,12 +4737,12 @@ On success a 204 NO CONTENT is returned with no body.
 
 # 81. SearchTasks
 
-The SearchTasks API searches for tasks within a tenant. Currently the only supported search criterion is a GitHub pull request ID.
+The SearchTasks API searches for tasks within a tenant. Tasks can be searched by GitHub pull request ID, task ID, or both values together.
 
 ## 81.1 Request
 
 ```http request
-POST /v1/tasks/search?pullRequestId={pullRequestId} HTTP/1.1
+POST /v1/tasks/search?pullRequestId={pullRequestId}&taskId={taskId} HTTP/1.1
 Accept: application/json
 Content-Type: application/json; charset=utf-8
 Authorization: <authorization>
@@ -4754,7 +4754,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 | Parameter                                | Location | Type    | Description                                                                                                           |
 |------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------|
-| pullRequestId                            | query    | *int    | The GitHub pull request ID to search for. Required when searching by pull request.                                    |
+| pullRequestId                            | query    | *int    | The GitHub pull request ID to search for. At least one of `pullRequestId` or `taskId` is required.                   |
+| taskId                                   | query    | *uuid   | The task ID to search for. At least one of `pullRequestId` or `taskId` is required.                                  |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                             |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                   |
@@ -4780,7 +4781,7 @@ Content-Type: application/json; charset=utf-8
 | Tasks     | [][Task](#183-response) | The set of tasks that match the provided search criteria.                                      |
 | NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
 
-Requests that do not match any tasks return `Tasks: []` with `NextToken` unset. If the supplied `pullRequestId` is invalid or the caller lacks access to the tenant, standard error responses are returned.
+Requests that do not match any tasks return `Tasks: []` with `NextToken` unset. If the supplied `pullRequestId` or `taskId` are invalid or the caller lacks access to the tenant, standard error responses are returned. When searching only by `taskId`, multiple entries for the same task may be returned if the task is associated with more than one pull request.
 
 # 82. GetRunnerToken
 
