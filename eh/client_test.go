@@ -2009,6 +2009,14 @@ func generatePublicKey(t *testing.T) *ecdsa.PublicKey {
 	return &priv.PublicKey
 }
 
+func newTestWrappedSecret(t *testing.T) *ecies.WrappedSecret {
+	t.Helper()
+	return &ecies.WrappedSecret{
+		EncryptedData:      []byte("payload"),
+		EphemeralPublicKey: generatePublicKey(t),
+	}
+}
+
 func TestGetMessagesBatch(t *testing.T) {
 	t.Parallel()
 
@@ -2227,16 +2235,26 @@ func TestListRunnerTokensValidation(t *testing.T) {
 func TestWriteResponse(t *testing.T) {
 	t.Parallel()
 
+	payload := newTestWrappedSecret(t)
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPut, r.Method)
 		require.Equal(t, "/v1/tenants/abc/runners/runner1/queues/queue1/messages/message1/response", r.URL.Path)
 		require.Equal(t, "application/json", r.Header.Get("Accept"))
 		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
-		var reqBody eh.WriteResponseRequest
-		require.NoError(t, json.NewDecoder(r.Body).Decode(&reqBody))
-		require.Equal(t, "caller", reqBody.CallerID)
-		require.Equal(t, "payload", reqBody.Payload)
+		var req eh.WriteResponseRequest
+
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		require.Equal(t, "caller", req.CallerID)
+		require.NotNil(t, req.Payload)
+		reqPayload := req.Payload.(*ecies.WrappedSecret)
+		require.Equal(t, payload.EncryptedData, reqPayload.EncryptedData)
+		expectedPem, err := ecies.PubKeyToPem(payload.EphemeralPublicKey)
+		require.NoError(t, err)
+		actualPem, err := ecies.PubKeyToPem(reqPayload.EphemeralPublicKey)
+		require.NoError(t, err)
+		require.Equal(t, expectedPem, actualPem)
 
 		w.WriteHeader(http.StatusNoContent)
 	})
@@ -2251,7 +2269,7 @@ func TestWriteResponse(t *testing.T) {
 		QueueID:   "queue1",
 		MessageID: "message1",
 		CallerID:  "caller",
-		Payload:   "payload",
+		Payload:   payload,
 	})
 	require.NoError(t, err)
 }
@@ -2268,7 +2286,7 @@ func TestWriteResponseError(t *testing.T) {
 		QueueID:   "queue1",
 		MessageID: "message1",
 		CallerID:  "caller",
-		Payload:   "payload",
+		Payload:   newTestWrappedSecret(t),
 	})
 	var clientErr *eh.Error
 	require.ErrorAs(t, err, &clientErr)
@@ -2303,6 +2321,7 @@ func TestWriteResponsePathEscaping(t *testing.T) {
 		QueueID:   queueIDThatNeedsEscaping,
 		MessageID: messageIDThatNeedsEscaping,
 		CallerID:  "caller",
+		Payload:   newTestWrappedSecret(t),
 	})
 	require.NoError(t, err)
 }
@@ -2326,6 +2345,12 @@ func TestWriteResponseValidation(t *testing.T) {
 
 	err = client.WriteResponse(context.Background(), &eh.WriteResponseRequest{TenantID: "tenant", RunnerID: "runner", QueueID: "queue"})
 	require.EqualError(t, err, "message id is required")
+
+	err = client.WriteResponse(context.Background(), &eh.WriteResponseRequest{TenantID: "tenant", RunnerID: "runner", QueueID: "queue", MessageID: "message"})
+	require.EqualError(t, err, "caller id is required")
+
+	err = client.WriteResponse(context.Background(), &eh.WriteResponseRequest{TenantID: "tenant", RunnerID: "runner", QueueID: "queue", MessageID: "message", CallerID: "caller"})
+	require.EqualError(t, err, "payload is required")
 }
 
 // nolint: dupl

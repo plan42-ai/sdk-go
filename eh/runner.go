@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/debugging-sucks/ecies"
 )
 
 // Runner represents a runner in Event Horizon.
@@ -990,12 +992,46 @@ type WriteResponseRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID  string `json:"-"`
-	RunnerID  string `json:"-"`
-	QueueID   string `json:"-"`
-	MessageID string `json:"-"`
-	CallerID  string `json:"CallerId"`
-	Payload   string `json:"Payload"`
+	TenantID  string        `json:"-"`
+	RunnerID  string        `json:"-"`
+	QueueID   string        `json:"-"`
+	MessageID string        `json:"-"`
+	CallerID  string        `json:"CallerID"`
+	Payload   WrappedSecret `json:"Payload"`
+}
+
+func (r *WriteResponseRequest) UnmarshalJSON(data []byte) error {
+	var tmp struct {
+		CallerID string
+		Payload  json.RawMessage
+	}
+
+	var payload struct {
+		EncryptionAlgorithm string
+	}
+
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(tmp.Payload, &payload)
+	if err != nil {
+		return err
+	}
+
+	*r = WriteResponseRequest{
+		CallerID: tmp.CallerID,
+	}
+
+	switch payload.EncryptionAlgorithm {
+	case ecies.EciesCofactorVariableIVX963SHA256AESGCM:
+		r.Payload = &ecies.WrappedSecret{}
+	default:
+		return fmt.Errorf("unknown encryption algorithm: %s", payload.EncryptionAlgorithm)
+	}
+
+	return json.Unmarshal(tmp.Payload, r.Payload)
 }
 
 // GetField retrieves the value of a field by name.
@@ -1037,6 +1073,12 @@ func (c *Client) WriteResponse(ctx context.Context, req *WriteResponseRequest) e
 	if req.MessageID == "" {
 		return fmt.Errorf("message id is required")
 	}
+	if req.CallerID == "" {
+		return fmt.Errorf("caller id is required")
+	}
+	if req.Payload == nil {
+		return fmt.Errorf("payload is required")
+	}
 
 	bodyBytes, err := json.Marshal(req)
 	if err != nil {
@@ -1064,7 +1106,8 @@ func (c *Client) WriteResponse(ctx context.Context, req *WriteResponseRequest) e
 	httpReq.Header.Set("Content-Type", "application/json")
 	processFeatureFlags(httpReq, req.FeatureFlags)
 
-	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
 		return err
 	}
 
