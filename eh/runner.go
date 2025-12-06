@@ -1020,9 +1020,7 @@ func (r *WriteResponseRequest) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	*r = WriteResponseRequest{
-		CallerID: tmp.CallerID,
-	}
+	r.CallerID = tmp.CallerID
 
 	switch payload.EncryptionAlgorithm {
 	case ecies.EciesCofactorVariableIVX963SHA256AESGCM:
