@@ -105,7 +105,6 @@ func NewLogUploader(cfg *LogUploaderConfig) *LogUploader {
 	lu.timer.Stop()
 
 	lu.cg.Add(1)
-	lu.cg.Init()
 	go lu.run()
 	return lu
 }
