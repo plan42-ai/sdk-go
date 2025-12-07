@@ -74,7 +74,6 @@ func NewLogStream(client *Client, tenantID, taskID string, turnIndex int, buffer
 	}
 
 	ls.cg.Add(1)
-	ls.cg.Init()
 	go ls.run()
 	return ls
 }
