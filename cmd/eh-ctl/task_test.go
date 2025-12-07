@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,6 +19,7 @@ func TestSearchTasksOptionsRun(t *testing.T) {
 		require.Equal(t, http.MethodPost, r.Method)
 		require.Equal(t, "/v1/tasks/search", r.URL.Path)
 		require.Equal(t, "12345", r.URL.Query().Get("pullRequestId"))
+		require.Equal(t, "", r.URL.Query().Get("taskId"))
 		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 		var body map[string]any
@@ -35,12 +37,37 @@ func TestSearchTasksOptionsRun(t *testing.T) {
 	require.NoError(t, opts.Run(context.Background(), &shared))
 }
 
+func TestSearchTasksOptionsRunWithTaskID(t *testing.T) {
+	t.Parallel()
+	taskID := uuid.NewString()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, "/v1/tasks/search", r.URL.Path)
+		require.Equal(t, "", r.URL.Query().Get("pullRequestId"))
+		require.Equal(t, taskID, r.URL.Query().Get("taskId"))
+
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		require.Len(t, body, 0)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"Tasks": [], "NextToken": null}`))
+	}))
+	defer srv.Close()
+
+	opts := SearchTasksOptions{TaskID: taskID}
+	shared := SharedOptions{Client: eh.NewClient(srv.URL)}
+
+	require.NoError(t, opts.Run(context.Background(), &shared))
+}
+
 func TestSearchTasksOptionsRunWithBody(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPost, r.Method)
 		require.Equal(t, "/v1/tasks/search", r.URL.Path)
 		require.Equal(t, "42", r.URL.Query().Get("pullRequestId"))
+		require.Equal(t, "", r.URL.Query().Get("taskId"))
 
 		var body map[string]any
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
@@ -64,4 +91,13 @@ func TestSearchTasksOptionsRunWithBody(t *testing.T) {
 	shared := SharedOptions{Client: eh.NewClient(srv.URL)}
 
 	require.NoError(t, opts.Run(context.Background(), &shared))
+}
+
+func TestSearchTasksOptionsRunWithoutCriteria(t *testing.T) {
+	t.Parallel()
+
+	opts := SearchTasksOptions{}
+	shared := SharedOptions{Client: eh.NewClient("http://example.com")}
+
+	require.Error(t, opts.Run(context.Background(), &shared))
 }

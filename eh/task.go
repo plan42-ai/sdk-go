@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ModelType represents the model to use for executing a task.
@@ -108,6 +110,7 @@ type SearchTasksRequest struct {
 	DelegatedAuthInfo
 
 	PullRequestID *int64         `json:"-"`
+	TaskID        *string        `json:"-"`
 	Body          map[string]any `json:"-"`
 }
 
@@ -119,6 +122,11 @@ func (r *SearchTasksRequest) GetField(name string) (any, bool) {
 			return nil, false
 		}
 		return *r.PullRequestID, true
+	case "TaskID":
+		if r.TaskID == nil {
+			return nil, false
+		}
+		return *r.TaskID, true
 	default:
 		return nil, false
 	}
@@ -177,16 +185,26 @@ func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*Lis
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
-	if req.PullRequestID == nil {
-		return nil, fmt.Errorf("pull request id is required")
+	if req.PullRequestID == nil && req.TaskID == nil {
+		return nil, fmt.Errorf("either pull request id or task id is required")
 	}
-	if *req.PullRequestID <= 0 {
+	if req.PullRequestID != nil && *req.PullRequestID <= 0 {
 		return nil, fmt.Errorf("pull request id must be positive")
+	}
+	if req.TaskID != nil {
+		if _, err := uuid.Parse(*req.TaskID); err != nil {
+			return nil, fmt.Errorf("task id must be a valid uuid")
+		}
 	}
 
 	u := c.BaseURL.JoinPath("v1", "tasks", "search")
 	q := u.Query()
-	q.Set("pullRequestId", strconv.FormatInt(*req.PullRequestID, 10))
+	if req.PullRequestID != nil {
+		q.Set("pullRequestId", strconv.FormatInt(*req.PullRequestID, 10))
+	}
+	if req.TaskID != nil {
+		q.Set("taskId", *req.TaskID)
+	}
 	u.RawQuery = q.Encode()
 
 	payload := req.Body
