@@ -623,13 +623,14 @@ type ListRunnerQueuesRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID         *string
-	RunnerID         *string
-	IncludeUnhealthy *bool
-	MaxResults       *int
-	Token            *string
-	MinQueueID       *string
-	MaxQueueID       *string
+	TenantID       *string
+	RunnerID       *string
+	IncludeHealthy *bool
+	IncludeDrained *bool
+	MaxResults     *int
+	Token          *string
+	MinQueueID     *string
+	MaxQueueID     *string
 }
 
 // GetField retrieves the value of a field by name.
@@ -640,8 +641,10 @@ func (r *ListRunnerQueuesRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.TenantID)
 	case "RunnerID":
 		return EvalNullable(r.RunnerID)
-	case "IncludeUnhealthy":
-		return EvalNullable(r.IncludeUnhealthy)
+	case "IncludeHealthy":
+		return EvalNullable(r.IncludeHealthy)
+	case "IncludeDrained":
+		return EvalNullable(r.IncludeDrained)
 	case "MaxResults":
 		return EvalNullable(r.MaxResults)
 	case "Token":
@@ -655,7 +658,7 @@ func (r *ListRunnerQueuesRequest) GetField(name string) (any, bool) {
 	}
 }
 
-// ListRunnerQueues retrieves runner queues, optionally filtered by tenant, runner, health status, and queue range.
+// ListRunnerQueues retrieves runner queues, optionally filtered by tenant, runner, health status, drained status, and queue range.
 // nolint: dupl
 func (c *Client) ListRunnerQueues(ctx context.Context, req *ListRunnerQueuesRequest) (*List[*RunnerQueue], error) {
 	if req == nil {
@@ -674,8 +677,11 @@ func (c *Client) ListRunnerQueues(ctx context.Context, req *ListRunnerQueuesRequ
 		q.Set("tenantID", *req.TenantID)
 		q.Set("runnerID", *req.RunnerID)
 	}
-	if req.IncludeUnhealthy != nil {
-		q.Set("includeUnhealthy", strconv.FormatBool(*req.IncludeUnhealthy))
+	if req.IncludeHealthy != nil {
+		q.Set("includeHealthy", strconv.FormatBool(*req.IncludeHealthy))
+	}
+	if req.IncludeDrained != nil {
+		q.Set("includeDrained", strconv.FormatBool(*req.IncludeDrained))
 	}
 	if req.MaxResults != nil {
 		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
