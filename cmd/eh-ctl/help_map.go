@@ -65,8 +65,8 @@ var helpMap = map[string]string{
             "IsSecret": bool
         }
     ],
-    "RunnerID" : "string",
-    "GithubConnectionID" : "string"
+    "RunnerID" : "*string",
+    "GithubConnectionID" : "*string"
 }`,
 	"environment update": `
 --- Input JSON Schema ---

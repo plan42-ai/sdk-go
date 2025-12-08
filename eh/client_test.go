@@ -786,7 +786,12 @@ func verifyEnvironmentConflict(t *testing.T, err error) {
 	require.Equal(t, eh.ObjectTypeEnvironment, clientErr.Current.ObjectType())
 	env, ok := clientErr.Current.(*eh.Environment)
 	require.True(t, ok, "Expected Current to be of type *eh.Environment")
-	require.Equal(t, eh.Environment{EnvironmentID: "env"}, *env)
+	const defaultID = "default"
+	require.Equal(t, "env", env.EnvironmentID)
+	require.NotNil(t, env.RunnerID)
+	require.NotNil(t, env.GithubConnectionID)
+	require.Equal(t, defaultID, *env.RunnerID)
+	require.Equal(t, defaultID, *env.GithubConnectionID)
 }
 
 func serveRunnerConflict() (*httptest.Server, *eh.Client) {

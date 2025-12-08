@@ -986,8 +986,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
     "DockerImage": "*string",
     "AllowedHosts": [],
     "EnvVars": [],
-    "RunnerID" : "string",
-    "GithubConnectionID" : "string"
+    "RunnerID" : "*string",
+    "GithubConnectionID" : "*string"
 }
 ```
 
@@ -1006,8 +1006,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | DockerImage                              | body     | *string                 | The Docker image to use for the environment. Optional. Defaults to the latest Plan 42 agent wrapper image.                                                                                                      |
 | AllowedHosts                             | body     | []string                | A list of outbound hostnames the environment is allowed to connect to. Only TLS connections to hosts with public trusted certs or internal event-horizon oss mirrors are allowed.  At most 50 hosts can be specified. |
 | EnvVars                                  | body     | [][EnvVar](#132-envvar) | A list of environment variables to set in the environment. At most 50 env vars may be specified.                                                                                                                      |
-| RunnerID                                 | body     | string                  | The ID of the runner to use for the environment. Must be the id of a runner or the value "default".                                                                                                                   |
-| GithubConnectionID                       | body     | string                  | The ID of the GitHub connection to use for checking out code when running tasks in this environment.Must be the ID of a Github Connection or the value "default".                                                     |
+| RunnerID                                 | body     | *string                 | Optional. The ID of the runner to use for the environment. Defaults to "default" when omitted. Must be the id of a runner or the value "default".                                                                    |
+| GithubConnectionID                       | body     | *string                 | Optional. The ID of the GitHub connection to use for checking out code when running tasks in this environment. Defaults to "default" when omitted. Must be the ID of a Github Connection or the value "default".      |
 
 ## 13.2 EnvVar
 

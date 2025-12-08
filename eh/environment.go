@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const environmentDefaultID = "default"
+
 // EnvVar defines an environment variable for an Environment.
 type EnvVar struct {
 	Name     string `json:"Name"`
@@ -20,20 +22,22 @@ type EnvVar struct {
 
 // Environment represents an execution environment.
 type Environment struct {
-	TenantID      string    `json:"TenantId"`
-	EnvironmentID string    `json:"EnvironmentId"`
-	Name          string    `json:"Name"`
-	Description   string    `json:"Description"`
-	Context       string    `json:"Context"`
-	Repos         []string  `json:"Repos"`
-	SetupScript   string    `json:"SetupScript"`
-	DockerImage   string    `json:"DockerImage"`
-	AllowedHosts  []string  `json:"AllowedHosts"`
-	EnvVars       []EnvVar  `json:"EnvVars"`
-	CreatedAt     time.Time `json:"CreatedAt"`
-	UpdatedAt     time.Time `json:"UpdatedAt"`
-	Deleted       bool      `json:"Deleted"`
-	Version       int       `json:"Version"`
+	TenantID           string    `json:"TenantId"`
+	EnvironmentID      string    `json:"EnvironmentId"`
+	Name               string    `json:"Name"`
+	Description        string    `json:"Description"`
+	Context            string    `json:"Context"`
+	Repos              []string  `json:"Repos"`
+	SetupScript        string    `json:"SetupScript"`
+	DockerImage        string    `json:"DockerImage"`
+	AllowedHosts       []string  `json:"AllowedHosts"`
+	EnvVars            []EnvVar  `json:"EnvVars"`
+	CreatedAt          time.Time `json:"CreatedAt"`
+	UpdatedAt          time.Time `json:"UpdatedAt"`
+	Deleted            bool      `json:"Deleted"`
+	Version            int       `json:"Version"`
+	RunnerID           *string   `json:"RunnerId"`
+	GithubConnectionID *string   `json:"GithubConnectionId"`
 }
 
 func (e *Environment) GetVersion() int {
@@ -44,6 +48,44 @@ func (e *Environment) IsDeleted() bool {
 	return e.Deleted
 }
 
+func (e Environment) MarshalJSON() ([]byte, error) {
+	type environmentAlias Environment
+
+	alias := environmentAlias(e)
+	runnerID := defaultEnvironmentID(e.RunnerID)
+	githubConnectionID := defaultEnvironmentID(e.GithubConnectionID)
+
+	alias.RunnerID = &runnerID
+	alias.GithubConnectionID = &githubConnectionID
+
+	return json.Marshal(alias)
+}
+
+func (e *Environment) UnmarshalJSON(data []byte) error {
+	type environmentAlias Environment
+
+	var alias environmentAlias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+
+	runnerID := defaultEnvironmentID(alias.RunnerID)
+	githubConnectionID := defaultEnvironmentID(alias.GithubConnectionID)
+
+	alias.RunnerID = &runnerID
+	alias.GithubConnectionID = &githubConnectionID
+
+	*e = Environment(alias)
+	return nil
+}
+
+func defaultEnvironmentID(id *string) string {
+	if id == nil {
+		return environmentDefaultID
+	}
+	return *id
+}
+
 // ObjectType returns the object type for ConflictError handling.
 func (Environment) ObjectType() ObjectType { return ObjectTypeEnvironment }
 
@@ -51,16 +93,18 @@ func (Environment) ObjectType() ObjectType { return ObjectTypeEnvironment }
 type CreateEnvironmentRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID      string   `json:"-"`
-	EnvironmentID string   `json:"-"`
-	Name          string   `json:"Name"`
-	Description   string   `json:"Description"`
-	Context       string   `json:"Context"`
-	Repos         []string `json:"Repos"`
-	SetupScript   string   `json:"SetupScript"`
-	DockerImage   string   `json:"DockerImage"`
-	AllowedHosts  []string `json:"AllowedHosts"`
-	EnvVars       []EnvVar `json:"EnvVars"`
+	TenantID           string   `json:"-"`
+	EnvironmentID      string   `json:"-"`
+	Name               string   `json:"Name"`
+	Description        string   `json:"Description"`
+	Context            string   `json:"Context"`
+	Repos              []string `json:"Repos"`
+	SetupScript        string   `json:"SetupScript"`
+	DockerImage        string   `json:"DockerImage"`
+	AllowedHosts       []string `json:"AllowedHosts"`
+	EnvVars            []EnvVar `json:"EnvVars"`
+	RunnerID           *string  `json:"RunnerId,omitempty"`
+	GithubConnectionID *string  `json:"GithubConnectionId,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -87,6 +131,10 @@ func (r *CreateEnvironmentRequest) GetField(name string) (any, bool) {
 		return r.AllowedHosts, true
 	case "EnvVars":
 		return r.EnvVars, true
+	case "RunnerID":
+		return EvalNullable(r.RunnerID)
+	case "GithubConnectionID":
+		return EvalNullable(r.GithubConnectionID)
 	default:
 		return nil, false
 	}
@@ -207,18 +255,20 @@ func (c *Client) GetEnvironment(ctx context.Context, req *GetEnvironmentRequest)
 type UpdateEnvironmentRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID      string    `json:"-"`
-	EnvironmentID string    `json:"-"`
-	Version       int       `json:"-"`
-	Name          *string   `json:"Name,omitempty"`
-	Description   *string   `json:"Description,omitempty"`
-	Context       *string   `json:"Context,omitempty"`
-	Repos         *[]string `json:"Repos,omitempty"`
-	SetupScript   *string   `json:"SetupScript,omitempty"`
-	DockerImage   *string   `json:"DockerImage,omitempty"`
-	AllowedHosts  *[]string `json:"AllowedHosts,omitempty"`
-	EnvVars       *[]EnvVar `json:"EnvVars,omitempty"`
-	Deleted       *bool     `json:"Deleted,omitempty"`
+	TenantID           string    `json:"-"`
+	EnvironmentID      string    `json:"-"`
+	Version            int       `json:"-"`
+	Name               *string   `json:"Name,omitempty"`
+	Description        *string   `json:"Description,omitempty"`
+	Context            *string   `json:"Context,omitempty"`
+	Repos              *[]string `json:"Repos,omitempty"`
+	SetupScript        *string   `json:"SetupScript,omitempty"`
+	DockerImage        *string   `json:"DockerImage,omitempty"`
+	AllowedHosts       *[]string `json:"AllowedHosts,omitempty"`
+	EnvVars            *[]EnvVar `json:"EnvVars,omitempty"`
+	Deleted            *bool     `json:"Deleted,omitempty"`
+	RunnerID           *string   `json:"RunnerId,omitempty"`
+	GithubConnectionID *string   `json:"GithubConnectionId,omitempty"`
 }
 
 func (r *UpdateEnvironmentRequest) GetVersion() int {
@@ -253,6 +303,10 @@ func (r *UpdateEnvironmentRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.EnvVars)
 	case "Deleted":
 		return EvalNullable(r.Deleted)
+	case "RunnerID":
+		return EvalNullable(r.RunnerID)
+	case "GithubConnectionID":
+		return EvalNullable(r.GithubConnectionID)
 	default:
 		return nil, false
 	}
