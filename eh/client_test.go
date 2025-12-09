@@ -1024,7 +1024,8 @@ func TestListRunnerQueues(t *testing.T) {
 
 	tenantID := "abc"
 	runnerID := "runner1"
-	includeUnhealthy := true
+	includeHealthy := true
+	includeDrained := true
 	maxResults := 25
 	token := "next"
 	minQueueID := "queue-0001"
@@ -1039,7 +1040,8 @@ func TestListRunnerQueues(t *testing.T) {
 		query := r.URL.Query()
 		require.Equal(t, tenantID, query.Get("tenantID"))
 		require.Equal(t, runnerID, query.Get("runnerID"))
-		require.Equal(t, "true", query.Get("includeUnhealthy"))
+		require.Equal(t, "true", query.Get("includeHealthy"))
+		require.Equal(t, "true", query.Get("includeDrained"))
 		require.Equal(t, "25", query.Get("maxResults"))
 		require.Equal(t, token, query.Get("token"))
 		require.Equal(t, minQueueID, query.Get("minQueueID"))
@@ -1068,13 +1070,14 @@ func TestListRunnerQueues(t *testing.T) {
 
 	client := eh.NewClient(srv.URL)
 	resp, err := client.ListRunnerQueues(context.Background(), &eh.ListRunnerQueuesRequest{
-		TenantID:         &tenantID,
-		RunnerID:         &runnerID,
-		IncludeUnhealthy: &includeUnhealthy,
-		MaxResults:       &maxResults,
-		Token:            &token,
-		MinQueueID:       &minQueueID,
-		MaxQueueID:       &maxQueueID,
+		TenantID:       &tenantID,
+		RunnerID:       &runnerID,
+		IncludeHealthy: &includeHealthy,
+		IncludeDrained: &includeDrained,
+		MaxResults:     &maxResults,
+		Token:          &token,
+		MinQueueID:     &minQueueID,
+		MaxQueueID:     &maxQueueID,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp.NextToken)

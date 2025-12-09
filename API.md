@@ -4892,13 +4892,13 @@ See [here](#612-response) for more details.
 
 # 89. ListRunnerQueues
 
-The ListRunnerQueues API returns a list of runner queues, optionally filtered by tenant, runner, health status, and
-queue ID range.
+The ListRunnerQueues API returns a list of runner queues, optionally filtered by tenant, runner, health status,
+drained status, and queue ID range.
 
 ## 89.1 Request
 
 ```http request
-GET /v1/runner-queues?tenantID={tenantID}&runnerID={runnerID}&includeUnhealthy={includeUnhealthy}&maxResults={maxResults}&token={token}&minQueueID={minQueueID}&maxQueueID={maxQueueID} HTTP/1.1
+GET /v1/runner-queues?tenantID={tenantID}&runnerID={runnerID}&includeHealthy={includeHealthy}&includeDrained={includeDrained}&maxResults={maxResults}&token={token}&minQueueID={minQueueID}&maxQueueID={maxQueueID} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -4909,7 +4909,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | tenantID                                 | query    | *string | Optional. The ID of the tenant to filter queues by. Must be combined with runnerID.                                                                         |
 | runnerID                                 | query    | *string | Optional. The ID of the runner to filter queues by. Must be combined with tenantID.                                                                         |
-| includeUnhealthy                         | query    | *bool   | Optional. Whether to include unhealthy queues in the results. Default is false.                                                                             |
+| includeHealthy                           | query    | *bool   | Optional. Set to filter on healthy status. When not set, queues are not filtered on the IsHealthy field.                                                   |
+| includeDrained                           | query    | *bool   | Optional. Set to filter on drained status. When not set, queues are not filtered on the Draining field..                                                   |
 | maxResults                               | query    | *int    | Optional. The maximum number of queues to return. Default is 10. Must be >=1 and < 500.                                                                     |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                                                                                     |
 | minQueueID                               | query    | *string | Optional. The minimum queue ID to include in the results. Useful when partioning queues between health checker insances. Must be combined with maxQueueID.  |
