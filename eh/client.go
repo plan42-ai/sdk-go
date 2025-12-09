@@ -198,6 +198,10 @@ type UpdateTenantRequest struct {
 	DefaultGithubConnectionID *string `json:"DefaultGithubConnectionID,omitempty"`
 }
 
+func (r *UpdateTenantRequest) GetVersion() int {
+	return r.Version
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateTenantRequest) GetField(name string) (any, bool) {
