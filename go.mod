@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.3
 	github.com/debugging-sucks/clock v1.1.3
 	github.com/debugging-sucks/concurrency v1.0.2
-	github.com/debugging-sucks/ecies v1.0.2
+	github.com/debugging-sucks/ecies v1.0.3
 	github.com/debugging-sucks/sigv4util v1.0.5
 	github.com/google/uuid v1.6.0
 )
