@@ -5079,3 +5079,52 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Authorization                            | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+# 93. GetRunnerQueue
+
+GetRunnerQueue fetches metadata about a runner queue.
+
+## 93.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/runners/{runner_id}/queues/{queue_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the runner.                          |
+| runner_id                                | path     | string  | The ID of the runner that owns the queue.                           |
+| queue_id                                 | path     | string  | The ID of the queue to fetch.                                       |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 93.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "TenantID": "string",
+    "RunnerID": "string",
+    "QueueID": "string",
+    "PublicKey": "string",
+    "CreatedAt": "string",
+    "Version": int,
+    "IsHealthy": bool,
+    "NConsecutiveFailedHealthChecks": int,
+    "NConsecutiveSuccessfulHealthChecks": int,
+    "LastHealthCheckAt": "string",
+    "Draining": bool
+}
+```
+
+
+
