@@ -484,7 +484,10 @@ type GenerateRunnerTokenResponse struct {
 }
 
 // GenerateRunnerToken generates a new token for a runner.
-func (c *Client) GenerateRunnerToken(ctx context.Context, req *GenerateRunnerTokenRequest) (*GenerateRunnerTokenResponse, error) {
+func (c *Client) GenerateRunnerToken(
+	ctx context.Context,
+	req *GenerateRunnerTokenRequest,
+) (*GenerateRunnerTokenResponse, error) {
 	if req.TenantID == "" {
 		return nil, fmt.Errorf("tenant id is required")
 	}
@@ -495,7 +498,15 @@ func (c *Client) GenerateRunnerToken(ctx context.Context, req *GenerateRunnerTok
 		return nil, fmt.Errorf("token id is required")
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID), "tokens", url.PathEscape(req.TokenID))
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"runners",
+		url.PathEscape(req.RunnerID),
+		"tokens",
+		url.PathEscape(req.TokenID),
+	)
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -576,7 +587,16 @@ func (c *Client) RevokeRunnerToken(ctx context.Context, req *RevokeRunnerTokenRe
 		return fmt.Errorf("token id is required")
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "runners", url.PathEscape(req.RunnerID), "tokens", url.PathEscape(req.TokenID), "revoke")
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"runners",
+		url.PathEscape(req.RunnerID),
+		"tokens",
+		url.PathEscape(req.TokenID),
+		"revoke",
+	)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
 	if err != nil {
 		return err
@@ -806,6 +826,83 @@ func (c *Client) GetRunnerQueue(ctx context.Context, req *GetRunnerQueueRequest)
 	return &queue, nil
 }
 
+// PingRunnerQueueRequest contains parameters for PingRunnerQueue.
+type PingRunnerQueueRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	RunnerID string `json:"-"`
+	QueueID  string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *PingRunnerQueueRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "QueueID":
+		return r.QueueID, true
+	default:
+		return nil, false
+	}
+}
+
+// PingRunnerQueue sends a ping message to a runner queue and waits for a response.
+// nolint:dupl
+func (c *Client) PingRunnerQueue(ctx context.Context, req *PingRunnerQueueRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.RunnerID == "" {
+		return fmt.Errorf("runner id is required")
+	}
+	if req.QueueID == "" {
+		return fmt.Errorf("queue id is required")
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"runners",
+		url.PathEscape(req.RunnerID),
+		"queues",
+		url.PathEscape(req.QueueID),
+		"ping",
+	)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		return decodeError(resp)
+	}
+
+	return nil
+}
+
 // RegisterRunnerQueueRequest contains parameters for RegisterRunnerQueue.
 type RegisterRunnerQueueRequest struct {
 	FeatureFlags
@@ -814,6 +911,21 @@ type RegisterRunnerQueueRequest struct {
 	RunnerID  string `json:"-"`
 	QueueID   string `json:"-"`
 	PublicKey string `json:"PublicKey"`
+}
+
+func (r *RegisterRunnerQueueRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "RunnerID":
+		return r.RunnerID, true
+	case "QueueID":
+		return r.QueueID, true
+	case "PublicKey":
+		return r.PublicKey, true
+	default:
+		return nil, false
+	}
 }
 
 // UpdateRunnerQueueRequest contains parameters for UpdateRunnerQueue.

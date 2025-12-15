@@ -157,6 +157,8 @@ const (
 	ActionUpdateTenant              Action = "UpdateTenant"
 	ActionDeleteRunnerQueue         Action = "DeleteRunnerQueue"
 	ActionGetRunnerQueue            Action = "GetRunnerQueue"
+	ActionPingRunnerQueue           Action = "PingRunnerQueue"
+	ActionUpdateRunnerQueue         Action = "UpdateRunnerQueue"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -472,6 +474,8 @@ func init() {
 			ActionListAllRunnerQueues,       // (0x0000_0000_0000_4000, 0)
 			ActionDeleteRunnerQueue,         // (0x0000_0000_0000_8000, 0)
 			ActionGetRunnerQueue,            // (0x0000_0000_0001_0000, 0)
+			ActionPingRunnerQueue,           // (0x0000_0000_0002_0000, 0)
+			ActionUpdateRunnerQueue,         // (0x0000_0000_0004_0000, 0)
 
 		},
 		ActionBitVector{
