@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/google/uuid"
@@ -16,6 +18,7 @@ type RunnerOptions struct {
 	List          ListRunnerOptions          `cmd:"" help:"List remote runners for a tenant."`
 	ListQueues    ListRunnerQueuesOptions    `cmd:"" help:"List runner queues."`
 	GetQueue      GetRunnerQueueOptions      `cmd:"" help:"Get metadata for a runner queue."`
+	PingQueue     PingRunnerQueueOptions     `cmd:"" help:"Continuously ping a runner queue until interrupted."`
 	Get           GetRunnerOptions           `cmd:"" help:"Get a remote runner by ID."`
 	GetToken      GetRunnerTokenOptions      `cmd:"" help:"Get metadata for a remote runner token."`
 	Delete        DeleteRunnerOptions        `cmd:"" help:"Soft delete a remote runner."`
@@ -188,6 +191,49 @@ func (o *GetRunnerQueueOptions) Run(ctx context.Context, s *SharedOptions) error
 	}
 
 	return printJSON(queue)
+}
+
+type PingRunnerQueueOptions struct {
+	TenantID string `help:"The tenant ID that owns the runner." name:"tenant-id" short:"i" required:""`
+	RunnerID string `help:"The runner ID that owns the queue." name:"runner-id" short:"r" required:""`
+	QueueID  string `help:"The queue ID to ping." name:"queue-id" short:"q" required:""`
+}
+
+func (o *PingRunnerQueueOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.PingRunnerQueueRequest{
+		TenantID: o.TenantID,
+		RunnerID: o.RunnerID,
+		QueueID:  o.QueueID,
+	}
+
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	loopCtx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	defer cancel()
+
+	for {
+		start := time.Now()
+		err = s.Client.PingRunnerQueue(loopCtx, req)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil
+			}
+			_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		} else {
+			fmt.Printf("latency: %s\n", time.Since(start))
+		}
+
+		select {
+		case <-loopCtx.Done():
+			return nil
+		default:
+		}
+	}
 }
 
 type GetRunnerOptions struct {
