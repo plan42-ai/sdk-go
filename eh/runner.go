@@ -628,6 +628,7 @@ type RunnerQueue struct {
 	QueueID                            string    `json:"QueueID"`
 	PublicKey                          string    `json:"PublicKey"`
 	CreatedAt                          time.Time `json:"CreatedAt"`
+	UpdatedAt                          time.Time `json:"UpdatedAt"`
 	Version                            int       `json:"Version"`
 	IsHealthy                          bool      `json:"IsHealthy"`
 	Draining                           bool      `json:"Draining"`
@@ -637,6 +638,11 @@ type RunnerQueue struct {
 }
 
 func (RunnerQueue) ObjectType() ObjectType { return ObjectTypeRunnerQueue }
+
+// GetVersion returns the runner queue version.
+func (r *RunnerQueue) GetVersion() int {
+	return r.Version
+}
 
 // ListRunnerQueuesRequest contains parameters for ListRunnerQueues.
 type ListRunnerQueuesRequest struct {

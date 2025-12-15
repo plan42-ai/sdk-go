@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -139,8 +138,6 @@ func (o *ListRunnerQueuesOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
-	encoder := json.NewEncoder(os.Stdout)
-
 	var token *string
 	for {
 		req.Token = token
@@ -151,7 +148,7 @@ func (o *ListRunnerQueuesOptions) Run(ctx context.Context, s *SharedOptions) err
 		}
 
 		for _, queue := range resp.Items {
-			if err := encoder.Encode(queue); err != nil {
+			if err := printJSON(queue); err != nil {
 				return err
 			}
 		}
