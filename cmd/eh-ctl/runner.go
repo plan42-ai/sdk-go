@@ -15,6 +15,7 @@ type RunnerOptions struct {
 	Create        CreateRunnerOptions        `cmd:"" help:"Create a new remote runner."`
 	List          ListRunnerOptions          `cmd:"" help:"List remote runners for a tenant."`
 	ListQueues    ListRunnerQueuesOptions    `cmd:"" help:"List runner queues."`
+	GetQueue      GetRunnerQueueOptions      `cmd:"" help:"Get metadata for a runner queue."`
 	Get           GetRunnerOptions           `cmd:"" help:"Get a remote runner by ID."`
 	GetToken      GetRunnerTokenOptions      `cmd:"" help:"Get metadata for a remote runner token."`
 	Delete        DeleteRunnerOptions        `cmd:"" help:"Soft delete a remote runner."`
@@ -159,6 +160,34 @@ func (o *ListRunnerQueuesOptions) Run(ctx context.Context, s *SharedOptions) err
 	}
 
 	return nil
+}
+
+type GetRunnerQueueOptions struct {
+	TenantID string `help:"The tenant ID that owns the runner." name:"tenant-id" short:"i" required:""`
+	RunnerID string `help:"The runner ID that owns the queue." name:"runner-id" short:"r" required:""`
+	QueueID  string `help:"The queue ID to fetch." name:"queue-id" short:"q" required:""`
+}
+
+func (o *GetRunnerQueueOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &eh.GetRunnerQueueRequest{
+		TenantID: o.TenantID,
+		RunnerID: o.RunnerID,
+		QueueID:  o.QueueID,
+	}
+
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	queue, err := s.Client.GetRunnerQueue(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return printJSON(queue)
 }
 
 type GetRunnerOptions struct {
