@@ -1425,6 +1425,115 @@ func TestDeleteRunnerQueuePathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetRunnerQueue(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/runners/runner1/queues/queue1", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.RunnerQueue{
+			TenantID:  "abc",
+			RunnerID:  "runner1",
+			QueueID:   "queue1",
+			PublicKey: "pub",
+			CreatedAt: now,
+			Version:   1,
+			IsHealthy: true,
+			Draining:  false,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	queue, err := client.GetRunnerQueue(context.Background(), &eh.GetRunnerQueueRequest{
+		TenantID: "abc",
+		RunnerID: "runner1",
+		QueueID:  "queue1",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "queue1", queue.QueueID)
+	require.Equal(t, now, queue.CreatedAt)
+}
+
+func TestGetRunnerQueueError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.GetRunnerQueue(context.Background(), &eh.GetRunnerQueueRequest{
+		TenantID: "abc",
+		RunnerID: "runner1",
+		QueueID:  "queue1",
+	})
+	var clientErr *eh.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestGetRunnerQueuePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 8, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "RunnerID not properly escaped in URL path")
+		require.Equal(t, escapedQueueID, parts[7], "QueueID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.RunnerQueue{
+			TenantID:  tenantIDThatNeedsEscaping,
+			RunnerID:  runnerIDThatNeedsEscaping,
+			QueueID:   queueIDThatNeedsEscaping,
+			PublicKey: "pub",
+			CreatedAt: time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Version:   1,
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	_, err := client.GetRunnerQueue(context.Background(), &eh.GetRunnerQueueRequest{
+		TenantID: tenantIDThatNeedsEscaping,
+		RunnerID: runnerIDThatNeedsEscaping,
+		QueueID:  queueIDThatNeedsEscaping,
+	})
+	require.NoError(t, err)
+}
+
+func TestGetRunnerQueueValidation(t *testing.T) {
+	t.Parallel()
+
+	client := eh.NewClient("http://example.com")
+
+	_, err := client.GetRunnerQueue(context.Background(), nil)
+	require.EqualError(t, err, "req is nil")
+
+	_, err = client.GetRunnerQueue(context.Background(), &eh.GetRunnerQueueRequest{})
+	require.EqualError(t, err, "tenant id is required")
+
+	_, err = client.GetRunnerQueue(context.Background(), &eh.GetRunnerQueueRequest{TenantID: "abc"})
+	require.EqualError(t, err, "runner id is required")
+
+	_, err = client.GetRunnerQueue(context.Background(), &eh.GetRunnerQueueRequest{TenantID: "abc", RunnerID: "runner1"})
+	require.EqualError(t, err, "queue id is required")
+}
+
 func TestGetRunner(t *testing.T) {
 	t.Parallel()
 
