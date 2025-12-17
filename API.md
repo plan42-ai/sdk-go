@@ -4905,19 +4905,19 @@ X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
 ```
 
-| Parameter                                | Location | Type    | Description                                                                                                                                                 |
-|------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenantID                                 | query    | *string | Optional. The ID of the tenant to filter queues by. Must be combined with runnerID.                                                                         |
-| runnerID                                 | query    | *string | Optional. The ID of the runner to filter queues by. Must be combined with tenantID.                                                                         |
-| includeHealthy                           | query    | *bool   | Optional. Set to filter on healthy status. When not set, queues are not filtered on the IsHealthy field.                                                   |
-| includeDrained                           | query    | *bool   | Optional. Set to filter on drained status. When not set, queues are not filtered on the Draining field..                                                   |
-| maxResults                               | query    | *int    | Optional. The maximum number of queues to return. Default is 10. Must be >=1 and < 500.                                                                     |
-| token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                                                                                     |
-| minQueueID                               | query    | *string | Optional. The minimum queue ID to include in the results. Useful when partioning queues between health checker insances. Must be combined with maxQueueID.  |
-| maxQueueID                               | query    | *string | Optional. The maximum queue ID to include in the results. Useful when partioning queues between health checker instances. Must be combined with minQueueID. |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                   |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                      |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
+| Parameter                                | Location | Type    | Description                                                                                                                                                           |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenantID                                 | query    | *string | Optional. The ID of the tenant to filter queues by. Must be combined with runnerID.                                                                                   |
+| runnerID                                 | query    | *string | Optional. The ID of the runner to filter queues by. Must be combined with tenantID.                                                                                   |
+| includeHealthy                           | query    | *bool   | Optional. Set to filter on healthy status. When not set, queues are not filtered on the IsHealthy field. Must be combined with tenant_id and runner_id.               |
+| includeDrained                           | query    | *bool   | Optional. Set to filter on drained status. When not set, queues are not filtered on the Draining field. Must be combined with tenant_id and runner_id.                |
+| maxResults                               | query    | *int    | Optional. The maximum number of queues to return. Default is 10. Must be >=1 and < 500.                                                                               |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                                                                                               |
+| minQueueID                               | query    | *string | Optional. The includsive minimum queue ID to include in the results. Useful when partioning queues between health checker insances. Must be combined with maxQueueID. |
+| maxQueueID                               | query    | *string | Optional. The exclusive maximum queue ID to include in the results. Useful when partioning queues between health checker instances. Must be combined with minQueueID. |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                             |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                   |
 
 
 ## 89.2 Response
