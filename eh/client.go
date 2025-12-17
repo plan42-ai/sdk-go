@@ -17,6 +17,8 @@ import (
 	sigv4clientutil "github.com/debugging-sucks/sigv4util/client"
 )
 
+const DefaultRunner = "default"
+
 // Option configures a Client.
 type Option func(c *Client)
 
@@ -123,7 +125,10 @@ func (c *Client) authenticate(delegatedAuth DelegatedAuthInfo, req *http.Request
 		}
 	}
 	if delegatedAuth.AuthType != nil && delegatedAuth.JWT != nil {
-		req.Header.Set("X-Event-Horizon-Delegating-Authorization", fmt.Sprintf("%s %s", *delegatedAuth.AuthType, *delegatedAuth.JWT))
+		req.Header.Set(
+			"X-Event-Horizon-Delegating-Authorization",
+			fmt.Sprintf("%s %s", *delegatedAuth.AuthType, *delegatedAuth.JWT),
+		)
 	}
 	return nil
 }
@@ -704,7 +709,10 @@ type GetTenantFeatureFlagsResponse struct {
 
 // GetTenantFeatureFlags returns the values of all active feature flags for a tenant.
 // nolint: dupl
-func (c *Client) GetTenantFeatureFlags(ctx context.Context, req *GetTenantFeatureFlagsRequest) (*GetTenantFeatureFlagsResponse, error) {
+func (c *Client) GetTenantFeatureFlags(
+	ctx context.Context,
+	req *GetTenantFeatureFlagsRequest,
+) (*GetTenantFeatureFlagsResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -768,7 +776,10 @@ type GenerateWebUITokenResponse struct {
 
 // GenerateWebUIToken generates a new Web UI token.
 // nolint:dupl
-func (c *Client) GenerateWebUIToken(ctx context.Context, req *GenerateWebUITokenRequest) (*GenerateWebUITokenResponse, error) {
+func (c *Client) GenerateWebUIToken(ctx context.Context, req *GenerateWebUITokenRequest) (
+	*GenerateWebUITokenResponse,
+	error,
+) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -918,7 +929,16 @@ func (c *Client) UploadTurnLogs(ctx context.Context, req *UploadTurnLogsRequest)
 		return nil, err
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex), "logs")
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"tasks",
+		url.PathEscape(req.TaskID),
+		"turns",
+		strconv.Itoa(req.TurnIndex),
+		"logs",
+	)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, err
@@ -993,7 +1013,16 @@ func (c *Client) StreamTurnLogs(ctx context.Context, req *StreamTurnLogsRequest)
 		return nil, fmt.Errorf("turn index is required")
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex), "logs")
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"tasks",
+		url.PathEscape(req.TaskID),
+		"turns",
+		strconv.Itoa(req.TurnIndex),
+		"logs",
+	)
 	q := u.Query()
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
@@ -1047,7 +1076,17 @@ func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest)
 		return nil, fmt.Errorf("turn index is required")
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns", strconv.Itoa(req.TurnIndex), "logs", "last")
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"tasks",
+		url.PathEscape(req.TaskID),
+		"turns",
+		strconv.Itoa(req.TurnIndex),
+		"logs",
+		"last",
+	)
 	q := u.Query()
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
