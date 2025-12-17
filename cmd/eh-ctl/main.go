@@ -275,6 +275,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Runner.ListQueues.Run(options.Ctx, &options.SharedOptions)
 	case "runner get-queue":
 		return options.Runner.GetQueue.Run(options.Ctx, &options.SharedOptions)
+	case "runner ping-queue":
+		return options.Runner.PingQueue.Run(options.Ctx, &options.SharedOptions)
 	case "runner get":
 		return options.Runner.Get.Run(options.Ctx, &options.SharedOptions)
 	case "runner get-token":
