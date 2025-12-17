@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/debugging-sucks/event-horizon-sdk-go/eh"
 	"github.com/google/uuid"
@@ -12,6 +14,7 @@ import (
 type RunnerOptions struct {
 	Create        CreateRunnerOptions        `cmd:"" help:"Create a new remote runner."`
 	List          ListRunnerOptions          `cmd:"" help:"List remote runners for a tenant."`
+	ListQueues    ListRunnerQueuesOptions    `cmd:"" help:"List runner queues."`
 	Get           GetRunnerOptions           `cmd:"" help:"Get a remote runner by ID."`
 	GetToken      GetRunnerTokenOptions      `cmd:"" help:"Get metadata for a remote runner token."`
 	Delete        DeleteRunnerOptions        `cmd:"" help:"Soft delete a remote runner."`
@@ -90,6 +93,69 @@ func (o *ListRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 		}
 
 		req.Token = resp.NextToken
+	}
+
+	return nil
+}
+
+type ListRunnerQueuesOptions struct {
+	TenantID   *string `help:"Optional. Filter queues for a tenant. Must be combined with --runner-id." name:"tenant-id" short:"i" optional:""`
+	RunnerID   *string `help:"Optional. Filter queues for a runner. Must be combined with --tenant-id." name:"runner-id" short:"r" optional:""`
+	Draining   *bool   `help:"Optional. Filter on draining status. Requires --tenant-id and --runner-id." name:"draining" optional:""`
+	Healthy    *bool   `help:"Optional. Filter on healthy status. Requires --tenant-id and --runner-id." name:"healthy" optional:""`
+	MinQueueID *string `help:"Optional inclusive minimum queue ID. Must be combined with --max-queue-id." name:"min-queue-id" optional:""`
+	MaxQueueID *string `help:"Optional exclusive maximum queue ID. Must be combined with --min-queue-id." name:"max-queue-id" optional:""`
+}
+
+func (o *ListRunnerQueuesOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if (o.TenantID == nil) != (o.RunnerID == nil) {
+		return errors.New("--tenant-id and --runner-id must be provided together")
+	}
+	if (o.MinQueueID == nil) != (o.MaxQueueID == nil) {
+		return errors.New("--min-queue-id and --max-queue-id must be provided together")
+	}
+	if o.Draining != nil && o.TenantID == nil {
+		return errors.New("--draining requires --tenant-id and --runner-id")
+	}
+	if o.Healthy != nil && o.TenantID == nil {
+		return errors.New("--healthy requires --tenant-id and --runner-id")
+	}
+
+	req := &eh.ListRunnerQueuesRequest{
+		TenantID:       o.TenantID,
+		RunnerID:       o.RunnerID,
+		IncludeDrained: o.Draining,
+		IncludeHealthy: o.Healthy,
+		MinQueueID:     o.MinQueueID,
+		MaxQueueID:     o.MaxQueueID,
+	}
+
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	encoder := json.NewEncoder(os.Stdout)
+
+	var token *string
+	for {
+		req.Token = token
+
+		resp, err := s.Client.ListRunnerQueues(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, queue := range resp.Items {
+			if err := encoder.Encode(queue); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
 	}
 
 	return nil
