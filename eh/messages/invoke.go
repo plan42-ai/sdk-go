@@ -103,8 +103,8 @@ func (r *InvokeAgentResponse) Type() MessageType {
 
 func (r InvokeAgentResponse) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		Type         MessageType `json:"type"`
-		ErrorMessage *string     `json:"ErrorMessage,omitempty"`
+		Type         MessageType
+		ErrorMessage *string
 	}
 
 	tmp.Type = InvokeAgentResponseMessage

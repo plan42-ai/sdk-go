@@ -24,7 +24,7 @@ func (p *PingResponse) MarshalJSON() (data []byte, err error) {
 
 func emptyMessage(t MessageType) any {
 	var ret struct {
-		Type MessageType `json:"type"`
+		Type MessageType
 	}
 	ret.Type = t
 	return ret
