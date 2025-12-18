@@ -40,11 +40,13 @@ const (
 
 // RepoInfo contains information about a repository used in a task's environment.
 type RepoInfo struct {
-	PRLink        *string `json:"PRLink,omitempty"`
-	PRID          *string `json:"PRID,omitempty"`
-	PRNumber      *int    `json:"PRNumber,omitempty"`
-	FeatureBranch string  `json:"FeatureBranch"`
-	TargetBranch  string  `json:"TargetBranch"`
+	PRLink            *string    `json:"PRLink,omitempty"`
+	PRID              *string    `json:"PRID,omitempty"`
+	PRNumber          *int       `json:"PRNumber,omitempty"`
+	PRStatus          *string    `json:"PRStatus,omitempty"`
+	PRStatusUpdatedAt *time.Time `json:"PRStatusUpdatedAt,omitempty"`
+	FeatureBranch     string     `json:"FeatureBranch"`
+	TargetBranch      string     `json:"TargetBranch"`
 }
 
 // Task represents a task returned by the API.
