@@ -37,13 +37,13 @@ func (r *InvokeAgentRequest) GetModel() eh.ModelType {
 
 func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		Type        MessageType             `json:"type"`
-		Task        *eh.Task                `json:"task"`
-		Turn        *eh.Turn                `json:"turn"`
-		Environment *eh.Environment         `json:"environment"`
-		GithubToken string                  `json:"github_token"`
-		AgentToken  string                  `json:"agent_token"`
-		FeedBack    map[string][]PRFeedback `json:"pr_feedback"`
+		Type        MessageType
+		Task        *eh.Task
+		Turn        *eh.Turn
+		Environment *eh.Environment
+		GithubToken string
+		AgentToken  string
+		FeedBack    map[string][]PRFeedback
 	}
 
 	tmp.Type = InvokeAgentRequestMessage
