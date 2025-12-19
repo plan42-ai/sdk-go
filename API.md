@@ -1381,6 +1381,8 @@ RepoInfo is an object that contains information about a repository used in a tas
    "PRLink": "*string",
    "PRID": "*string",
    "PRNumber": *int,
+   "PRStatus": "*string",
+   "PRStatusUpdatedAt": "*string",
    "FeatureBranch": "string",
    "TargetBranch": "string"
 }
@@ -1391,6 +1393,8 @@ RepoInfo is an object that contains information about a repository used in a tas
 | PRLink        | *string | The link to the pull request for the feature branch. Will be null if no pr has been generated.                  |
 | PRID          | *string | The ID of the pull request for the feature branch. Will be null if no pr has been generated.                    |
 | PRNumber      | *int    | The number of the pull request for the feature branch. Will be null if no pr has been generated.                |
+| PRStatus      | *string | The latest known status of the pull request (e.g., `open`, `closed`, `merged`, `draft`). Null if unknown.       |
+| PRStatusUpdatedAt | *string | ISO 8601 timestamp for when the pull request status was last updated. Null if unknown.                       |
 | FeatureBranch | string  | The name of the feature branch created for the task. This is the branch where the task's code changes are made. |
 | TargetBranch  | string  | The name of the target branch for the pull request. This is the branch the feature branch will be merged into.  |
 
@@ -5125,6 +5129,5 @@ Content-Type: application/json; charset=utf-8
     "Draining": bool
 }
 ```
-
 
 

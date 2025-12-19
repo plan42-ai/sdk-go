@@ -3481,6 +3481,52 @@ func TestUpdateTask(t *testing.T) {
 	require.Equal(t, "task", task.TaskID)
 }
 
+func TestUpdateTaskWithRepoStatus(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/tasks/task", r.URL.Path)
+		require.Equal(t, "2", r.Header.Get("If-Match"))
+
+		var reqBody eh.UpdateTaskRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		require.NoError(t, err)
+		require.NotNil(t, reqBody.RepoInfo)
+		repo := (*reqBody.RepoInfo)["octo/demo"]
+		require.NotNil(t, repo)
+		require.Equal(t, "closed", *repo.PRStatus)
+		require.NotNil(t, repo.PRStatusUpdatedAt)
+		require.Equal(t, "123", *repo.PRID)
+		require.Equal(t, 99, *repo.PRNumber)
+
+		w.WriteHeader(http.StatusOK)
+		resp := eh.Task{TenantID: "abc", TaskID: "task"}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := eh.NewClient(srv.URL)
+	status := "closed"
+	prID := "123"
+	prNumber := 99
+	statusAt := time.Now().Add(-time.Minute)
+	repoInfo := map[string]*eh.RepoInfo{
+		"octo/demo": {
+			FeatureBranch:     "feature",
+			TargetBranch:      "main",
+			PRStatus:          &status,
+			PRStatusUpdatedAt: &statusAt,
+			PRID:              &prID,
+			PRNumber:          &prNumber,
+		},
+	}
+	_, err := client.UpdateTask(context.Background(), &eh.UpdateTaskRequest{TenantID: "abc", TaskID: "task", Version: 2, RepoInfo: &repoInfo})
+	require.NoError(t, err)
+}
+
 func TestUpdateTaskError(t *testing.T) {
 	t.Parallel()
 	srv, client := serveBadRequest()
