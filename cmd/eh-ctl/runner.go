@@ -17,6 +17,7 @@ type RunnerOptions struct {
 	List          ListRunnerOptions          `cmd:"" help:"List remote runners for a tenant."`
 	ListQueues    ListRunnerQueuesOptions    `cmd:"" help:"List runner queues."`
 	GetQueue      GetRunnerQueueOptions      `cmd:"" help:"Get metadata for a runner queue."`
+	DeleteQueue   DeleteRunnerQueueOptions   `cmd:"" help:"Delete a runner queue."`
 	PingQueue     PingRunnerQueueOptions     `cmd:"" help:"Continuously ping a runner queue until interrupted."`
 	Get           GetRunnerOptions           `cmd:"" help:"Get a remote runner by ID."`
 	GetToken      GetRunnerTokenOptions      `cmd:"" help:"Get metadata for a remote runner token."`
@@ -196,6 +197,12 @@ type PingRunnerQueueOptions struct {
 	QueueID  string `help:"The queue ID to ping." name:"queue-id" short:"q" required:""`
 }
 
+type DeleteRunnerQueueOptions struct {
+	TenantID string `help:"The tenant ID that owns the runner." name:"tenant-id" short:"i" required:""`
+	RunnerID string `help:"The runner ID that owns the queue." name:"runner-id" short:"r" required:""`
+	QueueID  string `help:"The queue ID to delete." name:"queue-id" short:"q" required:""`
+}
+
 func (o *PingRunnerQueueOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &eh.PingRunnerQueueRequest{
 		TenantID: o.TenantID,
@@ -231,6 +238,37 @@ func (o *PingRunnerQueueOptions) Run(ctx context.Context, s *SharedOptions) erro
 		default:
 		}
 	}
+}
+
+func (o *DeleteRunnerQueueOptions) Run(ctx context.Context, s *SharedOptions) error {
+	getReq := &eh.GetRunnerQueueRequest{
+		TenantID: o.TenantID,
+		RunnerID: o.RunnerID,
+		QueueID:  o.QueueID,
+	}
+
+	err := loadFeatureFlags(s, &getReq.FeatureFlags)
+	if err != nil {
+		return err
+	}
+
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	queue, err := s.Client.GetRunnerQueue(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	delReq := &eh.DeleteRunnerQueueRequest{
+		TenantID: o.TenantID,
+		RunnerID: o.RunnerID,
+		QueueID:  o.QueueID,
+		Version:  queue.Version,
+	}
+	delReq.FeatureFlags = getReq.FeatureFlags
+	processDelegatedAuth(s, &delReq.DelegatedAuthInfo)
+
+	return s.Client.DeleteRunnerQueue(ctx, delReq)
 }
 
 type GetRunnerOptions struct {
