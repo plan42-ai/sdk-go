@@ -63,6 +63,8 @@ type Task struct {
 	AssignedToAI       bool                 `json:"AssignedToAI"`
 	TaskNumber         *int                 `json:"TaskNumber,omitempty"`
 	RepoInfo           map[string]*RepoInfo `json:"RepoInfo"`
+	LastTurnStatus     *string              `json:"LastTurnStatus,omitempty"`
+	LastTurnIndex      *int                 `json:"LastTurnIndex,omitempty"`
 	State              TaskState            `json:"State"`
 	CreatedAt          time.Time            `json:"CreatedAt"`
 	UpdatedAt          time.Time            `json:"UpdatedAt"`
