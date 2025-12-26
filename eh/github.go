@@ -41,6 +41,7 @@ type GithubConnection struct {
 	StateExpiry     *time.Time `json:"StateExpiry,omitempty"`
 	CreatedAt       time.Time  `json:"CreatedAt"`
 	UpdatedAt       time.Time  `json:"UpdatedAt"`
+	Name            *string    `json:"Name,omitempty"`
 	Version         int        `json:"Version"`
 }
 
@@ -59,6 +60,7 @@ type CreateGithubConnectionRequest struct {
 	RunnerID        *string `json:"RunnerID,omitempty"`
 	GithubUserLogin *string `json:"GithubUserLogin,omitempty"`
 	GithubUserID    *int    `json:"GithubUserID,omitempty"`
+	Name            *string `json:"Name,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -77,6 +79,8 @@ func (r *CreateGithubConnectionRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.GithubUserLogin)
 	case "GithubUserID":
 		return EvalNullable(r.GithubUserID)
+	case "Name":
+		return EvalNullable(r.Name)
 	default:
 		return nil, false
 	}
@@ -84,7 +88,10 @@ func (r *CreateGithubConnectionRequest) GetField(name string) (any, bool) {
 
 // CreateGithubConnection creates a GitHub connection for a tenant.
 // nolint: dupl
-func (c *Client) CreateGithubConnection(ctx context.Context, req *CreateGithubConnectionRequest) (*GithubConnection, error) {
+func (c *Client) CreateGithubConnection(
+	ctx context.Context,
+	req *CreateGithubConnectionRequest,
+) (*GithubConnection, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -105,13 +112,18 @@ func (c *Client) CreateGithubConnection(ctx context.Context, req *CreateGithubCo
 			return nil, fmt.Errorf("github user id must be nil when private is true")
 		}
 	}
-
 	bodyBytes, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github-connections", url.PathEscape(req.ConnectionID))
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"github-connections",
+		url.PathEscape(req.ConnectionID),
+	)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, err
@@ -149,6 +161,7 @@ type ListGithubConnectionsRequest struct {
 	TenantID   string
 	MaxResults *int
 	Token      *string
+	Private    *bool
 }
 
 // GetField retrieves the value of a field by name.
@@ -161,6 +174,8 @@ func (r *ListGithubConnectionsRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.MaxResults)
 	case "Token":
 		return EvalNullable(r.Token)
+	case "Private":
+		return EvalNullable(r.Private)
 	default:
 		return nil, false
 	}
@@ -168,7 +183,10 @@ func (r *ListGithubConnectionsRequest) GetField(name string) (any, bool) {
 
 // ListGithubConnections retrieves the GitHub connections for a tenant.
 // nolint: dupl
-func (c *Client) ListGithubConnections(ctx context.Context, req *ListGithubConnectionsRequest) (*List[GithubConnection], error) {
+func (c *Client) ListGithubConnections(
+	ctx context.Context,
+	req *ListGithubConnectionsRequest,
+) (*List[*GithubConnection], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -183,6 +201,9 @@ func (c *Client) ListGithubConnections(ctx context.Context, req *ListGithubConne
 	}
 	if req.Token != nil {
 		q.Set("token", *req.Token)
+	}
+	if req.Private != nil {
+		q.Set("private", strconv.FormatBool(*req.Private))
 	}
 	u.RawQuery = q.Encode()
 
@@ -208,7 +229,7 @@ func (c *Client) ListGithubConnections(ctx context.Context, req *ListGithubConne
 		return nil, decodeError(resp)
 	}
 
-	var out List[GithubConnection]
+	var out List[*GithubConnection]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
@@ -256,7 +277,13 @@ func (c *Client) DeleteGithubConnection(ctx context.Context, req *DeleteGithubCo
 		return fmt.Errorf("connection id is required")
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github-connections", url.PathEscape(req.ConnectionID))
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"github-connections",
+		url.PathEscape(req.ConnectionID),
+	)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
 	if err != nil {
@@ -320,7 +347,13 @@ func (c *Client) GetGithubConnection(ctx context.Context, req *GetGithubConnecti
 		return nil, fmt.Errorf("connection id is required")
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github-connections", url.PathEscape(req.ConnectionID))
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"github-connections",
+		url.PathEscape(req.ConnectionID),
+	)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
@@ -367,6 +400,7 @@ type UpdateGithubConnectionRequest struct {
 	RefreshToken    *string    `json:"RefreshToken,omitempty"`
 	State           *string    `json:"State,omitempty"`
 	StateExpiry     *time.Time `json:"StateExpiry,omitempty"`
+	Name            *string    `json:"Name,omitempty"`
 }
 
 func (r *UpdateGithubConnectionRequest) GetVersion() int {
@@ -406,7 +440,10 @@ func (r *UpdateGithubConnectionRequest) GetField(name string) (any, bool) {
 
 // UpdateGithubConnection updates an existing GitHub connection.
 // nolint: dupl
-func (c *Client) UpdateGithubConnection(ctx context.Context, req *UpdateGithubConnectionRequest) (*GithubConnection, error) {
+func (c *Client) UpdateGithubConnection(ctx context.Context, req *UpdateGithubConnectionRequest) (
+	*GithubConnection,
+	error,
+) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -422,7 +459,13 @@ func (c *Client) UpdateGithubConnection(ctx context.Context, req *UpdateGithubCo
 		return nil, err
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "github-connections", url.PathEscape(req.ConnectionID))
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"github-connections",
+		url.PathEscape(req.ConnectionID),
+	)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, err
@@ -621,7 +664,10 @@ func (r *UpdateTenantGithubCredsRequest) GetField(name string) (any, bool) {
 
 // UpdateTenantGithubCreds updates the GitHub credentials for a tenant.
 // nolint: dupl
-func (c *Client) UpdateTenantGithubCreds(ctx context.Context, req *UpdateTenantGithubCredsRequest) (*TenantGithubCreds, error) {
+func (c *Client) UpdateTenantGithubCreds(ctx context.Context, req *UpdateTenantGithubCredsRequest) (
+	*TenantGithubCreds,
+	error,
+) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -674,7 +720,8 @@ type GetTenantGithubCredsRequest struct {
 }
 
 // GetField retrieves the value of a field by name.
-func (r *GetTenantGithubCredsRequest) GetField(name string) (any, bool) { // nolint: goconst
+// nolint: goconst
+func (r *GetTenantGithubCredsRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
 		return r.TenantID, true
@@ -684,7 +731,11 @@ func (r *GetTenantGithubCredsRequest) GetField(name string) (any, bool) { // nol
 }
 
 // GetTenantGithubCreds retrieves the GitHub credentials for a tenant.
-func (c *Client) GetTenantGithubCreds(ctx context.Context, req *GetTenantGithubCredsRequest) (*TenantGithubCreds, error) { // nolint:dupl
+// nolint:dupl
+func (c *Client) GetTenantGithubCreds(ctx context.Context, req *GetTenantGithubCredsRequest) (
+	*TenantGithubCreds,
+	error,
+) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}

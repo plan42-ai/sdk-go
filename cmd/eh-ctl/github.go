@@ -133,11 +133,13 @@ func (o *GetGithubConnectionOptions) Run(ctx context.Context, s *SharedOptions) 
 
 type ListGithubConnectionsOptions struct {
 	TenantID string `help:"The tenant ID to list github connections for." name:"tenant-id" short:"i" required:""`
+	Private  *bool  `help:"Set to filter on private / public github connections." name:"private" optional:""`
 }
 
 func (o *ListGithubConnectionsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &eh.ListGithubConnectionsRequest{
 		TenantID: o.TenantID,
+		Private:  o.Private,
 	}
 
 	err := loadFeatureFlags(s, &req.FeatureFlags)
