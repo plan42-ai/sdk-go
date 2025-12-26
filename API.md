@@ -1342,6 +1342,8 @@ Content-Type: application/json; charset=utf-8
   "AssignedToTenantID": "*string",
   "AssignedToAI" : bool,  
   "RepoInfo: {},
+  "LastTurnStatus": "*string",
+  "LastTurnIndex": "*int",
   "State": "TaskState",
   "CreatedAt": "string",
   "UpdatedAt": "string",
@@ -1364,6 +1366,8 @@ Content-Type: application/json; charset=utf-8
 | AssignedToTenantID | *string                                 | The ID of the human user the task is assigned to. Only valid if the task is part of a workstream.                                                                     |
 | AssignedToAI       | bool                                    | If true, the task is assigned to an AI agent. Must be true if the task is not part of a workstream. If false and `AssignedToTenantID` is nul, the task is unassigned. |
 | RepoInfo           | map[string][[*RepoInfo](#185-repoinfo)] | A map of "org/repo" to repository info. This tracks branch names and PR links for each repo used in the environment.                                                  |
+| LastTurnStatus     | *string                                 | The status of the latest turn for the task, if any. Non-terminal values (for example `Pending`) indicate work is still running.                                       |
+| LastTurnIndex      | *int                                    | The index of the latest turn for the task, if any.                                                                                                                    |
 | State              | [TaskState](#186-taskstate)             | The current state of the task.                                                                                                                                        |
 | CreatedAt          | string                                  | The timestamp when the task was created, in ISO 8601 format.                                                                                                          |
 | UpdatedAt          | string                                  | The timestamp when the task was last updated, in ISO 8601 format.                                                                                                     |
@@ -1496,6 +1500,8 @@ Content-Type: application/json; charset=utf-8
   "AssignedToTenantID": "*string",
   "AssignedToAI" : bool,  
   "RepoInfo: {},
+  "LastTurnStatus": "*string",
+  "LastTurnIndex": "*int",
   "State": "TaskState",
   "CreatedAt": "string",
   "UpdatedAt": "string",
@@ -5129,5 +5135,3 @@ Content-Type: application/json; charset=utf-8
     "Draining": bool
 }
 ```
-
-
