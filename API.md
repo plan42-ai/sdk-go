@@ -4110,7 +4110,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
     "Private": bool,
     "RunnerID" : "*string",
     "GithubUserLogin" : "*string",
-    "GithubUserID" : *int
+    "GithubUserID" : *int,
+    "Name": *string
 }
 ```
 
@@ -4125,6 +4126,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | RunnerID                                 | body     | *string | Optional. The ID of the runner associated with the connection. Required when Private is true.                                                                                   |
 | GithubUserLogin                          | body     | *string | The GitHub user login associated with the connection. Only valid when Private is false. For private github connection, all user information is configured on the remote runner. |
 | GithubUserID                             | body     | *int    | The GitHub user ID associated with the connection. Only valid when Private is false. For private github connection, all user information is configured on the remote runner.    |
+| Name                                     | body     | *string | The name of the github connection. Required when `Private` is true. Invalid if `Private` is false.                                                                              |
 
 ## 70.2 Response
 
@@ -4148,6 +4150,7 @@ Content-Type: application/json; charset=utf-8
     "StateExpiry" : "*string",
     "CreatedAt": "string",
     "UpdatedAt": "string",
+    "Name" : "*string",
     "Version": int
 }
 ```
@@ -4168,6 +4171,7 @@ Content-Type: application/json; charset=utf-8
 | CreatedAt       | string  | The timestamp when the connection was created.                          |
 | UpdatedAt       | string  | The timestamp when the connection was last updated.                     |
 | Version         | int     | The version of the connection. Used for optimistic concurrency control. |
+| Name            | *string | The name of the GitHub connection.                                      |
 
 # 71. ListGithubConnections
 
@@ -4176,7 +4180,7 @@ The ListGithubConnections API lists GitHub connections associated with a tenant.
 ## 71.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/github-connections?maxResults={maxResults}&token={token} HTTP/1.1
+GET /v1/tenants/{tenant_id}/github-connections?maxResults={maxResults}&token={token}&private={private} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -4188,6 +4192,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connections.                                                          |
 | maxResults                               | query    | *int    | Optional. The maximum number of connections to return. Default is 10. Must be >=1 and <= 500.                   |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
+| private                                  | query    | *bool   | Optional. When set, filters connections by whether they are private.                                            |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                       |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
@@ -4284,26 +4289,28 @@ If-Match: <version>
     "OAuthToken": "*string",
     "RefreshToken": "*string",
     "State"  : "*string",
-    "StateExpiry" : "*string"        
+    "StateExpiry" : "*string",
+    "Name" : "*string",        
 }
 ```
 
-| Parameter                                | Location | Type    | Description                                                                                       |
-|------------------------------------------|----------|---------|---------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                                             |
-| connection_id                            | path     | string  | The ID of the GitHub connection to update.                                                        |
-| Authorization                            | header   | string  | The authorization header for the request.                                                         |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                               |
-| Version                                  | header   | string  | The expected version of the connection. Used for optimistic concurrency control.                  |
-| Private                                  | body     | *bool   | Optional. When set, updates whether the connection is private.                                    |
-| RunnerID                                 | body     | *string | Optional. When set, updates the ID of the runner associated with the connection.                  |
-| GithubUserLogin                          | body     | *string | Optional. When set, updates the GitHub user login associated with the connection.                 |
-| GithubUserID                             | body     | *int    | Optional. When set, updates the GitHub user ID associated with the connection.                    |
-| OAuthToken                               | body     | *string | Optional. When set, updates the OAuth token for the connection.                                   |
-| RefreshToken                             | body     | *string | Optional. When set, updates the refresh token for the connection.                                 |
-| State                                    | body     | *string | Optional. When set, updates the state parameter for OAuth flows. Set to "" to clear the value.    |
-| StateExpiry                              | body     | *string | Optional. When set, updates the expiry time of the state parameter. Set to "" to clear the value. |
+| Parameter                                | Location | Type    | Description                                                                                                                     |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                                                                           |
+| connection_id                            | path     | string  | The ID of the GitHub connection to update.                                                                                      |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                             |
+| Version                                  | header   | string  | The expected version of the connection. Used for optimistic concurrency control.                                                |
+| Private                                  | body     | *bool   | Optional. When set, updates whether the connection is private.                                                                  |
+| RunnerID                                 | body     | *string | Optional. When set, updates the ID of the runner associated with the connection.                                                |
+| GithubUserLogin                          | body     | *string | Optional. When set, updates the GitHub user login associated with the connection.                                               |
+| GithubUserID                             | body     | *int    | Optional. When set, updates the GitHub user ID associated with the connection.                                                  |
+| OAuthToken                               | body     | *string | Optional. When set, updates the OAuth token for the connection.                                                                 |
+| RefreshToken                             | body     | *string | Optional. When set, updates the refresh token for the connection.                                                               |
+| State                                    | body     | *string | Optional. When set, updates the state parameter for OAuth flows. Set to "" to clear the value.                                  |
+| StateExpiry                              | body     | *string | Optional. When set, updates the expiry time of the state parameter. Set to "" to clear the value.                               |
+| Name                                     | body     | *string | Optional. When set, updates the name of the github connection. Set to "" to clear the value. Not valid when `Private` is false. |
 
 ## 73.2 Response
 
@@ -4327,6 +4334,7 @@ Content-Type: application/json; charset=utf-8
     "StateExpiry" : "*string",
     "CreatedAt": "string",
     "UpdatedAt": "string",
+    "Name" : "*string",
     "Version": int
 }
 ```
