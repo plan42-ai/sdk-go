@@ -87,7 +87,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | WebUIToken            | Uses for Web UI tokens. The token should be the base64 encoding of the Web UI Token json.                                                                                                       |
 | AuthProviderToken     | Used for Auth Provider tokens, such as Google Identity Tokens. The token should be the base64 encoding of the Auth Provider Token json.                                                         |
 | ServiceAccountToken   | Used for Service Account tokens. The token should be the base64 encoding of the Service Account Token json.                                                                                     |
-| sts:GetCallerIdentity | Used for Sigv4 authentication. The token should be the base64 encoding of a a valid signed http request to sts:GetCallerIdentity. See https://github.com/debugging-sucks/sigv4util for details. |
+| sts:GetCallerIdentity | Used for Sigv4 authentication. The token should be the base64 encoding of a a valid signed http request to sts:GetCallerIdentity. See https://github.com/plan42-ai/sigv4util for details. |
 | AgentToken            | Used for Agent Tokens. The token should be the base64 encoding of the Agent Token json.                                                                                                         |
 
 # 2. Error Handling
@@ -3049,7 +3049,7 @@ The UI will use 5 min cookie expiration times, to match the API service cache TT
 ## 53.1 Adding a new feature flag
 
 ```bash
-eh-ctl feature-flag add -f <flag-name> -D <description> -p <default-pct>
+p42-ctl feature-flag add -f <flag-name> -D <description> -p <default-pct>
 ```
 
 This will create a new feature flag with the given name, description and default percentage. The flag name must be
@@ -3058,7 +3058,7 @@ unique. The default percentage must be between 0.0 and 1.0.
 ## 53.2 Explicitly enabling a feature flag for a tenant
 
 ```bash
-eh-ctl feature-flag override -i <tenant-id> -f <flag-name> -e
+p42-ctl feature-flag override -i <tenant-id> -f <flag-name> -e
 ```
 
 This will create a new feature flag override for the given tenant and flag name. If an override already exists, it will
@@ -3067,7 +3067,7 @@ be updated.
 ## 53.3 Explicitly disabling a feature flag for a tenant
 
 ```bash
-eh-ctl feature-flag override -t <tenant-id> -f <flag-name>
+p42-ctl feature-flag override -t <tenant-id> -f <flag-name>
 ```
 
 This adds an override, but doesn't pass "-e / --enable".
@@ -3075,7 +3075,7 @@ This adds an override, but doesn't pass "-e / --enable".
 ## 53.4 Removing an explicit override for a tenant
 
 ```bash
-eh-ctl feature-flag delete-override -t <tenant-id> -f <flag>
+p42-ctl feature-flag delete-override -t <tenant-id> -f <flag>
 ```
 
 This will delete the feature flag override for the given tenant and flag name. After this, the feature flag will be
@@ -3084,13 +3084,13 @@ enabled or disabled based on the default percentage and the tenant ID hash.
 ## 53.5 Deleting a feature flag
 
 ```bash
-eh-ctl feature-flag delete -f <flag-name>
+p42-ctl feature-flag delete -f <flag-name>
 ```
 
 ## 53.6 Undeleting a feature flag
 
 ```bash
-eh-ctl feature-flag update -f <flag-name> <<EOF
+p42-ctl feature-flag update -f <flag-name> <<EOF
 {
   "Deleted": false
 }
@@ -3100,7 +3100,7 @@ EOF
 ## 53.7 Updating a feature flag default percentage
 
 ```bash
-eh-ctl feature-flag update -f <flag-name> <<EOF
+p42-ctl feature-flag update -f <flag-name> <<EOF
 {
   "DefaultPct": 0.25
 }
@@ -3110,7 +3110,7 @@ EOF
 You can also combine undelete / default percentage updates in a single call.
 
 ```bash
-eh-ctl feature-flag update -f <flag-name> <<EOF
+p42-ctl feature-flag update -f <flag-name> <<EOF
 {
   "DefaultPct": 0.25,
   "Deleted": false
@@ -3121,7 +3121,7 @@ EOF
 ## 53.8 Getting effective feature flags for a tenant
 
 ```bash
-eh-ctl feature-flag get-tenant-flags -t <tenant-id>
+p42-ctl feature-flag get-tenant-flags -t <tenant-id>
 ```
 
 # 54. AddWorkstreamShortName

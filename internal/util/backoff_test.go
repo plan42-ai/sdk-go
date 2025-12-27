@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/debugging-sucks/event-horizon-sdk-go/internal/util"
+	"github.com/plan42-ai/sdk-go/internal/util"
 )
 
 func TestBackoffBasic(t *testing.T) {
