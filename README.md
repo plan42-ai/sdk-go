@@ -1,3 +1,3 @@
-# event-horizon-sdk-go
+# sdk-go
 
-The go sdk for the event-horizon api.
+The go sdk for the plan42 api.
