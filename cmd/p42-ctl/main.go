@@ -163,6 +163,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Tenant.Get.Run(options.Ctx, &options.SharedOptions)
 	case "tenant list":
 		return options.Tenant.List.Run(options.Ctx, &options.SharedOptions)
+	case "tenant update":
+		return options.Tenant.Update.Run(options.Ctx, &options.SharedOptions)
 	case "policies list":
 		return options.Policies.List.Run(options.Ctx, &options.SharedOptions)
 	case "ui-token generate":

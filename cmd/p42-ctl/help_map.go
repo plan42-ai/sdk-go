@@ -91,6 +91,14 @@ var helpMap = map[string]string{
     "GithubConnectionID" : "*string"
 }
 `,
+	"tenant update": `
+--- Input JSON Schema ---
+
+{
+    "DefaultRunnerID": "*string",
+    "DefaultGithubConnectionID": "*string"
+}
+`,
 	"task create": `
 
 --- Input JSON Schema ---
