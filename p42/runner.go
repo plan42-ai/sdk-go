@@ -857,20 +857,24 @@ func (r *PingRunnerQueueRequest) GetField(name string) (any, bool) {
 	}
 }
 
+type PingRunnerQueueResponse struct {
+	Success bool `json:"Success"`
+}
+
 // PingRunnerQueue sends a ping message to a runner queue and waits for a response.
 // nolint:dupl
-func (c *Client) PingRunnerQueue(ctx context.Context, req *PingRunnerQueueRequest) error {
+func (c *Client) PingRunnerQueue(ctx context.Context, req *PingRunnerQueueRequest) (*PingRunnerQueueResponse, error) {
 	if req == nil {
-		return fmt.Errorf("req is nil")
+		return nil, fmt.Errorf("req is nil")
 	}
 	if req.TenantID == "" {
-		return fmt.Errorf("tenant id is required")
+		return nil, fmt.Errorf("tenant id is required")
 	}
 	if req.RunnerID == "" {
-		return fmt.Errorf("runner id is required")
+		return nil, fmt.Errorf("runner id is required")
 	}
 	if req.QueueID == "" {
-		return fmt.Errorf("queue id is required")
+		return nil, fmt.Errorf("queue id is required")
 	}
 
 	u := c.BaseURL.JoinPath(
@@ -885,7 +889,7 @@ func (c *Client) PingRunnerQueue(ctx context.Context, req *PingRunnerQueueReques
 	)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	httpReq.Header.Set("Accept", "application/json")
@@ -893,20 +897,25 @@ func (c *Client) PingRunnerQueue(ctx context.Context, req *PingRunnerQueueReques
 
 	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resp, err := c.httpClient().Do(httpReq)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		return decodeError(resp)
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
 	}
 
-	return nil
+	var out PingRunnerQueueResponse
+	err = json.NewDecoder(resp.Body).Decode(&out)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // RegisterRunnerQueueRequest contains parameters for RegisterRunnerQueue.

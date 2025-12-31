@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -217,19 +217,22 @@ func (o *PingRunnerQueueOptions) Run(ctx context.Context, s *SharedOptions) erro
 
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
-	loopCtx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	loopCtx, cancel := signal.NotifyContext(ctx, syscall.SIGINT)
 	defer cancel()
 
 	for {
 		start := time.Now()
-		err = s.Client.PingRunnerQueue(loopCtx, req)
-		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		resp, err := s.Client.PingRunnerQueue(loopCtx, req)
+		switch {
+		case err != nil:
+			if errors.Is(err, context.Canceled) {
 				return nil
 			}
-			_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		} else {
+			fmt.Printf("ERROR: %v\n", err)
+		case resp.Success:
 			fmt.Printf("latency: %s\n", time.Since(start))
+		default:
+			fmt.Println("ERROR: ping timeout")
 		}
 
 		select {

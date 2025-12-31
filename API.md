@@ -5098,6 +5098,21 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
+## 92.2 Response
+
+If the server was able to successfully attempt the ping, a 200 OK is returned with the following body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "Success" : bool
+}
+```
+
+Success is true if the remote runner responded to the ping before the request timed out or false otherwise.
+
 # 93. GetRunnerQueue
 
 GetRunnerQueue fetches metadata about a runner queue.
