@@ -5143,3 +5143,38 @@ Content-Type: application/json; charset=utf-8
     "Draining": bool
 }
 ```
+
+## 94. GetTaskGithubCreds
+
+GetTaskGithubCreds retrieves the GitHub credentials associated with a task.
+
+## 94.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/github-creds HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the task.                            |
+| task_id                                  | path     | string  | The ID of the task to fetch GitHub credentials for.                 |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 94.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "GithubToken": "string
+}
+```
