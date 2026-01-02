@@ -13,6 +13,7 @@ type TenantOptions struct {
 	CurrentUser GetCurrentUserOptions `cmd:"" help:"Find a user given their auth provider token."`
 	Get         GetTenantOptions      `cmd:"" help:"Get a tenant by ID."`
 	List        ListTenantsOptions    `cmd:"" help:"List all tenants."`
+	Update      UpdateTenantOptions   `cmd:"" help:"Update a tenant by ID."`
 }
 
 type CreateUserOptions struct {
@@ -114,4 +115,39 @@ func (o *ListTenantsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 
 	return nil
+}
+
+type UpdateTenantOptions struct {
+	TenantID string `help:"The ID of the tenant to update." name:"tenant-id" short:"i" required:""`
+	JSON     string `help:"The JSON file containing the tenant updates. Use '-' to read from stdin." name:"json" short:"j" default:"-"`
+}
+
+func (o *UpdateTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
+		return err
+	}
+	var req p42.UpdateTenantRequest
+	if err := readJsonFile(o.JSON, &req); err != nil {
+		return err
+	}
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	req.TenantID = o.TenantID
+	getReq := &p42.GetTenantRequest{TenantID: o.TenantID}
+	getReq.FeatureFlags = req.FeatureFlags
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	tenant, err := s.Client.GetTenant(ctx, getReq)
+	if err != nil {
+		return err
+	}
+	req.Version = tenant.Version
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	updated, err := s.Client.UpdateTenant(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return printJSON(updated)
 }
