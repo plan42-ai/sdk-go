@@ -113,3 +113,34 @@ func TestSearchTasksOptionsRunWithoutCriteria(t *testing.T) {
 
 	require.Error(t, opts.Run(context.Background(), &shared))
 }
+
+func TestGetTaskGithubCredsOptionsRun(t *testing.T) {
+	t.Parallel()
+	tenantID := "tenant"
+	taskID := "task"
+	srv := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, http.MethodGet, r.Method)
+				require.Equal(t, "/v1/tenants/"+tenantID+"/tasks/"+taskID+"/github-creds", r.URL.Path)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"GithubToken":"token"}`))
+			},
+		),
+	)
+	defer srv.Close()
+
+	opts := GetTaskGithubCredsOptions{TenantID: tenantID, TaskID: taskID}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL), ShowSecrets: true}
+
+	require.NoError(t, opts.Run(context.Background(), &shared))
+}
+
+func TestGetTaskGithubCredsOptionsRunRequiresShowSecrets(t *testing.T) {
+	t.Parallel()
+
+	opts := GetTaskGithubCredsOptions{TenantID: "tenant", TaskID: "task"}
+	shared := SharedOptions{Client: p42.NewClient("http://example.com")}
+
+	require.EqualError(t, opts.Run(context.Background(), &shared), "you must specify `-s` when calling get-github-creds")
+}
