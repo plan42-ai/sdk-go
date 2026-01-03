@@ -184,6 +184,78 @@ func (c *Client) GetTask(ctx context.Context, req *GetTaskRequest) (*Task, error
 	return &out, nil
 }
 
+// TaskGithubCreds contains the GitHub credentials associated with a task.
+type TaskGithubCreds struct {
+	GithubToken string `json:"GithubToken"`
+}
+
+// GetTaskGithubCredsRequest is the request payload for GetTaskGithubCreds.
+type GetTaskGithubCredsRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	TaskID   string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GetTaskGithubCredsRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	default:
+		return nil, false
+	}
+}
+
+// GetTaskGithubCreds retrieves the GitHub credentials for a task.
+// nolint:dupl
+func (c *Client) GetTaskGithubCreds(ctx context.Context, req *GetTaskGithubCredsRequest) (*TaskGithubCreds, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "github-creds")
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out TaskGithubCreds
+	err = json.NewDecoder(resp.Body).Decode(&out)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // SearchTasks performs an admin-scoped task search.
 func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*ListTasksResponse, error) {
 	if req == nil {

@@ -3879,6 +3879,78 @@ func TestGetTaskPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetTaskGithubCreds(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/abc/tasks/task/github-creds", r.URL.Path)
+			require.Equal(t, "application/json", r.Header.Get("Accept"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.TaskGithubCreds{GithubToken: "token"}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	resp, err := client.GetTaskGithubCreds(
+		context.Background(),
+		&p42.GetTaskGithubCredsRequest{TenantID: "abc", TaskID: "task"},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, "token", resp.GithubToken)
+}
+
+func TestGetTaskGithubCredsError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.GetTaskGithubCreds(
+		context.Background(),
+		&p42.GetTaskGithubCredsRequest{TenantID: "abc", TaskID: "task"},
+	)
+	var clientErr *p42.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+}
+
+func TestGetTaskGithubCredsPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 7, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+			require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+			require.Equal(t, "github-creds", parts[6])
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.TaskGithubCreds{GithubToken: "token"}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.GetTaskGithubCreds(
+		context.Background(),
+		&p42.GetTaskGithubCredsRequest{TenantID: tenantIDThatNeedsEscaping, TaskID: taskIDThatNeedsEscaping},
+	)
+	require.NoError(t, err)
+}
+
 func TestGetWorkstreamTask(t *testing.T) {
 	t.Parallel()
 
