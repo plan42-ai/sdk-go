@@ -217,6 +217,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Task.Search.Run(options.Ctx, &options.SharedOptions)
 	case "task get":
 		return options.Task.Get.Run(options.Ctx, &options.SharedOptions)
+	case "task get-github-creds":
+		return options.Task.GetGithubCreds.Run(options.Ctx, &options.SharedOptions)
 	case "turn create":
 		return options.Turn.Create.Run(options.Ctx, &options.SharedOptions)
 	case "turn list":

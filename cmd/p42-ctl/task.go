@@ -10,13 +10,14 @@ import (
 )
 
 type TaskOptions struct {
-	Create CreateTaskOptions  `cmd:"" help:"Create a new task."`
-	Update UpdateTaskOptions  `cmd:"" help:"Update an existing task."`
-	Delete DeleteTaskOptions  `cmd:"" help:"Soft delete an existing task."`
-	List   ListTasksOptions   `cmd:"" help:"List tasks for a tenant or workstream."`
-	Search SearchTasksOptions `cmd:"" help:"Search for tasks by pull request or task id."`
-	Get    GetTaskOptions     `cmd:"" help:"Get a task by ID."`
-	Move   MoveTaskOptions    `cmd:"" help:"Move a task from one workstream to another."`
+	Create         CreateTaskOptions         `cmd:"" help:"Create a new task."`
+	Update         UpdateTaskOptions         `cmd:"" help:"Update an existing task."`
+	Delete         DeleteTaskOptions         `cmd:"" help:"Soft delete an existing task."`
+	List           ListTasksOptions          `cmd:"" help:"List tasks for a tenant or workstream."`
+	Search         SearchTasksOptions        `cmd:"" help:"Search for tasks by pull request or task id."`
+	Get            GetTaskOptions            `cmd:"" help:"Get a task by ID."`
+	GetGithubCreds GetTaskGithubCredsOptions `cmd:"" help:"Get GitHub credentials for a task."`
+	Move           MoveTaskOptions           `cmd:"" help:"Move a task from one workstream to another."`
 }
 
 // MoveTaskOptions contains the flags for the `task move` command.
@@ -501,4 +502,31 @@ func (o *GetTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions) er
 		return err
 	}
 	return printJSON(task)
+}
+
+type GetTaskGithubCredsOptions struct {
+	TenantID string `help:"The id of the tenant that owns the task." name:"tenant-id" short:"i" required:""`
+	TaskID   string `help:"The id of the task to fetch GitHub credentials for." name:"task-id" short:"t" required:""`
+}
+
+func (o *GetTaskGithubCredsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if !s.ShowSecrets {
+		return fmt.Errorf("you must specify `-s` when calling get-github-creds")
+	}
+
+	req := &p42.GetTaskGithubCredsRequest{
+		TenantID: o.TenantID,
+		TaskID:   o.TaskID,
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	creds, err := s.Client.GetTaskGithubCreds(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(creds)
 }
