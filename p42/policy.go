@@ -116,6 +116,7 @@ const (
 	ActionListFeatureFlagOverrides  Action = "ListFeatureFlagOverrides"
 	ActionGetTenantGithubCreds      Action = "GetTenantGithubCreds"    // #nosec G101: This is not a credential.
 	ActionUpdateTenantGithubCreds   Action = "UpdateTenantGithubCreds" // #nosec G101: This is not a credential.
+	ActionGetTaskGithubCreds        Action = "GetTaskGithubCreds"      // #nosec G101: This is not a credential.
 	ActionFindGithubUser            Action = "FindGithubUser"
 	ActionCreateWorkstream          Action = "CreateWorkstream"
 	ActionGetWorkstream             Action = "GetWorkstream"
@@ -476,6 +477,7 @@ func init() {
 			ActionGetRunnerQueue,            // (0x0000_0000_0001_0000, 0)
 			ActionPingRunnerQueue,           // (0x0000_0000_0002_0000, 0)
 			ActionUpdateRunnerQueue,         // (0x0000_0000_0004_0000, 0)
+			ActionGetTaskGithubCreds,        // (0x0000_0000_0008_0000, 0)
 
 		},
 		ActionBitVector{
