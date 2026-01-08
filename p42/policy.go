@@ -147,7 +147,6 @@ const (
 	ActionGetGithubConnection         Action = "GetGithubConnection"
 	ActionRevokeRunnerToken           Action = "RevokeRunnerToken"
 	ActionUpdateGithubConnection      Action = "UpdateGithubConnection"
-	ActionListOrgsForGithubConnection Action = "ListOrgsForGithubConnection"
 	ActionListRunnerTokens            Action = "ListRunnerTokens"
 	ActionGetMessagesBatch            Action = "GetMessagesBatch"
 	ActionRegisterRunnerQueue         Action = "RegisterRunnerQueue"
@@ -161,6 +160,7 @@ const (
 	ActionGetRunnerQueue              Action = "GetRunnerQueue"
 	ActionPingRunnerQueue             Action = "PingRunnerQueue"
 	ActionUpdateRunnerQueue           Action = "UpdateRunnerQueue"
+	ActionListOrgsForGithubConnection Action = "ListOrgsForGithubConnection"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
