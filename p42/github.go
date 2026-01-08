@@ -474,6 +474,109 @@ func (c *Client) ListOrgsForGithubConnection(
 	return &out, nil
 }
 
+// SearchReposRequest represents the request parameters for SearchRepos.
+type SearchReposRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID     string
+	ConnectionID string
+	OrgName      string
+	Search       string
+	MaxResults   *int
+	Token        *string
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *SearchReposRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "ConnectionID":
+		return r.ConnectionID, true
+	case "OrgName":
+		return r.OrgName, true
+	case "Search":
+		return r.Search, true
+	case "MaxResults":
+		return EvalNullable(r.MaxResults)
+	case "Token":
+		return EvalNullable(r.Token)
+	default:
+		return nil, false
+	}
+}
+
+// SearchRepos searches repositories within an organization for a GitHub connection.
+// nolint: dupl
+func (c *Client) SearchRepos(ctx context.Context, req *SearchReposRequest) (*List[string], error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.ConnectionID == "" {
+		return nil, fmt.Errorf("connection id is required")
+	}
+	if req.OrgName == "" {
+		return nil, fmt.Errorf("org name is required")
+	}
+	if req.Search == "" {
+		return nil, fmt.Errorf("search is required")
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"github-connections",
+		url.PathEscape(req.ConnectionID),
+		"orgs",
+		url.PathEscape(req.OrgName),
+		"repos",
+	)
+	q := u.Query()
+	q.Set("search", req.Search)
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	err = c.authenticate(req.DelegatedAuthInfo, httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out List[string]
+	err = json.NewDecoder(resp.Body).Decode(&out)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // UpdateGithubConnectionRequest contains fields for updating a GitHub connection.
 type UpdateGithubConnectionRequest struct {
 	FeatureFlags
