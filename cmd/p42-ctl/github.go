@@ -10,19 +10,20 @@ import (
 )
 
 type GithubOptions struct {
-	AddOrg            AddGithubOrgOptions            `cmd:"" help:"Add a GitHub organization."`
-	AddConnection     AddGithubConnectionOptions     `cmd:"" help:"Add a GitHub connection to a tenant."`
-	ListConnections   ListGithubConnectionsOptions   `cmd:"" help:"List Github connections for a tenant."`
-	GetConnection     GetGithubConnectionOptions     `cmd:"" help:"Fetch Github connections for a tenant."`
-	UpdateConnection  UpdateGithubConnectionOptions  `cmd:"" help:"Update a GitHub connection for a tenant."`
-	DeleteConnection  DeleteGithubConnectionOptions  `cmd:"" help:"Permanently Delete a GitHub connection from a tenant."`
-	ListOrgs          ListGithubOrgsOptions          `cmd:"" help:"List GitHub organizations."`
-	GetOrg            GetGithubOrgOptions            `cmd:"" help:"Get a GitHub organization."`
-	UpdateOrg         UpdateGithubOrgOptions         `cmd:"" help:"Update a GitHub organization."`
-	DeleteOrg         DeleteGithubOrgOptions         `cmd:"" help:"Delete a GitHub organization."`
-	GetTenantCreds    GetTenantGithubCredsOptions    `cmd:"" help:"Fetch GitHub credentials for a tenant."`
-	UpdateTenantCreds UpdateTenantGithubCredsOptions `cmd:"" help:"Update GitHub credentials for a tenant."`
-	FindUsers         FindGithubUsersOptions         `cmd:"" help:"Find tenants given their github login or user id."`
+	AddOrg                AddGithubOrgOptions                `cmd:"" help:"Add a GitHub organization."`
+	AddConnection         AddGithubConnectionOptions         `cmd:"" help:"Add a GitHub connection to a tenant."`
+	ListConnections       ListGithubConnectionsOptions       `cmd:"" help:"List Github connections for a tenant."`
+	GetConnection         GetGithubConnectionOptions         `cmd:"" help:"Fetch Github connections for a tenant."`
+	UpdateConnection      UpdateGithubConnectionOptions      `cmd:"" help:"Update a GitHub connection for a tenant."`
+	DeleteConnection      DeleteGithubConnectionOptions      `cmd:"" help:"Permanently Delete a GitHub connection from a tenant."`
+	ListOrgsForConnection ListGithubOrgsForConnectionOptions `cmd:"" help:"List GitHub organizations for a connection."`
+	ListOrgs              ListGithubOrgsOptions              `cmd:"" help:"List GitHub organizations."`
+	GetOrg                GetGithubOrgOptions                `cmd:"" help:"Get a GitHub organization."`
+	UpdateOrg             UpdateGithubOrgOptions             `cmd:"" help:"Update a GitHub organization."`
+	DeleteOrg             DeleteGithubOrgOptions             `cmd:"" help:"Delete a GitHub organization."`
+	GetTenantCreds        GetTenantGithubCredsOptions        `cmd:"" help:"Fetch GitHub credentials for a tenant."`
+	UpdateTenantCreds     UpdateTenantGithubCredsOptions     `cmd:"" help:"Update GitHub credentials for a tenant."`
+	FindUsers             FindGithubUsersOptions             `cmd:"" help:"Find tenants given their github login or user id."`
 }
 
 // FindGithubUsersOptions provides options for the `github find-users` command.
@@ -158,6 +159,47 @@ func (o *ListGithubConnectionsOptions) Run(ctx context.Context, s *SharedOptions
 		for _, connection := range resp.Items {
 			err = printJSON(connection)
 			if err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		req.Token = resp.NextToken
+	}
+
+	return nil
+}
+
+type ListGithubOrgsForConnectionOptions struct {
+	TenantID     string `help:"The tenant ID that owns the connection." name:"tenant-id" short:"i" required:""`
+	ConnectionID string `help:"The GitHub connection ID to list orgs for." name:"connection-id" short:"c" required:""`
+	MaxResults   *int   `help:"Max number of orgs to return per page." name:"max-results" short:"m" optional:""`
+}
+
+func (o *ListGithubOrgsForConnectionOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.ListOrgsForGithubConnectionRequest{
+		TenantID:     o.TenantID,
+		ConnectionID: o.ConnectionID,
+		MaxResults:   o.MaxResults,
+	}
+
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	for {
+		resp, err := s.Client.ListOrgsForGithubConnection(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, org := range resp.Orgs {
+			if err := printJSON(org); err != nil {
 				return err
 			}
 		}

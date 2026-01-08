@@ -181,6 +181,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Github.UpdateConnection.Run(options.Ctx, &options.SharedOptions)
 	case "github delete-connection":
 		return options.Github.DeleteConnection.Run(options.Ctx, &options.SharedOptions)
+	case "github list-orgs-for-connection":
+		return options.Github.ListOrgsForConnection.Run(options.Ctx, &options.SharedOptions)
 	case "github list-orgs":
 		return options.Github.ListOrgs.Run(options.Ctx, &options.SharedOptions)
 	case "github get-org":
