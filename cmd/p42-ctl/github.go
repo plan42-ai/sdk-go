@@ -280,14 +280,25 @@ func (o *AddGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 type ListGithubOrgsOptions struct {
 	Name           *string `help:"Return only the GitHub org whose name matches the provided value." name:"name" short:"n" optional:""`
 	IncludeDeleted bool    `help:"Include deleted github orgs" short:"d"`
+	TenantID       *string `help:"The ID of the tenant to list github orgs for." name:"tenant-id" short:"i" optional:""`
+	ConnectionID   *string `help:"The ID of the github connection to list orgs for." name:"connection-id" short:"c" optional:""`
 }
 
 func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
 		return fmt.Errorf(delegatedAuthNotSupported, "github list-orgs")
 	}
-	if err := ensureNoFeatureFlags(s, "github list-orgs"); err != nil {
+	err := ensureNoFeatureFlags(s, "github list-orgs")
+	if err != nil {
 		return err
+	}
+
+	if (o.TenantID != nil) != (o.ConnectionID != nil) {
+		return fmt.Errorf("--tenant-id and --connection-id must be provided together")
+	}
+
+	if o.TenantID != nil {
+		return o.listOrgsForConnection(ctx, s)
 	}
 	var token *string
 	for {
@@ -301,7 +312,8 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 			return err
 		}
 		for _, org := range resp.Orgs {
-			if err := printJSON(org); err != nil {
+			err = printJSON(org)
+			if err != nil {
 				return err
 			}
 		}
@@ -310,6 +322,36 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 		}
 		token = resp.NextToken
 	}
+	return nil
+}
+
+func (o *ListGithubOrgsOptions) listOrgsForConnection(ctx context.Context, s *SharedOptions) error {
+	tenantID := *o.TenantID
+	connectionID := *o.ConnectionID
+
+	var token *string
+	for {
+		req := &p42.ListOrgsForGithubConnectionRequest{
+			TenantID:     tenantID,
+			ConnectionID: connectionID,
+			Token:        token,
+		}
+
+		resp, err := s.Client.ListOrgsForGithubConnection(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, org := range resp.Items {
+			fmt.Println(org)
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+
 	return nil
 }
 

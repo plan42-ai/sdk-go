@@ -4956,16 +4956,24 @@ func TestListTurnsError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func requireEscapedPathParts(t *testing.T, r *http.Request, expected []string) {
+	t.Helper()
+
+	escapedPath := r.URL.EscapedPath()
+	parts := strings.Split(escapedPath, "/")
+	require.Equal(t, expected, parts, "path doesn't have correct # of parts: %s", escapedPath)
+}
+
 func TestListTurnsPathEscaping(t *testing.T) {
 	t.Parallel()
 
 	handler := http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			escapedPath := r.URL.EscapedPath()
-			parts := strings.Split(escapedPath, "/")
-			require.Equal(t, 7, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
-			require.Equal(t, escapedTenantID, parts[3])
-			require.Equal(t, escapedTaskID, parts[5])
+			requireEscapedPathParts(
+				t,
+				r,
+				[]string{"", "v1", "tenants", escapedTenantID, "tasks", escapedTaskID, "turns"},
+			)
 
 			w.WriteHeader(http.StatusOK)
 			resp := p42.ListTurnsResponse{}
@@ -6074,6 +6082,96 @@ func TestListGithubOrgsError(t *testing.T) {
 
 	_, err := client.ListGithubOrgs(context.Background(), &p42.ListGithubOrgsRequest{})
 	require.Error(t, err)
+}
+
+func TestListOrgsForGithubConnection(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/abc/github-connections/conn/orgs", r.URL.Path)
+			require.Equal(t, "application/json", r.Header.Get("Accept"))
+			require.Equal(t, "5", r.URL.Query().Get("maxResults"))
+			require.Equal(t, tokenID, r.URL.Query().Get("token"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.ListOrgsForGithubConnectionResponse{
+				Items:     []string{"org-1", "org-2"},
+				NextToken: util.Pointer(tokenID),
+			}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	maxResults := 5
+	resp, err := client.ListOrgsForGithubConnection(
+		context.Background(),
+		&p42.ListOrgsForGithubConnectionRequest{
+			TenantID:     "abc",
+			ConnectionID: "conn",
+			MaxResults:   &maxResults,
+			Token:        util.Pointer(tokenID),
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, resp.Items, 2)
+	require.NotNil(t, resp.NextToken)
+	require.Equal(t, tokenID, *resp.NextToken)
+}
+
+func TestListOrgsForGithubConnectionError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListOrgsForGithubConnection(
+		context.Background(),
+		&p42.ListOrgsForGithubConnectionRequest{TenantID: "abc", ConnectionID: "conn"},
+	)
+	require.Error(t, err)
+}
+
+func TestListOrgsForGithubConnectionPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			requireEscapedPathParts(
+				t,
+				r,
+				[]string{
+					"",
+					"v1",
+					"tenants",
+					escapedTenantID,
+					"github-connections",
+					escapedGithubConnectionID,
+					"orgs",
+				},
+			)
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.ListOrgsForGithubConnectionResponse{}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.ListOrgsForGithubConnection(
+		context.Background(),
+		&p42.ListOrgsForGithubConnectionRequest{
+			TenantID:     tenantIDThatNeedsEscaping,
+			ConnectionID: githubConnectionIDThatNeedsEscaping,
+		},
+	)
+	require.NoError(t, err)
 }
 
 func TestGetGithubOrg(t *testing.T) {
