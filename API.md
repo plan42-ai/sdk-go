@@ -5197,7 +5197,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                                          |
 | connection_id                            | path     | string  | The ID of the GitHub connection to list organizations for.                                     |
-| maxResults                               | query    | *int    | Optional. The maximum number of organizations to return. Default is 10. Must be >=1 and < 500. |
+| maxResults                               | query    | *int    | Optional. The maximum number of organizations to return. Default is 10. Must be between 1 and 100. |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                        |
 | Authorization                            | header   | string  | The authorization header for the request.                                                      |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                         |
@@ -5266,4 +5266,3 @@ Content-Type: application/json; charset=utf-8
 |-----------|----------|------------------------------------------------------------------------------------------------|
 | NextToken | *string  | A token to retrieve the next page of results. If there are no more results, this will be null. |
 | Items     | []string | A list of repository names that match the search criteria.                                     |
-
