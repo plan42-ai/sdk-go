@@ -5178,3 +5178,47 @@ Content-Type: application/json; charset=utf-8
     "GithubToken": "string
 }
 ```
+
+# 95. ListOrgsForGithubConnection
+
+The ListOrgsForGithubConnection API lists all organizations associated with a GitHub connection.
+
+## 95.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/github-connections/{connection_id}/orgs?maxResults={maxResults}&token={token} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                    |
+|------------------------------------------|----------|---------|------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                                          |
+| connection_id                            | path     | string  | The ID of the GitHub connection to list organizations for.                                     |
+| maxResults                               | query    | *int    | Optional. The maximum number of organizations to return. Default is 10. Must be >=1 and < 500. |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                        |
+| Authorization                            | header   | string  | The authorization header for the request.                                                      |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                         |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                            |
+
+## 95.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextToken": "*string",
+    "Items": ["string"]
+}
+```
+
+| Field     | Type     | Description                                                                                    |
+|-----------|----------|------------------------------------------------------------------------------------------------|
+| NextToken | *string  | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Items     | []string | A list of organization names associated with the GitHub connection.                            |
+
