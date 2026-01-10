@@ -161,6 +161,7 @@ const (
 	ActionPingRunnerQueue             Action = "PingRunnerQueue"
 	ActionUpdateRunnerQueue           Action = "UpdateRunnerQueue"
 	ActionListOrgsForGithubConnection Action = "ListOrgsForGithubConnection"
+	ActionSearchRepos                 Action = "SearchRepos"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -480,6 +481,7 @@ func init() {
 			ActionUpdateRunnerQueue,           // (0x0000_0000_0004_0000, 0)
 			ActionGetTaskGithubCreds,          // (0x0000_0000_0008_0000, 0)
 			ActionListOrgsForGithubConnection, // (0x0000_0000_0010_0000, 0)
+			ActionSearchRepos,                 // (0x0000_0000_0020_0000, 0)
 
 		},
 		ActionBitVector{

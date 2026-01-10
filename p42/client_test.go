@@ -5851,6 +5851,93 @@ func TestListOrgsForGithubConnectionPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestSearchRepos(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/abc/github-connections/conn/orgs/octo/repos", r.URL.Path)
+			require.Equal(t, "application/json", r.Header.Get("Accept"))
+			require.Equal(t, "plan", r.URL.Query().Get("search"))
+			require.Equal(t, "10", r.URL.Query().Get("maxResults"))
+			require.Equal(t, tokenID, r.URL.Query().Get("token"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.List[string]{Items: []string{"repo-1"}, NextToken: util.Pointer(tokenID)}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	maxResults := 10
+	resp, err := client.SearchRepos(
+		context.Background(),
+		&p42.SearchReposRequest{
+			TenantID:     "abc",
+			ConnectionID: "conn",
+			OrgName:      "octo",
+			Search:       "plan",
+			MaxResults:   &maxResults,
+			Token:        util.Pointer(tokenID),
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "repo-1", resp.Items[0])
+	require.NotNil(t, resp.NextToken)
+	require.Equal(t, tokenID, *resp.NextToken)
+}
+
+func TestSearchReposError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.SearchRepos(
+		context.Background(),
+		&p42.SearchReposRequest{TenantID: "abc", ConnectionID: "conn", OrgName: "org", Search: "search"},
+	)
+	require.Error(t, err)
+}
+
+func TestSearchReposPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 9, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3])
+			require.Equal(t, escapedGithubConnectionID, parts[5])
+			require.Equal(t, escapedGithubOrgID, parts[7])
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.List[string]{}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.SearchRepos(
+		context.Background(),
+		&p42.SearchReposRequest{
+			TenantID:     tenantIDThatNeedsEscaping,
+			ConnectionID: githubConnectionIDThatNeedsEscaping,
+			OrgName:      githubOrgIDThatNeedsEscaping,
+			Search:       "plan",
+		},
+	)
+	require.NoError(t, err)
+}
+
 func TestUpdateGithubConnection(t *testing.T) {
 	t.Parallel()
 
