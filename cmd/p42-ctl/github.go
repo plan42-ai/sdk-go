@@ -10,20 +10,19 @@ import (
 )
 
 type GithubOptions struct {
-	AddOrg             AddGithubOrgOptions             `cmd:"" help:"Add a GitHub organization."`
-	AddConnection      AddGithubConnectionOptions      `cmd:"" help:"Add a GitHub connection to a tenant."`
-	ListConnections    ListGithubConnectionsOptions    `cmd:"" help:"List Github connections for a tenant."`
-	GetConnection      GetGithubConnectionOptions      `cmd:"" help:"Fetch Github connections for a tenant."`
-	UpdateConnection   UpdateGithubConnectionOptions   `cmd:"" help:"Update a GitHub connection for a tenant."`
-	DeleteConnection   DeleteGithubConnectionOptions   `cmd:"" help:"Permanently Delete a GitHub connection from a tenant."`
-	ListOrgs           ListGithubOrgsOptions           `cmd:"" help:"List GitHub organizations."`
-	GetOrg             GetGithubOrgOptions             `cmd:"" help:"Get a GitHub organization."`
-	UpdateOrg          UpdateGithubOrgOptions          `cmd:"" help:"Update a GitHub organization."`
-	DeleteOrg          DeleteGithubOrgOptions          `cmd:"" help:"Delete a GitHub organization."`
-	GetTenantCreds     GetTenantGithubCredsOptions     `cmd:"" help:"Fetch GitHub credentials for a tenant."`
-	UpdateTenantCreds  UpdateTenantGithubCredsOptions  `cmd:"" help:"Update GitHub credentials for a tenant."`
-	FindUsers          FindGithubUsersOptions          `cmd:"" help:"Find tenants given their github login or user id."`
-	MigrateTenantCreds GithubMigrateTenantCredsOptions `cmd:"" help:"Migrate tenant GitHub credentials into GitHub connections."`
+	AddOrg            AddGithubOrgOptions            `cmd:"" help:"Add a GitHub organization."`
+	AddConnection     AddGithubConnectionOptions     `cmd:"" help:"Add a GitHub connection to a tenant."`
+	ListConnections   ListGithubConnectionsOptions   `cmd:"" help:"List Github connections for a tenant."`
+	GetConnection     GetGithubConnectionOptions     `cmd:"" help:"Fetch Github connections for a tenant."`
+	UpdateConnection  UpdateGithubConnectionOptions  `cmd:"" help:"Update a GitHub connection for a tenant."`
+	DeleteConnection  DeleteGithubConnectionOptions  `cmd:"" help:"Permanently Delete a GitHub connection from a tenant."`
+	ListOrgs          ListGithubOrgsOptions          `cmd:"" help:"List GitHub organizations."`
+	GetOrg            GetGithubOrgOptions            `cmd:"" help:"Get a GitHub organization."`
+	UpdateOrg         UpdateGithubOrgOptions         `cmd:"" help:"Update a GitHub organization."`
+	DeleteOrg         DeleteGithubOrgOptions         `cmd:"" help:"Delete a GitHub organization."`
+	GetTenantCreds    GetTenantGithubCredsOptions    `cmd:"" help:"Fetch GitHub credentials for a tenant."`
+	UpdateTenantCreds UpdateTenantGithubCredsOptions `cmd:"" help:"Update GitHub credentials for a tenant."`
+	FindUsers         FindGithubUsersOptions         `cmd:"" help:"Find tenants given their github login or user id."`
 }
 
 // FindGithubUsersOptions provides options for the `github find-users` command.
