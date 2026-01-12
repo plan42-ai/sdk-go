@@ -6,11 +6,11 @@ P42_CTL=${P42_CTL:-p42-ctl}
 read -r -a P42_ARGS_ARRAY <<<"${P42_ARGS:-}"
 
 log() {
-	printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"
+	printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2
 }
 
 err() {
-	log "$*" >&2
+	log "$*"
 }
 
 require_cmd() {
