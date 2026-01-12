@@ -280,6 +280,8 @@ func (o *AddGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 type ListGithubOrgsOptions struct {
 	Name           *string `help:"Return only the GitHub org whose name matches the provided value." name:"name" short:"n" optional:""`
 	IncludeDeleted bool    `help:"Include deleted github orgs" short:"d"`
+	TenantID       *string `help:"The id of the tenant to list github orgs for." name:"tenant-id" short:"i" optional:""`
+	ConnectionID   *string `help:"The id of the github connection to list orgs for." name:"connection-id" short:"c" optional:""`
 }
 
 func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -288,6 +290,21 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 	}
 	if err := ensureNoFeatureFlags(s, "github list-orgs"); err != nil {
 		return err
+	}
+
+	tenantProvided := o.TenantID != nil
+	connectionProvided := o.ConnectionID != nil
+
+	if tenantProvided != connectionProvided {
+		return fmt.Errorf("both --tenant-id and --connection-id must be provided together")
+	}
+
+	if tenantProvided && (o.IncludeDeleted || o.Name != nil) {
+		return fmt.Errorf("--tenant-id and --connection-id cannot be used with --include-deleted or --name")
+	}
+
+	if tenantProvided {
+		return o.listOrgsForConnection(ctx, s)
 	}
 	var token *string
 	for {
@@ -310,6 +327,34 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 		}
 		token = resp.NextToken
 	}
+	return nil
+}
+
+func (o *ListGithubOrgsOptions) listOrgsForConnection(ctx context.Context, s *SharedOptions) error {
+	var token *string
+	for {
+		req := &p42.ListOrgsForGithubConnectionRequest{
+			TenantID:     *o.TenantID,
+			ConnectionID: *o.ConnectionID,
+			Token:        token,
+		}
+
+		resp, err := s.Client.ListOrgsForGithubConnection(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, orgName := range resp.Items {
+			fmt.Println(orgName)
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		token = resp.NextToken
+	}
+
 	return nil
 }
 
