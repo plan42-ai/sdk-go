@@ -29,10 +29,13 @@ fmt:
 lint:
 	golangci-lint run
 
-
 .PHONY: build
 build:
 	go build ./...
+
+.PHONY: install
+install:
+	go install ./cmd/p42-ctl
 
 .PHONY: test
 test:
