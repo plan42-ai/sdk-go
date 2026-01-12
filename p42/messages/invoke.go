@@ -19,7 +19,7 @@ type InvokeAgentRequest struct {
 	Task        *p42.Task
 	Turn        *p42.Turn
 	Environment *p42.Environment
-	GithubToken string
+	GithubToken *string
 	AgentToken  string
 	FeedBack    map[string][]PRFeedback
 }
@@ -41,7 +41,7 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 		Task        *p42.Task
 		Turn        *p42.Turn
 		Environment *p42.Environment
-		GithubToken string
+		GithubToken *string
 		AgentToken  string
 		FeedBack    map[string][]PRFeedback
 	}
