@@ -16,12 +16,14 @@ type EncryptedInvokeAgentRequest struct {
 }
 
 type InvokeAgentRequest struct {
-	Task        *p42.Task
-	Turn        *p42.Turn
-	Environment *p42.Environment
-	GithubToken *string
-	AgentToken  string
-	FeedBack    map[string][]PRFeedback
+	Task                      *p42.Task
+	Turn                      *p42.Turn
+	Environment               *p42.Environment
+	GithubToken               *string
+	GithubURL                 *string
+	PrivateGithubConnectionID *string
+	AgentToken                string
+	FeedBack                  map[string][]PRFeedback
 }
 
 func (r *InvokeAgentRequest) Type() MessageType {
@@ -37,13 +39,15 @@ func (r *InvokeAgentRequest) GetModel() p42.ModelType {
 
 func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		Type        MessageType
-		Task        *p42.Task
-		Turn        *p42.Turn
-		Environment *p42.Environment
-		GithubToken *string
-		AgentToken  string
-		FeedBack    map[string][]PRFeedback
+		Type                      MessageType
+		Task                      *p42.Task
+		Turn                      *p42.Turn
+		Environment               *p42.Environment
+		GithubToken               *string
+		GithubURL                 *string
+		PrivateGithubConnectionID *string
+		AgentToken                string
+		FeedBack                  map[string][]PRFeedback
 	}
 
 	tmp.Type = InvokeAgentRequestMessage
