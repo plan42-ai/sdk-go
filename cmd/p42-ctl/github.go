@@ -20,6 +20,7 @@ type GithubOptions struct {
 	GetOrg            GetGithubOrgOptions            `cmd:"" help:"Get a GitHub organization."`
 	UpdateOrg         UpdateGithubOrgOptions         `cmd:"" help:"Update a GitHub organization."`
 	DeleteOrg         DeleteGithubOrgOptions         `cmd:"" help:"Delete a GitHub organization."`
+	SearchRepos       SearchGithubReposOptions       `cmd:"" help:"Search repositories within a GitHub organization."`
 	GetTenantCreds    GetTenantGithubCredsOptions    `cmd:"" help:"Fetch GitHub credentials for a tenant."`
 	UpdateTenantCreds UpdateTenantGithubCredsOptions `cmd:"" help:"Update GitHub credentials for a tenant."`
 	FindUsers         FindGithubUsersOptions         `cmd:"" help:"Find tenants given their github login or user id."`
@@ -285,13 +286,6 @@ type ListGithubOrgsOptions struct {
 }
 
 func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
-	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
-		return fmt.Errorf(delegatedAuthNotSupported, "github list-orgs")
-	}
-	if err := ensureNoFeatureFlags(s, "github list-orgs"); err != nil {
-		return err
-	}
-
 	tenantProvided := o.TenantID != nil
 	connectionProvided := o.ConnectionID != nil
 
@@ -305,6 +299,13 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 
 	if tenantProvided {
 		return o.listOrgsForConnection(ctx, s)
+	}
+	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
+		return fmt.Errorf(delegatedAuthNotSupported, "github list-orgs")
+	}
+	err := ensureNoFeatureFlags(s, "github list-orgs")
+	if err != nil {
+		return err
 	}
 	var token *string
 	for {
@@ -331,14 +332,16 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 }
 
 func (o *ListGithubOrgsOptions) listOrgsForConnection(ctx context.Context, s *SharedOptions) error {
-	var token *string
+	req := &p42.ListOrgsForGithubConnectionRequest{
+		TenantID:     *o.TenantID,
+		ConnectionID: *o.ConnectionID,
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 	for {
-		req := &p42.ListOrgsForGithubConnectionRequest{
-			TenantID:     *o.TenantID,
-			ConnectionID: *o.ConnectionID,
-			Token:        token,
-		}
-
 		resp, err := s.Client.ListOrgsForGithubConnection(ctx, req)
 		if err != nil {
 			return err
@@ -352,7 +355,46 @@ func (o *ListGithubOrgsOptions) listOrgsForConnection(ctx context.Context, s *Sh
 			break
 		}
 
-		token = resp.NextToken
+		req.Token = resp.NextToken
+	}
+
+	return nil
+}
+
+type SearchGithubReposOptions struct {
+	TenantID     string `help:"The id of the tenant that owns the github connection." name:"tenant-id" short:"i" required:""`
+	ConnectionID string `help:"The id of the github connection to search." name:"connection-id" short:"c" required:""`
+	OrgName      string `help:"The github organization to search." name:"org" required:""`
+	Search       string `help:"The search string to filter repositories." name:"search" required:""`
+}
+
+func (o *SearchGithubReposOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.SearchReposRequest{
+		TenantID:     o.TenantID,
+		ConnectionID: o.ConnectionID,
+		OrgName:      o.OrgName,
+		Search:       o.Search,
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+	for {
+		resp, err := s.Client.SearchRepos(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, repo := range resp.Items {
+			fmt.Println(repo)
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		req.Token = resp.NextToken
 	}
 
 	return nil
