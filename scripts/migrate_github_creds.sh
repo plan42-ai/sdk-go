@@ -106,7 +106,8 @@ ensure_connection() {
 	local existing
 	existing=$(run_ctl github list-connections -i "$tenant_id" | jq -c \
 		--arg login "$login_lower" --argjson uid "$github_user_id" \
-		'select(.Private == false) | select((.GithubUserID != null and .GithubUserID == $uid) or (.GithubUserLogin != null and (ascii_downcase(.GithubUserLogin) == $login)))' | head -n 1 || true)
+		'def ascii_lower: explode | map(if . >= 65 and . <= 90 then . + 32 else . end) | implode; \
+		 select(.Private == false) | select((.GithubUserID != null and .GithubUserID == $uid) or (.GithubUserLogin != null and ((.GithubUserLogin | ascii_lower) == $login)))' | head -n 1 || true)
 	if [[ -n "$existing" ]]; then
 		printf '%s' "$existing"
 		return 0
