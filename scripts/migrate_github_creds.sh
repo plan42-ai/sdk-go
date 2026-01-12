@@ -34,6 +34,7 @@ while (($#)); do
 				exit 1
 			fi
 			TENANT_FILTER+=("$2")
+			log "Queued tenant $2 for targeted migration"
 			shift 2
 			;;
 		-h|--help)
@@ -61,6 +62,8 @@ done
 require_cmd jq
 require_cmd "$P42_CTL"
 
+log "Starting GitHub creds migration using $P42_CTL ${P42_ARGS_ARRAY[*]:-}" 
+
 lower() {
 	printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
 }
@@ -75,6 +78,7 @@ collect_tenants() {
 		return
 	fi
 	mapfile -t tenants < <(run_ctl tenant list | jq -r 'select(.Deleted != true) | .TenantId')
+	log "Discovered ${#tenants[@]} active tenants"
 	printf '%s\n' "${tenants[@]}"
 }
 
@@ -110,16 +114,25 @@ ensure_connection() {
 	select(.Private == false)
 	| select((.GithubUserID != null and .GithubUserID == $uid) or (.GithubUserLogin != null and ((.GithubUserLogin | ascii_lower) == $login)))
 	' | head -n 1 || true)
+	local result
+	local action
 	if [[ -n "$existing" ]]; then
-		printf '%s' "$existing"
-		return 0
-	fi
-
-	local payload
-	payload=$(jq -n --arg login "$github_login" --argjson uid "$github_user_id" '{Private:false, GithubUserLogin:$login, GithubUserID:$uid}')
-	run_ctl github add-connection -i "$tenant_id" <<-EOF | jq -c '.'
+		result="$existing"
+		action="reusing"
+	else
+		local payload
+		payload=$(jq -n --arg login "$github_login" --argjson uid "$github_user_id" '{Private:false, GithubUserLogin:$login, GithubUserID:$uid}')
+		result=$(run_ctl github add-connection -i "$tenant_id" <<-EOF | jq -c '.'
 	$payload
 EOF
+)
+		action="created"
+	fi
+
+	local connection_id
+	connection_id=$(jq -r '.ConnectionID' <<<"$result")
+	log "Tenant ${tenant_id}: ${action} connection ${connection_id} for github_login ${github_login}"
+	printf '%s' "$result"
 }
 
 update_connection() {
@@ -160,6 +173,11 @@ migrate_tenant() {
 
 	local default_connection
 	default_connection=$(jq -r '.DefaultGithubConnectionID // ""' <<<"$tenant_json")
+	if [[ -n "$default_connection" ]]; then
+		log "Tenant ${tenant_id}: current default connection ${default_connection}"
+	else
+		log "Tenant ${tenant_id}: no default connection configured"
+	fi
 
 	local creds_json
 	creds_json=$(fetch_json "fetch github creds" github get-tenant-creds -i "$tenant_id") || {
@@ -179,6 +197,7 @@ migrate_tenant() {
 	oauth_token=$(jq -r '.OAuthToken // ""' <<<"$creds_json")
 	local refresh_token
 	refresh_token=$(jq -r '.RefreshToken // ""' <<<"$creds_json")
+	log "Tenant ${tenant_id}: fetched creds for github_login ${github_login:-<none>} (id ${github_user_id}) oauth_token=$([[ -n $oauth_token ]] && echo present || echo missing) refresh_token=$([[ -n $refresh_token ]] && echo present || echo missing)"
 
 	if [[ -z "$github_login" || "$github_user_id" == "null" ]]; then
 		log "Tenant ${tenant_id}: missing GitHub login or user ID, skipping"
@@ -197,14 +216,18 @@ migrate_tenant() {
 
 	local connection_id
 	connection_id=$(jq -r '.ConnectionID' <<<"$connection_json")
-	log "Tenant ${tenant_id}: using connection ${connection_id}"
+	log "Tenant ${tenant_id}: using connection ${connection_id} for github_login ${github_login}"
 
 	update_connection "$tenant_id" "$connection_id" "$github_login" "$github_user_id" "$oauth_token" "$refresh_token"
-	log "Tenant ${tenant_id}: updated connection tokens"
+	log "Tenant ${tenant_id}: updated connection tokens (oauth=$([[ -n $oauth_token ]] && echo present || echo missing), refresh=$([[ -n $refresh_token ]] && echo present || echo missing))"
 
 	if [[ "$default_connection" != "$connection_id" ]]; then
 		set_default_connection "$tenant_id" "$connection_id"
-		log "Tenant ${tenant_id}: set default connection"
+		if [[ -n "$default_connection" ]]; then
+			log "Tenant ${tenant_id}: updated default connection from ${default_connection} to ${connection_id}"
+		else
+			log "Tenant ${tenant_id}: set default connection to ${connection_id}"
+		fi
 	else
 		log "Tenant ${tenant_id}: default connection already set"
 	fi
