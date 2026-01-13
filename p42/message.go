@@ -84,9 +84,10 @@ func (RunnerMessage) ObjectType() ObjectType {
 type GetMessagesBatchRequest struct {
 	FeatureFlags
 
-	TenantID string
-	RunnerID string
-	QueueID  string
+	TenantID       string
+	RunnerID       string
+	QueueID        string
+	MaxWaitSeconds *int
 }
 
 // GetField retrieves the value of a field by name.
@@ -99,6 +100,8 @@ func (r *GetMessagesBatchRequest) GetField(name string) (any, bool) {
 		return r.RunnerID, true
 	case "QueueID":
 		return r.QueueID, true
+	case "MaxWaitSeconds":
+		return EvalNullable(r.MaxWaitSeconds)
 	default:
 		return nil, false
 	}
@@ -137,6 +140,12 @@ func (c *Client) GetMessagesBatch(ctx context.Context, req *GetMessagesBatchRequ
 		url.PathEscape(req.QueueID),
 		"messages",
 	)
+
+	if req.MaxWaitSeconds != nil {
+		q := u.Query()
+		q.Set("maxWaitSeconds", fmt.Sprintf("%d", *req.MaxWaitSeconds))
+		u.RawQuery = q.Encode()
+	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
