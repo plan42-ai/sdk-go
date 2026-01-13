@@ -9,6 +9,8 @@ const (
 	InvokeAgentResponseMessage                 MessageType = "InvokeAgentResponse"
 	ListOrgsForGithubConnectionRequestMessage  MessageType = "ListOrgsForGithubConnectionRequest"
 	ListOrgsForGithubConnectionResponseMessage MessageType = "ListOrgsForGithubConnectionResponse"
+	SearchRepoRequestMessage                   MessageType = "SearchRepoRequest"
+	SearchRepoResponseMessage                  MessageType = "SearchRepoResponse"
 )
 
 type Message interface {
