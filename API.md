@@ -1975,7 +1975,7 @@ Content-Type: application/json; charset=utf-8
 
 # 28. StreamTurnLogs
 
-StreamTurns logs streams for a turn using Server-Sent Events (SSE). 
+StreamTurns streams logs for a turn using Server-Sent Events (SSE). 
 
 ## 28.1 Request
 
@@ -4634,18 +4634,19 @@ So, when messages are returned from this API, the are deleted from the queue bef
 ## 79.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/runners/{runner_id}/queues/{queue_id}/messages HTTP/1.1
+GET /v1/tenants/{tenant_id}/runners/{runner_id}/queues/{queue_id}/messages&maxWaitSeconds={maxWaitSeconds} HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Accept: application/json
 Authorization: <authorization>
 ```
 
-| Parameter     | Location | Type   | Description                                 |
-|---------------|----------|--------|---------------------------------------------|
-| tenant_id     | path     | string | The ID of the tenant that owns the runner.  |
-| runner_id     | path     | string | The ID of the runner to fetch messages for. |
-| queue_id      | path     | string | The ID of the queue to fetch messages from. |
-| Authorization | header   | string | The authorization header for the request.   |
+| Parameter      | Location | Type   | Description                                                                                                                        |
+|----------------|----------|--------|------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id      | path     | string | The ID of the tenant that owns the runner.                                                                                         |
+| runner_id      | path     | string | The ID of the runner to fetch messages for.                                                                                        |
+| queue_id       | path     | string | The ID of the queue to fetch messages from.                                                                                        |
+| maxWaitSeconds | query    | *int   | The maximum time in seconds to wait for messages to arrive if the queue is empty. Defaults to 0 (no wait). Maximum is 10 minuites. |
+| Authorization  | header   | string | The authorization header for the request.                                                                                          |
 
 Note that this api does not support delegation.
 
