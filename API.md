@@ -5243,7 +5243,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | connection_id                            | path     | string  | The ID of the GitHub connection to search repositories for.                                   |
 | org_name                                 | path     | string  | The name of the GitHub organization to search repositories in.                                |
 | searchStr                                | query    | string  | The search string to filter repositories by.                                                  |
-| maxResults                               | query    | *int    | Optional. The maximum number of repositories to return. Default is 10. Must be >=1 and < 500. |
+| maxResults                               | query    | *int    | Optional. The maximum number of repositories to return. Default is 10. Must be between 1 and 100. |
 | token                                    |          | query   | *string                                                                                       | Optional. A token to retrieve the next page of results.                                       |
 | Authorization                            | header   | string  | The authorization header for the request.                                                     |
 | X-Event-Horizon-Delegating-Authorization | header   | *string |                                                                                               | The authorization header for the delegating principal.                                        |
