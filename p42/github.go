@@ -592,6 +592,7 @@ type UpdateGithubConnectionRequest struct {
 	GithubUserID    *int       `json:"GithubUserID,omitempty"`
 	OAuthToken      *string    `json:"OAuthToken,omitempty"`
 	RefreshToken    *string    `json:"RefreshToken,omitempty"`
+	TokenExpiry     *time.Time `json:"TokenExpiry,omitempty"`
 	State           *string    `json:"State,omitempty"`
 	StateExpiry     *time.Time `json:"StateExpiry,omitempty"`
 	Name            *string    `json:"Name,omitempty"`
@@ -623,6 +624,8 @@ func (r *UpdateGithubConnectionRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.OAuthToken)
 	case "RefreshToken":
 		return EvalNullable(r.RefreshToken)
+	case "TokenExpiry":
+		return EvalNullable(r.TokenExpiry)
 	case "State":
 		return EvalNullable(r.State)
 	case "StateExpiry":

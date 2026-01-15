@@ -5942,6 +5942,7 @@ func TestUpdateGithubConnection(t *testing.T) {
 	t.Parallel()
 
 	stateExpiry := time.Now().UTC().Add(time.Hour).Truncate(time.Second)
+	tokenExpiry := time.Now().UTC().Add(2 * time.Hour).Truncate(time.Second)
 
 	handler := http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -5964,9 +5965,11 @@ func TestUpdateGithubConnection(t *testing.T) {
 			require.Equal(t, "pending", *reqBody.State)
 			require.NotNil(t, reqBody.StateExpiry)
 			require.WithinDuration(t, stateExpiry, *reqBody.StateExpiry, time.Second)
+			require.NotNil(t, reqBody.TokenExpiry)
+			require.WithinDuration(t, tokenExpiry, *reqBody.TokenExpiry, time.Second)
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.GithubConnection{TenantID: "abc", ConnectionID: "conn"}
+			resp := p42.GithubConnection{TenantID: "abc", ConnectionID: "conn", TokenExpiry: &tokenExpiry}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -5984,12 +5987,15 @@ func TestUpdateGithubConnection(t *testing.T) {
 			RunnerID:     util.Pointer("runner"),
 			OAuthToken:   util.Pointer("oauth"),
 			RefreshToken: util.Pointer("refresh"),
+			TokenExpiry:  util.Pointer(tokenExpiry),
 			State:        util.Pointer("pending"),
 			StateExpiry:  util.Pointer(stateExpiry),
 		},
 	)
 	require.NoError(t, err)
 	require.Equal(t, "conn", resp.ConnectionID)
+	require.NotNil(t, resp.TokenExpiry)
+	require.WithinDuration(t, tokenExpiry, *resp.TokenExpiry, time.Second)
 }
 
 func TestUpdateGithubConnectionError(t *testing.T) {
