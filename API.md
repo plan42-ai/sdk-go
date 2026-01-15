@@ -4294,6 +4294,7 @@ If-Match: <version>
     "GithubUserID" : *int,
     "OAuthToken": "*string",
     "RefreshToken": "*string",
+    "TokenExpiry": "*string",
     "State"  : "*string",
     "StateExpiry" : "*string",
     "Name" : "*string",        
@@ -4314,6 +4315,7 @@ If-Match: <version>
 | GithubUserID                             | body     | *int    | Optional. When set, updates the GitHub user ID associated with the connection.                                                  |
 | OAuthToken                               | body     | *string | Optional. When set, updates the OAuth token for the connection.                                                                 |
 | RefreshToken                             | body     | *string | Optional. When set, updates the refresh token for the connection.                                                               |
+| TokenExpiry                              | body     | *string | Optional. When set, updates the expiry time of the OAuth token returned by GitHub. Set to "" to clear the value.               |
 | State                                    | body     | *string | Optional. When set, updates the state parameter for OAuth flows. Set to "" to clear the value.                                  |
 | StateExpiry                              | body     | *string | Optional. When set, updates the expiry time of the state parameter. Set to "" to clear the value.                               |
 | Name                                     | body     | *string | Optional. When set, updates the name of the github connection. Set to "" to clear the value. Not valid when `Private` is false. |
