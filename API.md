@@ -1790,7 +1790,7 @@ Content-Type: application/json; charset=utf-8
   "CreatedAt": "string",
   "UpdatedAt": "string",
   "Version": int,
-  "CompletedAt": "*string"S
+  "CompletedAt": "*string"
 }
 ```
 
@@ -5269,3 +5269,62 @@ Content-Type: application/json; charset=utf-8
 |-----------|----------|------------------------------------------------------------------------------------------------|
 | NextToken | *string  | A token to retrieve the next page of results. If there are no more results, this will be null. |
 | Items     | []string | A list of repository names that match the search criteria.                                     |
+
+# 97. ListActiveTurns
+
+The ListActive API lists active turns across all tenants and all tasks. It's designed to be used by the plan42 timeout job.
+It's an ADMIN api, and it's use is currently restricted to internal plan42 service principals.
+
+## 97.1 Request
+
+```http request
+GET /v1/turns?maxResults={maxResults}&token={token}&partition={partition}&{minUpdatedAt}={minUpdatedAt}&{maxUpdatedAt}={maxUpdatedAt} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                                                |
+|--------------------------------|----------|---------|--------------------------------------------------------------------------------------------|
+| maxResults                     | query    | *int    | Optional. The maximum number of turns to return. Default is 10. Must be between 1 and 500. |
+| token                          | query    | *string | Optional. A token to retrieve the next page of results.                                    |
+| partition                      | query    | int     | The partition to retrieve active turns from. Must be >= 0.                                 |
+| minUpdatedAt                   | query    | *string | Optional. The inclusive minimum updated at timestamp to filter turns by.                   |
+| maxUpdatedAt                   | query    | string  | Required. The exclusive maximum updated at timestamp to filter turns by.                   |
+| Authorization                  | header   | string  | The authorization header for the request.                                                  |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                        |
+
+## 97.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextToken": "*string",
+    "Items": [{
+      "TenantID": "string",
+      "TaskID": "string",
+      "TurnIndex": int,
+      "Prompt": "string",
+      "PreviousResponseID": "*string",
+      "CommitInfo": {}
+      "BaselineCommitHash": "*string",
+      "LastCommitHash": "*string",
+      "Status": "string",
+      "OutputMessage": "*string", 
+      "ErrorMessage": "*string"
+      "CreatedAt": "string",
+      "UpdatedAt": "string",
+      "Version": int
+      "CompletedAt": "*string"
+    }]
+}
+```
+
+| Field     | Type                    | Description                                                                                    |
+|-----------|-------------------------|------------------------------------------------------------------------------------------------|
+| NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Items     | [][Turn](#232-Response) | A list of turn metadata objects representing active turns.                                     |
