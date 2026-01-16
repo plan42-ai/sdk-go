@@ -4647,7 +4647,7 @@ Authorization: <authorization>
 | tenant_id      | path     | string | The ID of the tenant that owns the runner.                                                                                         |
 | runner_id      | path     | string | The ID of the runner to fetch messages for.                                                                                        |
 | queue_id       | path     | string | The ID of the queue to fetch messages from.                                                                                        |
-| maxWaitSeconds | query    | *int   | The maximum time in seconds to wait for messages to arrive if the queue is empty. Defaults to 0 (no wait). Maximum is 10 minuites. |
+| maxWaitSeconds | query    | *int   | The maximum time in seconds to wait for messages to arrive if the queue is empty. Defaults to 0 (no wait). Maximum is 120 seconds. |
 | Authorization  | header   | string | The authorization header for the request.                                                                                          |
 
 Note that this api does not support delegation.
