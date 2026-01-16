@@ -482,3 +482,90 @@ func (c *Client) ListTurns(ctx context.Context, req *ListTurnsRequest) (*ListTur
 	}
 	return &out, nil
 }
+
+// ListActiveTurnsRequest contains parameters for ListActiveTurns.
+type ListActiveTurnsRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	MaxResults   *int
+	Token        *string
+	Partition    int
+	MinUpdatedAt *time.Time
+	MaxUpdatedAt time.Time
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *ListActiveTurnsRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "MaxResults":
+		return EvalNullable(r.MaxResults)
+	case "Token":
+		return EvalNullable(r.Token)
+	case "Partition":
+		return r.Partition, true
+	case "MinUpdatedAt":
+		return EvalNullable(r.MinUpdatedAt)
+	case "MaxUpdatedAt":
+		return r.MaxUpdatedAt, true
+	default:
+		return nil, false
+	}
+}
+
+// ListActiveTurns retrieves active turns across all tenants and tasks.
+// nolint: dupl
+func (c *Client) ListActiveTurns(ctx context.Context, req *ListActiveTurnsRequest) (*List[Turn], error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.Partition < 0 {
+		return nil, fmt.Errorf("partition must be non-negative")
+	}
+	if req.MaxUpdatedAt.IsZero() {
+		return nil, fmt.Errorf("max updated at is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "turns")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	q.Set("partition", strconv.Itoa(req.Partition))
+	if req.MinUpdatedAt != nil {
+		q.Set("minUpdatedAt", req.MinUpdatedAt.UTC().Format(time.RFC3339Nano))
+	}
+	q.Set("maxUpdatedAt", req.MaxUpdatedAt.UTC().Format(time.RFC3339Nano))
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out List[Turn]
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
