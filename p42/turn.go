@@ -24,9 +24,8 @@ type Turn struct {
 	ErrorMessage       *string               `json:"ErrorMessage,omitempty"`
 	CreatedAt          time.Time             `json:"CreatedAt"`
 	UpdatedAt          time.Time             `json:"UpdatedAt"`
-	// CompletedAt indicates the time the turn finished processing.
-	CompletedAt *time.Time `json:"CompletedAt,omitempty"`
-	Version     int        `json:"Version"`
+	CompletedAt        *time.Time            `json:"CompletedAt,omitempty"`
+	Version            int                   `json:"Version"`
 }
 
 // ObjectType returns the object type for ConflictError handling.
