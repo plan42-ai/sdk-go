@@ -4986,6 +4986,75 @@ func TestListTurnsPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestListActiveTurns(t *testing.T) {
+	t.Parallel()
+
+	minUpdatedAt := time.Date(2024, time.May, 1, 12, 0, 0, 0, time.UTC)
+	maxUpdatedAt := minUpdatedAt.Add(time.Minute)
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/turns", r.URL.Path)
+			require.Equal(t, "20", r.URL.Query().Get("maxResults"))
+			require.Equal(t, "tok", r.URL.Query().Get("token"))
+			require.Equal(t, "5", r.URL.Query().Get("partition"))
+			require.Equal(t, minUpdatedAt.Format(time.RFC3339Nano), r.URL.Query().Get("minUpdatedAt"))
+			require.Equal(t, maxUpdatedAt.Format(time.RFC3339Nano), r.URL.Query().Get("maxUpdatedAt"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.List[p42.Turn]{Items: []p42.Turn{{TurnIndex: 1}}}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	maxResults := 20
+	tok := "tok"
+	resp, err := client.ListActiveTurns(
+		context.Background(), &p42.ListActiveTurnsRequest{
+			MaxResults:   &maxResults,
+			Token:        &tok,
+			Partition:    5,
+			MinUpdatedAt: util.Pointer(minUpdatedAt),
+			MaxUpdatedAt: maxUpdatedAt,
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, 1, resp.Items[0].TurnIndex)
+}
+
+func TestListActiveTurnsError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListActiveTurns(
+		context.Background(), &p42.ListActiveTurnsRequest{Partition: 0, MaxUpdatedAt: time.Now()},
+	)
+	require.Error(t, err)
+}
+
+func TestListActiveTurnsValidation(t *testing.T) {
+	t.Parallel()
+	client := p42.NewClient("https://example.com")
+
+	_, err := client.ListActiveTurns(context.Background(), nil)
+	require.Error(t, err)
+
+	_, err = client.ListActiveTurns(
+		context.Background(), &p42.ListActiveTurnsRequest{Partition: -1, MaxUpdatedAt: time.Now()},
+	)
+	require.Error(t, err)
+
+	_, err = client.ListActiveTurns(context.Background(), &p42.ListActiveTurnsRequest{Partition: 0})
+	require.Error(t, err)
+}
+
 func TestUpdateTurn(t *testing.T) {
 	t.Parallel()
 
