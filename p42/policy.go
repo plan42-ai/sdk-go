@@ -76,48 +76,62 @@ const (
 type Action string
 
 const (
-	ActionPerformDelegatedAction      Action = "PerformDelegatedAction"
-	ActionCreateTenant                Action = "CreateTenant"
-	ActionGetTenant                   Action = "GetTenant"
-	ActionGenerateWebUIToken          Action = "GenerateWebUIToken"
-	ActionListPolicies                Action = "ListPolicies"
-	ActionUpdateTurn                  Action = "UpdateTurn"
-	ActionUpdateTask                  Action = "UpdateTask"
-	ActionGetTask                     Action = "GetTask"
-	ActionListTasks                   Action = "ListTasks"
-	ActionGetTurn                     Action = "GetTurn"
-	ActionUploadTurnLogs              Action = "UploadTurnLogs"
-	ActionGetCurrentUser              Action = "GetCurrentUser"
-	ActionCreateEnvironment           Action = "CreateEnvironment"
-	ActionGetEnvironment              Action = "GetEnvironment"
-	ActionListEnvironments            Action = "ListEnvironments"
-	ActionUpdateEnvironment           Action = "UpdateEnvironment"
-	ActionDeleteEnvironment           Action = "DeleteEnvironment"
-	ActionGetLastTurn                 Action = "GetLastTurn"
-	ActionCreateTask                  Action = "CreateTask"
-	ActionGetLastTurnLog              Action = "GetLastTurnLog"
-	ActionStreamLogs                  Action = "StreamLogs"
-	ActionListTurns                   Action = "ListTurns"
-	ActionAddGithubOrg                Action = "AddGithubOrg"
-	ActionUpdateGithubOrg             Action = "UpdateGithubOrg"
-	ActionDeleteGithubOrg             Action = "DeleteGithubOrg"
-	ActionListGithubOrgs              Action = "ListGithubOrgs"
-	ActionGetGithubOrg                Action = "GetGithubOrg"
-	ActionCreateFeatureFlag           Action = "CreateFeatureFlag"
-	ActionGetTenantFeatureFlags       Action = "GetTenantFeatureFlags"
-	ActionCreateFeatureFlagOverride   Action = "CreateFeatureFlagOverride"
-	ActionListFeatureFlags            Action = "ListFeatureFlags"
-	ActionGetFeatureFlag              Action = "GetFeatureFlag"
-	ActionUpdateFeatureFlag           Action = "UpdateFeatureFlag"
-	ActionDeleteFeatureFlag           Action = "DeleteFeatureFlag"
-	ActionDeleteFeatureFlagOverride   Action = "DeleteFeatureFlagOverride"
-	ActionGetFeatureFlagOverride      Action = "GetFeatureFlagOverride"
-	ActionUpdateFeatureFlagOverride   Action = "UpdateFeatureFlagOverride"
-	ActionListFeatureFlagOverrides    Action = "ListFeatureFlagOverrides"
-	ActionGetTenantGithubCreds        Action = "GetTenantGithubCreds"    // #nosec G101: This is not a credential.
-	ActionUpdateTenantGithubCreds     Action = "UpdateTenantGithubCreds" // #nosec G101: This is not a credential.
-	ActionGetTaskGithubCreds          Action = "GetTaskGithubCreds"      // #nosec G101: This is not a credential.
-	ActionFindGithubUser              Action = "FindGithubUser"
+	ActionPerformDelegatedAction    Action = "PerformDelegatedAction"
+	ActionCreateTenant              Action = "CreateTenant"
+	ActionGetTenant                 Action = "GetTenant"
+	ActionGenerateWebUIToken        Action = "GenerateWebUIToken"
+	ActionListPolicies              Action = "ListPolicies"
+	ActionUpdateTurn                Action = "UpdateTurn"
+	ActionUpdateTask                Action = "UpdateTask"
+	ActionGetTask                   Action = "GetTask"
+	ActionListTasks                 Action = "ListTasks"
+	ActionGetTurn                   Action = "GetTurn"
+	ActionUploadTurnLogs            Action = "UploadTurnLogs"
+	ActionGetCurrentUser            Action = "GetCurrentUser"
+	ActionCreateEnvironment         Action = "CreateEnvironment"
+	ActionGetEnvironment            Action = "GetEnvironment"
+	ActionListEnvironments          Action = "ListEnvironments"
+	ActionUpdateEnvironment         Action = "UpdateEnvironment"
+	ActionDeleteEnvironment         Action = "DeleteEnvironment"
+	ActionGetLastTurn               Action = "GetLastTurn"
+	ActionCreateTask                Action = "CreateTask"
+	ActionGetLastTurnLog            Action = "GetLastTurnLog"
+	ActionStreamLogs                Action = "StreamLogs"
+	ActionListTurns                 Action = "ListTurns"
+	ActionAddGithubOrg              Action = "AddGithubOrg"
+	ActionUpdateGithubOrg           Action = "UpdateGithubOrg"
+	ActionDeleteGithubOrg           Action = "DeleteGithubOrg"
+	ActionListGithubOrgs            Action = "ListGithubOrgs"
+	ActionGetGithubOrg              Action = "GetGithubOrg"
+	ActionCreateFeatureFlag         Action = "CreateFeatureFlag"
+	ActionGetTenantFeatureFlags     Action = "GetTenantFeatureFlags"
+	ActionCreateFeatureFlagOverride Action = "CreateFeatureFlagOverride"
+	ActionListFeatureFlags          Action = "ListFeatureFlags"
+	ActionGetFeatureFlag            Action = "GetFeatureFlag"
+	ActionUpdateFeatureFlag         Action = "UpdateFeatureFlag"
+	ActionDeleteFeatureFlag         Action = "DeleteFeatureFlag"
+	ActionDeleteFeatureFlagOverride Action = "DeleteFeatureFlagOverride"
+	ActionGetFeatureFlagOverride    Action = "GetFeatureFlagOverride"
+	ActionUpdateFeatureFlagOverride Action = "UpdateFeatureFlagOverride"
+	ActionListFeatureFlagOverrides  Action = "ListFeatureFlagOverrides"
+
+	// ActionGetTenantGithubCreds has been removed from the API, and is no longer used.
+	// The action enum entry is still here, so that we don't renumber the other actions.
+	// Feel free to repurpose this entry with a different action in the future, should you need to re-use the bit.
+	ActionGetTenantGithubCreds Action = "GetTenantGithubCreds" // #nosec G101: This is not a credential.
+
+	// ActionUpdateTenantGithubCreds has been removed from the API, and is no longer used.
+	// The action enum entry is still here, so that we don't renumber the other actions.
+	// Feel free to repurpose this entry with a different action in the future, should you need to re-use the bit.
+	ActionUpdateTenantGithubCreds Action = "UpdateTenantGithubCreds"
+
+	ActionGetTaskGithubCreds Action = "GetTaskGithubCreds" // #nosec G101: This is not a credential.
+
+	// ActionFindGithubUser has been removed from the API, and is no longer used.
+	// The action enum entry is still here, so that we don't renumber the other actions.
+	// Feel free to repurpose this entry with a different action in the future, should you need to re-use the bit.
+	ActionFindGithubUser Action = "FindGithubUser"
+
 	ActionCreateWorkstream            Action = "CreateWorkstream"
 	ActionGetWorkstream               Action = "GetWorkstream"
 	ActionUpdateWorkstream            Action = "UpdateWorkstream"
