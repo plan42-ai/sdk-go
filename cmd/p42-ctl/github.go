@@ -5,77 +5,21 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
 type GithubOptions struct {
-	AddOrg            AddGithubOrgOptions            `cmd:"" help:"Add a GitHub organization."`
-	AddConnection     AddGithubConnectionOptions     `cmd:"" help:"Add a GitHub connection to a tenant."`
-	ListConnections   ListGithubConnectionsOptions   `cmd:"" help:"List Github connections for a tenant."`
-	GetConnection     GetGithubConnectionOptions     `cmd:"" help:"Fetch Github connections for a tenant."`
-	UpdateConnection  UpdateGithubConnectionOptions  `cmd:"" help:"Update a GitHub connection for a tenant."`
-	DeleteConnection  DeleteGithubConnectionOptions  `cmd:"" help:"Permanently Delete a GitHub connection from a tenant."`
-	ListOrgs          ListGithubOrgsOptions          `cmd:"" help:"List GitHub organizations."`
-	GetOrg            GetGithubOrgOptions            `cmd:"" help:"Get a GitHub organization."`
-	UpdateOrg         UpdateGithubOrgOptions         `cmd:"" help:"Update a GitHub organization."`
-	DeleteOrg         DeleteGithubOrgOptions         `cmd:"" help:"Delete a GitHub organization."`
-	SearchRepos       SearchGithubReposOptions       `cmd:"" help:"Search repositories within a GitHub organization."`
-	GetTenantCreds    GetTenantGithubCredsOptions    `cmd:"" help:"Fetch GitHub credentials for a tenant."`
-	UpdateTenantCreds UpdateTenantGithubCredsOptions `cmd:"" help:"Update GitHub credentials for a tenant."`
-	FindUsers         FindGithubUsersOptions         `cmd:"" help:"Find tenants given their github login or user id."`
-}
-
-// FindGithubUsersOptions provides options for the `github find-users` command.
-// Exactly one of GithubUserID or GithubLogin must be provided.
-type FindGithubUsersOptions struct {
-	GithubUserID   *int    `help:"The GitHub user id to search for." name:"github-user-id" short:"I" optional:""`
-	GithubLogin    *string `help:"The GitHub login to search for." name:"github-login" short:"L" optional:""`
-	IncludeDeleted bool    `help:"Include deleted github users" short:"d"`
-}
-
-func (o *FindGithubUsersOptions) Run(ctx context.Context, s *SharedOptions) error {
-	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
-		return fmt.Errorf(delegatedAuthNotSupported, "github find-users")
-	}
-
-	if err := ensureNoFeatureFlags(s, "github find-users"); err != nil {
-		return err
-	}
-
-	// Ensure exactly one search parameter was provided.
-	idProvided := o.GithubUserID != nil
-	loginProvided := o.GithubLogin != nil
-	if idProvided == loginProvided {
-		return fmt.Errorf("exactly one of --github-user-id or --github-login must be provided")
-	}
-
-	var token *string
-	for {
-		req := &p42.FindGithubUserRequest{
-			GithubID:       o.GithubUserID,
-			GithubLogin:    o.GithubLogin,
-			Token:          token,
-			IncludeDeleted: util.Pointer(o.IncludeDeleted),
-		}
-
-		resp, err := s.Client.FindGithubUser(ctx, req)
-		if err != nil {
-			return err
-		}
-
-		for _, user := range resp.Users {
-			if err := printJSON(user); err != nil {
-				return err
-			}
-		}
-
-		if resp.NextToken == nil {
-			break
-		}
-		token = resp.NextToken
-	}
-	return nil
+	AddOrg           AddGithubOrgOptions           `cmd:"" help:"Add a GitHub organization."`
+	AddConnection    AddGithubConnectionOptions    `cmd:"" help:"Add a GitHub connection to a tenant."`
+	ListConnections  ListGithubConnectionsOptions  `cmd:"" help:"List Github connections for a tenant."`
+	GetConnection    GetGithubConnectionOptions    `cmd:"" help:"Fetch Github connections for a tenant."`
+	UpdateConnection UpdateGithubConnectionOptions `cmd:"" help:"Update a GitHub connection for a tenant."`
+	DeleteConnection DeleteGithubConnectionOptions `cmd:"" help:"Permanently Delete a GitHub connection from a tenant."`
+	ListOrgs         ListGithubOrgsOptions         `cmd:"" help:"List GitHub organizations."`
+	GetOrg           GetGithubOrgOptions           `cmd:"" help:"Get a GitHub organization."`
+	UpdateOrg        UpdateGithubOrgOptions        `cmd:"" help:"Update a GitHub organization."`
+	DeleteOrg        DeleteGithubOrgOptions        `cmd:"" help:"Delete a GitHub organization."`
+	SearchRepos      SearchGithubReposOptions      `cmd:"" help:"Search repositories within a GitHub organization."`
 }
 
 type AddGithubConnectionOptions struct {
@@ -478,75 +422,4 @@ func (o *DeleteGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 
 	req := &p42.DeleteGithubOrgRequest{OrgID: o.InternalOrgID, Version: org.Version}
 	return s.Client.DeleteGithubOrg(ctx, req)
-}
-
-// GetTenantGithubCredsOptions retrieves GitHub credentials for a tenant.
-type GetTenantGithubCredsOptions struct {
-	TenantID string `help:"The ID of the tenant to fetch GitHub credentials for." name:"tenant-id" short:"i" required:""`
-}
-
-func (o *GetTenantGithubCredsOptions) Run(ctx context.Context, s *SharedOptions) error {
-	req := &p42.GetTenantGithubCredsRequest{
-		TenantID: o.TenantID,
-	}
-
-	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
-		return err
-	}
-	processDelegatedAuth(s, &req.DelegatedAuthInfo)
-
-	resp, err := s.Client.GetTenantGithubCreds(ctx, req)
-	if err != nil {
-		return err
-	}
-	return printJSON(resp)
-}
-
-// UpdateTenantGithubCredsOptions updates GitHub credentials for a tenant.
-type UpdateTenantGithubCredsOptions struct {
-	TenantID string `help:"The ID of the tenant whose GitHub credentials will be updated." name:"tenant-id" short:"i" required:""`
-	JSON     string `help:"The JSON file containing the fields to update. Pass '-' to read from stdin." name:"json" short:"j" default:"-"`
-}
-
-func (o *UpdateTenantGithubCredsOptions) Run(ctx context.Context, s *SharedOptions) error { // nolint: funlen, dupl
-	// Ensure user didn't specify the same file for both JSON body and feature flags.
-	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
-		return err
-	}
-	var req p42.UpdateTenantGithubCredsRequest
-	if err := readJsonFile(o.JSON, &req); err != nil {
-		return err
-	}
-
-	// Populate path params.
-	req.TenantID = o.TenantID
-
-	// Load feature flags (allow optional overrides).
-	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
-		return err
-	}
-
-	// Retrieve current creds to obtain latest version for optimistic concurrency.
-	getReq := &p42.GetTenantGithubCredsRequest{TenantID: o.TenantID}
-	if err := loadFeatureFlags(s, &getReq.FeatureFlags); err != nil {
-		return err
-	}
-	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
-
-	current, err := s.Client.GetTenantGithubCreds(ctx, getReq)
-	if err != nil {
-		return err
-	}
-
-	req.Version = current.TenantVersion
-
-	// Attach delegated auth information for the update request.
-	processDelegatedAuth(s, &req.DelegatedAuthInfo)
-
-	updated, err := s.Client.UpdateTenantGithubCreds(ctx, &req)
-	if err != nil {
-		return err
-	}
-
-	return printJSON(updated)
 }
