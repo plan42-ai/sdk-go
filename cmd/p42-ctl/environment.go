@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
@@ -55,7 +56,7 @@ func (o *GetEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error
 	req := &p42.GetEnvironmentRequest{
 		TenantID:       o.TenantID,
 		EnvironmentID:  o.EnvironmentID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
@@ -97,7 +98,7 @@ func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	getReq := &p42.GetEnvironmentRequest{
 		TenantID:       o.TenantID,
 		EnvironmentID:  o.EnvironmentID,
-		IncludeDeleted: pointer(true),
+		IncludeDeleted: util.Pointer(true),
 	}
 	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
@@ -146,7 +147,7 @@ type ListEnvironmentsOptions struct {
 func (o *ListEnvironmentsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &p42.ListEnvironmentsRequest{
 		TenantID:       o.TenantID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {

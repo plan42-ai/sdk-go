@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
@@ -256,7 +257,7 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 		req := &p42.ListGithubOrgsRequest{
 			Token:          token,
 			Name:           o.Name,
-			IncludeDeleted: pointer(o.IncludeDeleted),
+			IncludeDeleted: util.Pointer(o.IncludeDeleted),
 		}
 		resp, err := s.Client.ListGithubOrgs(ctx, req)
 		if err != nil {
@@ -359,7 +360,7 @@ func (o *GetGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 
 	req := &p42.GetGithubOrgRequest{
 		OrgID:          o.InternalOrgID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 
 	org, err := s.Client.GetGithubOrg(ctx, req)
@@ -389,7 +390,7 @@ func (o *UpdateGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 
 	req.OrgID = o.InternalOrgID
 
-	getReq := &p42.GetGithubOrgRequest{OrgID: o.InternalOrgID, IncludeDeleted: pointer(true)}
+	getReq := &p42.GetGithubOrgRequest{OrgID: o.InternalOrgID, IncludeDeleted: util.Pointer(true)}
 	org, err := s.Client.GetGithubOrg(ctx, getReq)
 	if err != nil {
 		return err

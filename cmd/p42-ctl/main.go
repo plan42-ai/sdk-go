@@ -11,6 +11,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/plan42-ai/clock"
+	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
@@ -33,13 +34,9 @@ type SharedOptions struct {
 
 func processDelegatedAuth(shared *SharedOptions, info *p42.DelegatedAuthInfo) {
 	if shared.DelegatedAuthType != nil {
-		info.AuthType = pointer(p42.AuthorizationType(*shared.DelegatedAuthType))
+		info.AuthType = util.Pointer(p42.AuthorizationType(*shared.DelegatedAuthType))
 	}
 	info.JWT = shared.DelegatedToken
-}
-
-func pointer[T any](value T) *T {
-	return &value
 }
 
 func printJSON(resp any) error {
@@ -225,6 +222,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Turn.Get.Run(options.Ctx, &options.SharedOptions)
 	case "turn get-last":
 		return options.Turn.GetLast.Run(options.Ctx, &options.SharedOptions)
+	case "turn list-active":
+		return options.Turn.ListActive.Run(options.Ctx, &options.SharedOptions)
 	case "logs stream":
 		return options.Logs.Stream.Run(options.Ctx, &options.SharedOptions)
 	case "logs upload":

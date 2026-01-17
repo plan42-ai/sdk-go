@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
@@ -70,7 +71,7 @@ type ListRunnerOptions struct {
 func (o *ListRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &p42.ListRunnersRequest{
 		TenantID:       o.TenantID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 		RunsTasks:      o.RunsTasks,
 		ProxiesGithub:  o.ProxiesGithub,
 	}
@@ -281,7 +282,7 @@ func (o *GetRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &p42.GetRunnerRequest{
 		TenantID:       o.TenantID,
 		RunnerID:       o.RunnerID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 
 	err := loadFeatureFlags(s, &req.FeatureFlags)
@@ -360,7 +361,7 @@ func (o *UpdateRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 	getReq := &p42.GetRunnerRequest{
 		TenantID:       o.TenantID,
 		RunnerID:       o.RunnerID,
-		IncludeDeleted: pointer(true),
+		IncludeDeleted: util.Pointer(true),
 	}
 	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
@@ -471,7 +472,7 @@ func (o *GetRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) error
 		TenantID:       o.TenantID,
 		RunnerID:       o.RunnerID,
 		TokenID:        o.TokenID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 
 	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
@@ -499,7 +500,7 @@ func (o *RevokeRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) er
 		TenantID:       o.TenantID,
 		RunnerID:       o.RunnerID,
 		TokenID:        o.TokenID,
-		IncludeDeleted: pointer(true),
+		IncludeDeleted: util.Pointer(true),
 	}
 
 	err := loadFeatureFlags(s, &getReq.FeatureFlags)
