@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
@@ -67,7 +68,7 @@ func (o *ListFeatureFlagsOptions) Run(ctx context.Context, s *SharedOptions) err
 	for {
 		req := &p42.ListFeatureFlagsRequest{
 			Token:          token,
-			IncludeDeleted: pointer(o.IncludeDeleted),
+			IncludeDeleted: util.Pointer(o.IncludeDeleted),
 		}
 
 		resp, err := s.Client.ListFeatureFlags(ctx, req)
@@ -106,7 +107,7 @@ func (o *GetFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error
 
 	req := &p42.GetFeatureFlagRequest{
 		FlagName:       o.FlagName,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 
 	flag, err := s.Client.GetFeatureFlag(ctx, req)
@@ -159,7 +160,7 @@ func (o *UpdateFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) er
 
 	req.FlagName = o.FlagName
 
-	getReq := &p42.GetFeatureFlagRequest{FlagName: o.FlagName, IncludeDeleted: pointer(true)}
+	getReq := &p42.GetFeatureFlagRequest{FlagName: o.FlagName, IncludeDeleted: util.Pointer(true)}
 	flag, err := s.Client.GetFeatureFlag(ctx, getReq)
 	if err != nil {
 		return err
@@ -204,7 +205,7 @@ func (o *OverrideFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) 
 	getReq := &p42.GetFeatureFlagOverrideRequest{
 		TenantID:       o.TenantID,
 		FlagName:       o.FlagName,
-		IncludeDeleted: pointer(true),
+		IncludeDeleted: util.Pointer(true),
 	}
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 
@@ -232,12 +233,12 @@ func (o *OverrideFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) 
 		TenantID: o.TenantID,
 		FlagName: o.FlagName,
 		Version:  flag.Version,
-		Enabled:  pointer(o.Enabled),
-		Deleted:  pointer(false),
+		Enabled:  util.Pointer(o.Enabled),
+		Deleted:  util.Pointer(false),
 	}
 
 	if flag.Deleted {
-		updateReq.Deleted = pointer(false)
+		updateReq.Deleted = util.Pointer(false)
 	}
 	processDelegatedAuth(s, &updateReq.DelegatedAuthInfo)
 
@@ -261,7 +262,7 @@ func (o *GetFeatureFlagOverrideOptions) Run(ctx context.Context, s *SharedOption
 	req := &p42.GetFeatureFlagOverrideRequest{
 		TenantID:       o.TenantID,
 		FlagName:       o.FlagName,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
@@ -316,7 +317,7 @@ func (o *ListFeatureFlagOverridesOptions) Run(ctx context.Context, s *SharedOpti
 		req := &p42.ListFeatureFlagOverridesRequest{
 			TenantID:       o.TenantID,
 			Token:          token,
-			IncludeDeleted: pointer(o.IncludeDeleted),
+			IncludeDeleted: util.Pointer(o.IncludeDeleted),
 		}
 		processDelegatedAuth(s, &req.DelegatedAuthInfo)
 

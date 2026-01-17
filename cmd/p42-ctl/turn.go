@@ -2,16 +2,20 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
 type TurnOptions struct {
-	Create  CreateTurnOptions  `cmd:"" help:"Create a new turn for a task."`
-	List    ListTurnsOptions   `cmd:"" help:"List turns for a given task."`
-	Update  UpdateTurnOptions  `cmd:"" help:"Update an existing turn."`
-	Get     GetTurnOptions     `cmd:"" help:"Get a specific turn by index."`
-	GetLast GetLastTurnOptions `cmd:"" help:"Get the last turn for a given task."`
+	Create     CreateTurnOptions      `cmd:"" help:"Create a new turn for a task."`
+	List       ListTurnsOptions       `cmd:"" help:"List turns for a given task."`
+	Update     UpdateTurnOptions      `cmd:"" help:"Update an existing turn."`
+	Get        GetTurnOptions         `cmd:"" help:"Get a specific turn by index."`
+	GetLast    GetLastTurnOptions     `cmd:"" help:"Get the last turn for a given task."`
+	ListActive ListActiveTurnsOptions `cmd:"" help:"List active turns."`
 }
 
 type CreateTurnOptions struct {
@@ -74,7 +78,7 @@ func (o *ListTurnsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &p42.ListTurnsRequest{
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
@@ -130,7 +134,7 @@ func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
 		TurnIndex:      o.TurnIndex,
-		IncludeDeleted: pointer(true),
+		IncludeDeleted: util.Pointer(true),
 	}
 	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
@@ -161,7 +165,7 @@ func (o *GetTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
 		TurnIndex:      o.TurnIndex,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
@@ -186,7 +190,7 @@ func (o *GetLastTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &p42.GetLastTurnRequest{
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
@@ -199,4 +203,71 @@ func (o *GetLastTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	return printJSON(turn)
+}
+
+type ListActiveTurnsOptions struct {
+	Partition int     `help:"The partition number to fetch active turns from." short:"p" required:""`
+	From      *string `help:"The inclusive minimum last updated time to fetch." short:"f" optional:""`
+	To        string  `help:"The exclusive maximum last updated time to fetch." short:"t" default:"-5m"`
+}
+
+func (o *ListActiveTurnsOptions) Run(ctx context.Context, s *SharedOptions) error {
+	now := time.Now()
+	toValue := o.To
+	if toValue == "" {
+		toValue = "-5m"
+	}
+	if o.Partition < 0 {
+		return fmt.Errorf("partition must be non-negative")
+	}
+
+	var minUpdatedAt *time.Time
+	if o.From != nil {
+		minTime, err := parseTimeOrDuration(*o.From, now)
+		if err != nil {
+			return err
+		}
+		minUpdatedAt = &minTime
+	}
+
+	maxUpdatedAt, err := parseTimeOrDuration(toValue, now)
+	if err != nil {
+		return err
+	}
+
+	req := &p42.ListActiveTurnsRequest{
+		Partition:    o.Partition,
+		MinUpdatedAt: minUpdatedAt,
+		MaxUpdatedAt: maxUpdatedAt,
+	}
+
+	err = loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+
+	var token *string
+	for {
+		req.Token = token
+		processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+		resp, err := s.Client.ListActiveTurns(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, turn := range resp.Items {
+			err = printJSON(turn)
+			if err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+
+	return nil
 }

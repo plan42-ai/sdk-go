@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/google/uuid"
+	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
@@ -190,7 +191,7 @@ func (o *UpdateTaskOptions) runNonWorkstream(ctx context.Context, s *SharedOptio
 	req.TenantID = o.TenantID
 	req.TaskID = o.TaskID
 
-	getReq := &p42.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID, IncludeDeleted: pointer(true)}
+	getReq := &p42.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID, IncludeDeleted: util.Pointer(true)}
 	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	task, err := s.Client.GetTask(ctx, getReq)
@@ -231,7 +232,7 @@ func (o *UpdateTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions)
 		TenantID:       o.TenantID,
 		WorkstreamID:   o.WorkstreamID,
 		TaskID:         o.TaskID,
-		IncludeDeleted: pointer(true),
+		IncludeDeleted: util.Pointer(true),
 	}
 	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
@@ -321,8 +322,8 @@ func (o *ListTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
 func (o *ListTasksOptions) run(ctx context.Context, s *SharedOptions) error {
 	req := &p42.ListTasksRequest{
 		TenantID:       o.TenantID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
-		MaxResults:     pointer(10),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
+		MaxResults:     util.Pointer(10),
 	}
 
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
@@ -338,7 +339,7 @@ func (o *ListTasksOptions) run(ctx context.Context, s *SharedOptions) error {
 
 	for remaining > 0 {
 		if remaining < *req.MaxResults {
-			req.MaxResults = pointer(remaining)
+			req.MaxResults = util.Pointer(remaining)
 		}
 		resp, err := s.Client.ListTasks(ctx, req)
 		if err != nil {
@@ -366,8 +367,8 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 	req := &p42.ListWorkstreamTasksRequest{
 		TenantID:       o.TenantID,
 		WorkstreamID:   o.WorkstreamID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
-		MaxResults:     pointer(10),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
+		MaxResults:     util.Pointer(10),
 	}
 
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
@@ -384,7 +385,7 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 
 	for remaining > 0 {
 		if remaining < *req.MaxResults {
-			req.MaxResults = pointer(remaining)
+			req.MaxResults = util.Pointer(remaining)
 		}
 		resp, err := s.Client.ListWorkstreamTasks(ctx, req)
 		if err != nil {
@@ -418,10 +419,10 @@ func (o *SearchTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var req p42.SearchTasksRequest
 
 	if o.PullRequestID > 0 {
-		req.PullRequestID = pointer(o.PullRequestID)
+		req.PullRequestID = util.Pointer(o.PullRequestID)
 	}
 	if o.TaskID != "" {
-		req.TaskID = pointer(o.TaskID)
+		req.TaskID = util.Pointer(o.TaskID)
 	}
 
 	if req.PullRequestID == nil && req.TaskID == nil {
@@ -469,7 +470,7 @@ func (o *GetTaskOptions) runStandalone(ctx context.Context, s *SharedOptions) er
 	req := &p42.GetTaskRequest{
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
@@ -489,7 +490,7 @@ func (o *GetTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions) er
 		TenantID:       o.TenantID,
 		WorkstreamID:   o.WorkstreamID,
 		TaskID:         o.TaskID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {

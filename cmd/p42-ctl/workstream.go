@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
@@ -68,8 +69,8 @@ type MoveShortNameOptions struct {
 func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error {
 	listReq := &p42.ListWorkstreamsRequest{
 		TenantID:       o.TenantID,
-		IncludeDeleted: pointer(true),
-		ShortName:      pointer(o.ShortName),
+		IncludeDeleted: util.Pointer(true),
+		ShortName:      util.Pointer(o.ShortName),
 	}
 
 	if err := loadFeatureFlags(s, &listReq.FeatureFlags); err != nil {
@@ -90,7 +91,7 @@ func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error 
 	getDestReq := &p42.GetWorkstreamRequest{
 		TenantID:       o.TenantID,
 		WorkstreamID:   o.WorkstreamID,
-		IncludeDeleted: pointer(true),
+		IncludeDeleted: util.Pointer(true),
 	}
 	getDestReq.FeatureFlags = listReq.FeatureFlags
 	processDelegatedAuth(s, &getDestReq.DelegatedAuthInfo)
@@ -247,7 +248,7 @@ func (o *UpdateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 	getReq := &p42.GetWorkstreamRequest{
 		TenantID:       o.TenantID,
 		WorkstreamID:   o.WorkstreamID,
-		IncludeDeleted: pointer(true),
+		IncludeDeleted: util.Pointer(true),
 	}
 	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
@@ -280,7 +281,7 @@ type ListWorkstreamsOptions struct {
 func (o *ListWorkstreamsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &p42.ListWorkstreamsRequest{
 		TenantID:       o.TenantID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 		ShortName:      o.ShortName,
 	}
 
@@ -326,7 +327,7 @@ func (o *GetWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) error 
 	req := &p42.GetWorkstreamRequest{
 		TenantID:       o.TenantID,
 		WorkstreamID:   o.WorkstreamID,
-		IncludeDeleted: pointer(o.IncludeDeleted),
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 
 	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
