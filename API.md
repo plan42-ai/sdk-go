@@ -5270,6 +5270,52 @@ Content-Type: application/json; charset=utf-8
 | NextToken | *string  | A token to retrieve the next page of results. If there are no more results, this will be null. |
 | Items     | []string | A list of repository names that match the search criteria.                                     |
 
+# 96a. ListRepoBranches
+
+The ListRepoBranches API lists branches for a repository associated with a GitHub connection.
+
+## 96a.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/github-connections/{connection_id}/orgs/{org_name}/repos/{repo_name}/branches?search={searchStr}&maxResults={maxResults}&token={token} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                   |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                                         |
+| connection_id                            | path     | string  | The ID of the GitHub connection to list branches for.                                         |
+| org_name                                 | path     | string  | The name of the GitHub organization that owns the repository.                                 |
+| repo_name                                | path     | string  | The name of the repository to list branches for.                                              |
+| searchStr                                | query    | *string | Optional. When provided, only branches containing the substring are returned.                 |
+| maxResults                               | query    | *int    | Optional. The maximum number of branches to return. Default is 10. Must be between 1 and 100. |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                        |
+| Authorization                            | header   | string  | The authorization header for the request.                                                     |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                        |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                           |
+
+## 96a.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http request
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+    "NextToken": "*string",
+    "Items": ["string"]
+}
+```
+
+| Field     | Type     | Description                                                                                    |
+|-----------|----------|------------------------------------------------------------------------------------------------|
+| NextToken | *string  | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Items     | []string | A list of branch names for the repository.                                                     |
+
 # 97. ListActiveTurns
 
 The ListActive API lists active turns across all tenants and all tasks. It's designed to be used by the plan42 timeout job.
