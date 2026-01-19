@@ -140,7 +140,7 @@ func (o *DeleteEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 }
 
 type ListEnvironmentsOptions struct {
-	TenantID       string `help:"The tennant ID that owns the environments being listed." name:"tenantid" short:"i"`
+	TenantID       string `help:"The tenant ID that owns the environments being listed." name:"tenant-id" short:"i"`
 	IncludeDeleted bool   `help:"Include deleted environments in the list." short:"d"`
 }
 
