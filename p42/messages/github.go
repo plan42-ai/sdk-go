@@ -7,6 +7,7 @@ type ListOrgsForGithubConnectionRequest struct {
 	ConnectionID string
 	MaxResults   *int
 	Token        *string
+	Search       *string
 }
 
 func (r *ListOrgsForGithubConnectionRequest) Type() MessageType {
