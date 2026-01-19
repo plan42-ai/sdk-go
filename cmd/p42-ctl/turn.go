@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/plan42-ai/clock"
 	"github.com/plan42-ai/sdk-go/internal/util"
 	"github.com/plan42-ai/sdk-go/p42"
 )
@@ -223,14 +224,14 @@ func (o *ListActiveTurnsOptions) Run(ctx context.Context, s *SharedOptions) erro
 
 	var minUpdatedAt *time.Time
 	if o.From != nil {
-		minTime, err := parseTimeOrDuration(*o.From, now)
+		minTime, err := clock.ParseTimeOrRelativeDuration(*o.From, now)
 		if err != nil {
 			return err
 		}
 		minUpdatedAt = &minTime
 	}
 
-	maxUpdatedAt, err := parseTimeOrDuration(toValue, now)
+	maxUpdatedAt, err := clock.ParseTimeOrRelativeDuration(toValue, now)
 	if err != nil {
 		return err
 	}
