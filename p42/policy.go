@@ -177,6 +177,7 @@ const (
 	ActionListOrgsForGithubConnection Action = "ListOrgsForGithubConnection"
 	ActionSearchRepos                 Action = "SearchRepos"
 	ActionListActiveTurns             Action = "ListActiveTurns"
+	ActionListRepoBranches            Action = "ListRepoBranches"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -498,6 +499,7 @@ func init() {
 			ActionListOrgsForGithubConnection, // (0x0000_0000_0010_0000, 0)
 			ActionSearchRepos,                 // (0x0000_0000_0020_0000, 0)
 			ActionListActiveTurns,             // (0x0000_0000_0040_0000, 0)
+			ActionListRepoBranches,            // (0x0000_0000_0080_0000, 0)
 
 		},
 		ActionBitVector{

@@ -11,6 +11,8 @@ const (
 	ListOrgsForGithubConnectionResponseMessage MessageType = "ListOrgsForGithubConnectionResponse"
 	SearchRepoRequestMessage                   MessageType = "SearchRepoRequest"
 	SearchRepoResponseMessage                  MessageType = "SearchRepoResponse"
+	ListRepoBranchesRequestMessage             MessageType = "ListRepoBranchesRequest"
+	ListRepoBranchesResponseMessage            MessageType = "ListRepoBranchesResponse"
 )
 
 type Message interface {

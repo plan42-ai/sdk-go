@@ -117,3 +117,67 @@ func (r SearchRepoResponse) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(tmp)
 }
+
+type ListRepoBranchesRequest struct {
+	TenantID     string
+	ConnectionID string
+	OrgName      string
+	RepoName     string
+	Search       *string
+	MaxResults   *int
+	Token        *string
+}
+
+func (r *ListRepoBranchesRequest) Type() MessageType {
+	return ListRepoBranchesRequestMessage
+}
+
+func (r ListRepoBranchesRequest) MarshalJSON() ([]byte, error) {
+	var tmp struct {
+		Type         MessageType
+		TenantID     string
+		ConnectionID string
+		OrgName      string
+		RepoName     string
+		Search       *string
+		MaxResults   *int
+		Token        *string
+	}
+
+	tmp.Type = ListRepoBranchesRequestMessage
+	tmp.TenantID = r.TenantID
+	tmp.ConnectionID = r.ConnectionID
+	tmp.OrgName = r.OrgName
+	tmp.RepoName = r.RepoName
+	tmp.Search = r.Search
+	tmp.MaxResults = r.MaxResults
+	tmp.Token = r.Token
+
+	return json.Marshal(tmp)
+}
+
+type ListRepoBranchesResponse struct {
+	Items        []string
+	NextToken    *string
+	ErrorMessage *string
+}
+
+func (r *ListRepoBranchesResponse) Type() MessageType {
+	return ListRepoBranchesResponseMessage
+}
+
+func (r ListRepoBranchesResponse) MarshalJSON() ([]byte, error) {
+	var tmp struct {
+		Type         MessageType
+		Items        []string
+		NextToken    *string
+		ErrorMessage *string
+	}
+
+	tmp.Type = ListRepoBranchesResponseMessage
+	tmp.Items = r.Items
+	tmp.NextToken = r.NextToken
+	tmp.ErrorMessage = r.ErrorMessage
+
+	return json.Marshal(tmp)
+}

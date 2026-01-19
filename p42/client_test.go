@@ -44,6 +44,8 @@ const (
 	escapedWorkstreamID                 = "ws%2F..%2F..%2Fid"
 	githubOrgIDThatNeedsEscaping        = "org/../../id"
 	escapedGithubOrgID                  = "org%2F..%2F..%2Fid"
+	repoIDThatNeedsEscaping             = "repo/../../name"
+	escapedRepoID                       = "repo%2F..%2F..%2Fname"
 	featureFlagNameThatNeedsEscaping    = "flag/../../name"
 	escapedFeatureFlagName              = "flag%2F..%2F..%2Fname"
 	runnerIDThatNeedsEscaping           = "runner/../../id"
@@ -6002,6 +6004,93 @@ func TestSearchReposPathEscaping(t *testing.T) {
 			ConnectionID: githubConnectionIDThatNeedsEscaping,
 			OrgName:      githubOrgIDThatNeedsEscaping,
 			Search:       "plan",
+		},
+	)
+	require.NoError(t, err)
+}
+
+func TestListRepoBranches(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/abc/github-connections/conn/orgs/octo/repos/app/branches", r.URL.Path)
+			require.Equal(t, "feature", r.URL.Query().Get("search"))
+			require.Equal(t, "5", r.URL.Query().Get("maxResults"))
+			require.Equal(t, tokenID, r.URL.Query().Get("token"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.List[string]{Items: []string{"main"}, NextToken: util.Pointer(tokenID)}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	maxResults := 5
+	resp, err := client.ListRepoBranches(
+		context.Background(),
+		&p42.ListRepoBranchesRequest{
+			TenantID:     "abc",
+			ConnectionID: "conn",
+			OrgName:      "octo",
+			RepoName:     "app",
+			Search:       util.Pointer("feature"),
+			MaxResults:   &maxResults,
+			Token:        util.Pointer(tokenID),
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"main"}, resp.Items)
+	require.NotNil(t, resp.NextToken)
+	require.Equal(t, tokenID, *resp.NextToken)
+}
+
+func TestListRepoBranchesError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListRepoBranches(
+		context.Background(),
+		&p42.ListRepoBranchesRequest{TenantID: "abc", ConnectionID: "conn", OrgName: "org", RepoName: "repo"},
+	)
+	require.Error(t, err)
+}
+
+func TestListRepoBranchesPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 11, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3])
+			require.Equal(t, escapedGithubConnectionID, parts[5])
+			require.Equal(t, escapedGithubOrgID, parts[7])
+			require.Equal(t, escapedRepoID, parts[9])
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.List[string]{}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.ListRepoBranches(
+		context.Background(),
+		&p42.ListRepoBranchesRequest{
+			TenantID:     tenantIDThatNeedsEscaping,
+			ConnectionID: githubConnectionIDThatNeedsEscaping,
+			OrgName:      githubOrgIDThatNeedsEscaping,
+			RepoName:     repoIDThatNeedsEscaping,
 		},
 	)
 	require.NoError(t, err)
