@@ -16,12 +16,18 @@ func (r *ListOrgsForGithubConnectionRequest) Type() MessageType {
 
 func (r ListOrgsForGithubConnectionRequest) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		ListOrgsForGithubConnectionRequest
-		Type MessageType
+		Type         MessageType
+		TenantID     string
+		ConnectionID string
+		MaxResults   *int
+		Token        *string
 	}
 
 	tmp.Type = ListOrgsForGithubConnectionRequestMessage
-	tmp.ListOrgsForGithubConnectionRequest = r
+	tmp.TenantID = r.TenantID
+	tmp.ConnectionID = r.ConnectionID
+	tmp.MaxResults = r.MaxResults
+	tmp.Token = r.Token
 
 	return json.Marshal(tmp)
 }
@@ -38,12 +44,16 @@ func (r *ListOrgsForGithubConnectionResponse) Type() MessageType {
 
 func (r ListOrgsForGithubConnectionResponse) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		ListOrgsForGithubConnectionResponse
-		Type MessageType
+		Type         MessageType
+		Items        []string
+		NextToken    *string
+		ErrorMessage *string
 	}
 
 	tmp.Type = ListOrgsForGithubConnectionResponseMessage
-	tmp.ListOrgsForGithubConnectionResponse = r
+	tmp.Items = r.Items
+	tmp.NextToken = r.NextToken
+	tmp.ErrorMessage = r.ErrorMessage
 
 	return json.Marshal(tmp)
 }
@@ -63,12 +73,22 @@ func (r *SearchRepoRequest) Type() MessageType {
 
 func (r SearchRepoRequest) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		SearchRepoRequest
-		Type MessageType
+		Type         MessageType
+		TenantID     string
+		ConnectionID string
+		OrgName      string
+		Search       string
+		MaxResults   *int
+		Token        *string
 	}
 
 	tmp.Type = SearchRepoRequestMessage
-	tmp.SearchRepoRequest = r
+	tmp.TenantID = r.TenantID
+	tmp.ConnectionID = r.ConnectionID
+	tmp.OrgName = r.OrgName
+	tmp.Search = r.Search
+	tmp.MaxResults = r.MaxResults
+	tmp.Token = r.Token
 
 	return json.Marshal(tmp)
 }
@@ -85,12 +105,16 @@ func (r *SearchRepoResponse) Type() MessageType {
 
 func (r SearchRepoResponse) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		SearchRepoResponse
-		Type MessageType
+		Type         MessageType
+		Items        []string
+		NextToken    *string
+		ErrorMessage *string
 	}
 
 	tmp.Type = SearchRepoResponseMessage
-	tmp.SearchRepoResponse = r
+	tmp.Items = r.Items
+	tmp.NextToken = r.NextToken
+	tmp.ErrorMessage = r.ErrorMessage
 
 	return json.Marshal(tmp)
 }
@@ -111,12 +135,24 @@ func (r *ListRepoBranchesRequest) Type() MessageType {
 
 func (r ListRepoBranchesRequest) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		ListRepoBranchesRequest
-		Type MessageType
+		Type         MessageType
+		TenantID     string
+		ConnectionID string
+		OrgName      string
+		RepoName     string
+		Search       *string
+		MaxResults   *int
+		Token        *string
 	}
 
 	tmp.Type = ListRepoBranchesRequestMessage
-	tmp.ListRepoBranchesRequest = r
+	tmp.TenantID = r.TenantID
+	tmp.ConnectionID = r.ConnectionID
+	tmp.OrgName = r.OrgName
+	tmp.RepoName = r.RepoName
+	tmp.Search = r.Search
+	tmp.MaxResults = r.MaxResults
+	tmp.Token = r.Token
 
 	return json.Marshal(tmp)
 }
@@ -133,12 +169,16 @@ func (r *ListRepoBranchesResponse) Type() MessageType {
 
 func (r ListRepoBranchesResponse) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		ListRepoBranchesResponse
-		Type MessageType
+		Type         MessageType
+		Items        []string
+		NextToken    *string
+		ErrorMessage *string
 	}
 
 	tmp.Type = ListRepoBranchesResponseMessage
-	tmp.ListRepoBranchesResponse = r
+	tmp.Items = r.Items
+	tmp.NextToken = r.NextToken
+	tmp.ErrorMessage = r.ErrorMessage
 
 	return json.Marshal(tmp)
 }
