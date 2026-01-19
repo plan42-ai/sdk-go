@@ -392,6 +392,7 @@ type ListOrgsForGithubConnectionRequest struct {
 	ConnectionID string
 	MaxResults   *int
 	Token        *string
+	Search       *string
 }
 
 // GetField retrieves the value of a field by name.
@@ -406,6 +407,8 @@ func (r *ListOrgsForGithubConnectionRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.MaxResults)
 	case "Token":
 		return EvalNullable(r.Token)
+	case "Search":
+		return EvalNullable(r.Search)
 	default:
 		return nil, false
 	}
@@ -441,6 +444,9 @@ func (c *Client) ListOrgsForGithubConnection(
 	}
 	if req.Token != nil {
 		q.Set("token", *req.Token)
+	}
+	if req.Search != nil {
+		q.Set("search", *req.Search)
 	}
 	u.RawQuery = q.Encode()
 

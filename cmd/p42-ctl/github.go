@@ -224,10 +224,10 @@ func (o *AddGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type ListGithubOrgsOptions struct {
-	Name           *string `help:"Return only the GitHub org whose name matches the provided value." name:"name" short:"n" optional:""`
 	IncludeDeleted bool    `help:"Include deleted github orgs" short:"d"`
 	TenantID       *string `help:"The id of the tenant to list github orgs for." name:"tenant-id" short:"i" optional:""`
 	ConnectionID   *string `help:"The id of the github connection to list orgs for." name:"connection-id" short:"c" optional:""`
+	Search         *string `help:"A search string to filter orgs. Requires --connection-id." name:"search" optional:""`
 }
 
 func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -238,8 +238,12 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 		return fmt.Errorf("both --tenant-id and --connection-id must be provided together")
 	}
 
-	if tenantProvided && (o.IncludeDeleted || o.Name != nil) {
+	if tenantProvided && (o.IncludeDeleted) {
 		return fmt.Errorf("--tenant-id and --connection-id cannot be used with --include-deleted or --name")
+	}
+
+	if o.Search != nil && !connectionProvided {
+		return fmt.Errorf("--search requires --connection-id")
 	}
 
 	if tenantProvided {
@@ -256,7 +260,6 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 	for {
 		req := &p42.ListGithubOrgsRequest{
 			Token:          token,
-			Name:           o.Name,
 			IncludeDeleted: util.Pointer(o.IncludeDeleted),
 		}
 		resp, err := s.Client.ListGithubOrgs(ctx, req)
@@ -280,6 +283,7 @@ func (o *ListGithubOrgsOptions) listOrgsForConnection(ctx context.Context, s *Sh
 	req := &p42.ListOrgsForGithubConnectionRequest{
 		TenantID:     *o.TenantID,
 		ConnectionID: *o.ConnectionID,
+		Search:       o.Search,
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {

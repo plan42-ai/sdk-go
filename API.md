@@ -5189,22 +5189,23 @@ The ListOrgsForGithubConnection API lists all organizations associated with a Gi
 ## 95.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/github-connections/{connection_id}/orgs?maxResults={maxResults}&token={token} HTTP/1.1
+GET /v1/tenants/{tenant_id}/github-connections/{connection_id}/orgs?maxResults={maxResults}&token={token}&search={search} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
 ```
 
-| Parameter                                | Location | Type    | Description                                                                                    |
-|------------------------------------------|----------|---------|------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                                          |
-| connection_id                            | path     | string  | The ID of the GitHub connection to list organizations for.                                     |
+| Parameter                                | Location | Type    | Description                                                                                        |
+|------------------------------------------|----------|---------|----------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the GitHub connection.                                              |
+| connection_id                            | path     | string  | The ID of the GitHub connection to list organizations for.                                         |
 | maxResults                               | query    | *int    | Optional. The maximum number of organizations to return. Default is 10. Must be between 1 and 100. |
-| token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                        |
-| Authorization                            | header   | string  | The authorization header for the request.                                                      |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                         |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                            |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                            |
+| search                                   | query    | *string | Optional. A search string to filter organization names by.                                         |
+| Authorization                            | header   | string  | The authorization header for the request.                                                          |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                             |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                |
 
 ## 95.2 Response
 
