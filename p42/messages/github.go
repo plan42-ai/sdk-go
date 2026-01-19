@@ -21,6 +21,7 @@ func (r ListOrgsForGithubConnectionRequest) MarshalJSON() ([]byte, error) {
 		ConnectionID string
 		MaxResults   *int
 		Token        *string
+		Search       *string
 	}
 
 	tmp.Type = ListOrgsForGithubConnectionRequestMessage
@@ -28,6 +29,7 @@ func (r ListOrgsForGithubConnectionRequest) MarshalJSON() ([]byte, error) {
 	tmp.ConnectionID = r.ConnectionID
 	tmp.MaxResults = r.MaxResults
 	tmp.Token = r.Token
+	tmp.Search = r.Search
 
 	return json.Marshal(tmp)
 }
