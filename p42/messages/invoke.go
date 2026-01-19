@@ -39,24 +39,12 @@ func (r *InvokeAgentRequest) GetModel() p42.ModelType {
 
 func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		Type                      MessageType
-		Task                      *p42.Task
-		Turn                      *p42.Turn
-		Environment               *p42.Environment
-		GithubToken               *string
-		GithubURL                 *string
-		PrivateGithubConnectionID *string
-		AgentToken                string
-		FeedBack                  map[string][]PRFeedback
+		InvokeAgentRequest
+		Type MessageType
 	}
 
 	tmp.Type = InvokeAgentRequestMessage
-	tmp.Task = r.Task
-	tmp.Turn = r.Turn
-	tmp.Environment = r.Environment
-	tmp.GithubToken = r.GithubToken
-	tmp.AgentToken = r.AgentToken
-	tmp.FeedBack = r.FeedBack
+	tmp.InvokeAgentRequest = r
 
 	return json.Marshal(tmp)
 }
@@ -107,12 +95,12 @@ func (r *InvokeAgentResponse) Type() MessageType {
 
 func (r InvokeAgentResponse) MarshalJSON() ([]byte, error) {
 	var tmp struct {
-		Type         MessageType
-		ErrorMessage *string
+		InvokeAgentResponse
+		Type MessageType
 	}
 
 	tmp.Type = InvokeAgentResponseMessage
-	tmp.ErrorMessage = r.ErrorMessage
+	tmp.InvokeAgentResponse = r
 
 	return json.Marshal(tmp)
 }
