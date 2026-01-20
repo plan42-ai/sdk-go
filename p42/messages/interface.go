@@ -13,6 +13,8 @@ const (
 	SearchRepoResponseMessage                  MessageType = "SearchRepoResponse"
 	ListRepoBranchesRequestMessage             MessageType = "ListRepoBranchesRequest"
 	ListRepoBranchesResponseMessage            MessageType = "ListRepoBranchesResponse"
+	GetPRFeedbackRequestMessage                MessageType = "GetPRFeedbackRequest"
+	GetPRFeedbackResponseMessage               MessageType = "GetPRFeedbackResponse"
 )
 
 type Message interface {

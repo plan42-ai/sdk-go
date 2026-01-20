@@ -213,6 +213,7 @@ type PolicyPrincipal struct {
 	TokenTypesBitVector SmallBitVector `json:"-"`
 }
 
+// nolint: goconst
 func (p *PolicyPrincipal) GetField(name string) (any, bool) {
 	switch name {
 	case "Type":

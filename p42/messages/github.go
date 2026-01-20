@@ -1,6 +1,8 @@
 package messages
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type ListOrgsForGithubConnectionRequest struct {
 	TenantID     string
@@ -182,5 +184,46 @@ func (r ListRepoBranchesResponse) MarshalJSON() ([]byte, error) {
 	tmp.NextToken = r.NextToken
 	tmp.ErrorMessage = r.ErrorMessage
 
+	return json.Marshal(tmp)
+}
+
+type GetPRFeedbackRequest struct {
+	FullRepoNames []string
+}
+
+func (r *GetPRFeedbackRequest) Type() MessageType {
+	return GetPRFeedbackRequestMessage
+}
+
+func (r GetPRFeedbackRequest) MarshalJSON() ([]byte, error) {
+	var tmp struct {
+		Type          MessageType
+		FullRepoNames []string
+	}
+
+	tmp.Type = GetPRFeedbackRequestMessage
+	tmp.FullRepoNames = r.FullRepoNames
+	return json.Marshal(tmp)
+}
+
+type GetPRFeedbackResponse struct {
+	Feedback     map[string][]PRFeedback
+	ErrorMessage *string
+}
+
+func (r *GetPRFeedbackResponse) Type() MessageType {
+	return GetPRFeedbackResponseMessage
+}
+
+func (r GetPRFeedbackResponse) MarshalJSON() ([]byte, error) {
+	var tmp struct {
+		Type         MessageType
+		Feedback     map[string][]PRFeedback
+		ErrorMessage *string
+	}
+
+	tmp.Type = GetPRFeedbackResponseMessage
+	tmp.Feedback = r.Feedback
+	tmp.ErrorMessage = r.ErrorMessage
 	return json.Marshal(tmp)
 }
