@@ -23,7 +23,7 @@ type InvokeAgentRequest struct {
 	GithubURL                 *string
 	PrivateGithubConnectionID *string
 	AgentToken                string
-	FeedBack                  map[string][]PRFeedback
+	FeedBack                  *map[string][]PRFeedback
 }
 
 func (r *InvokeAgentRequest) Type() MessageType {
@@ -47,7 +47,7 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 		GithubURL                 *string
 		PrivateGithubConnectionID *string
 		AgentToken                string
-		FeedBack                  map[string][]PRFeedback
+		FeedBack                  *map[string][]PRFeedback
 	}
 
 	tmp.Type = InvokeAgentRequestMessage
@@ -55,6 +55,8 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 	tmp.Turn = r.Turn
 	tmp.Environment = r.Environment
 	tmp.GithubToken = r.GithubToken
+	tmp.GithubURL = r.GithubURL
+	tmp.PrivateGithubConnectionID = r.PrivateGithubConnectionID
 	tmp.AgentToken = r.AgentToken
 	tmp.FeedBack = r.FeedBack
 
