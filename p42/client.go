@@ -95,6 +95,14 @@ type Client struct {
 	authHandlers []AuthHandler
 }
 
+// WithAPIToken returns a copy of the client configured to use the provided API token
+// while sharing the underlying HTTP client.
+func (c *Client) WithAPIToken(token string) *Client {
+	clone := *c
+	clone.authHandlers = []AuthHandler{&apiTokenHandler{Token: token}}
+	return &clone
+}
+
 // NewClient returns a new API client with the given baseURL.
 func NewClient(baseURL string, opts ...Option) *Client {
 	parsedURL, err := url.Parse(baseURL)
