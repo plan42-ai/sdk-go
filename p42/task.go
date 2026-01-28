@@ -26,6 +26,7 @@ const (
 	ModelTypeGpt51CodexMax ModelType = "GPT-5.1 Codex Max"
 	ModelTypeClaude4Opus   ModelType = "Claude 4 Opus"
 	ModelTypeClaude4Sonnet ModelType = "Claude 4 Sonnet"
+	ModelTypeGeminiPro3    ModelType = "Gemini Pro 3"
 )
 
 // TaskState represents the state of a task.
