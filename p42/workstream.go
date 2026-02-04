@@ -542,6 +542,7 @@ type MoveShortNameResponse struct {
 }
 
 // MoveShortName moves a short name from one workstream to another.
+// nolint: dupl
 func (c *Client) MoveShortName(ctx context.Context, req *MoveShortNameRequest) (*MoveShortNameResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")

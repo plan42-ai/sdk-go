@@ -1145,12 +1145,11 @@ type MoveTaskRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID                     string `json:"-"`
-	TaskID                       string `json:"-"`
-	DestinationWorkstreamID      string `json:"DestinationWorkstreamID"`
-	TaskVersion                  int    `json:"TaskVersion"`
-	SourceWorkstreamVersion      int    `json:"SourceWorkstreamVersion"`
-	DestinationWorkstreamVersion int    `json:"DestinationWorkstreamVersion"`
+	TenantID                string `json:"-"`
+	TaskID                  string `json:"-"`
+	SourceWorkstreamID      string `json:"-"`
+	DestinationWorkstreamID string `json:"DestinationWorkstreamID"`
+	TaskVersion             int    `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -1161,14 +1160,12 @@ func (r *MoveTaskRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "TaskID":
 		return r.TaskID, true
+	case "SourceWorkstreamID":
+		return r.SourceWorkstreamID, true
 	case "DestinationWorkstreamID":
 		return r.DestinationWorkstreamID, true
 	case "TaskVersion":
 		return r.TaskVersion, true
-	case "SourceWorkstreamVersion":
-		return r.SourceWorkstreamVersion, true
-	case "DestinationWorkstreamVersion":
-		return r.DestinationWorkstreamVersion, true
 	default:
 		return nil, false
 	}
@@ -1182,6 +1179,7 @@ type MoveTaskResponse struct {
 }
 
 // MoveTask moves a task from one workstream to another.
+// nolint: dupl
 func (c *Client) MoveTask(ctx context.Context, req *MoveTaskRequest) (*MoveTaskResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
@@ -1192,8 +1190,14 @@ func (c *Client) MoveTask(ctx context.Context, req *MoveTaskRequest) (*MoveTaskR
 	if req.TaskID == "" {
 		return nil, fmt.Errorf("task id is required")
 	}
+	if req.SourceWorkstreamID == "" {
+		return nil, fmt.Errorf("source workstream id is required")
+	}
 	if req.DestinationWorkstreamID == "" {
 		return nil, fmt.Errorf("destination workstream id is required")
+	}
+	if req.TaskVersion < 1 {
+		return nil, fmt.Errorf("task version is required")
 	}
 
 	bodyBytes, err := json.Marshal(req)
@@ -1201,7 +1205,7 @@ func (c *Client) MoveTask(ctx context.Context, req *MoveTaskRequest) (*MoveTaskR
 		return nil, err
 	}
 
-	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "move")
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "workstreams", url.PathEscape(req.SourceWorkstreamID), "tasks", url.PathEscape(req.TaskID), "move")
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(bodyBytes))
 	if err != nil {
@@ -1210,6 +1214,7 @@ func (c *Client) MoveTask(ctx context.Context, req *MoveTaskRequest) (*MoveTaskR
 
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.TaskVersion))
 	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
