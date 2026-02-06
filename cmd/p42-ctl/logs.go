@@ -17,10 +17,11 @@ type LogsOptions struct {
 }
 
 type StreamLogsOptions struct {
-	TenantID       string `help:"The id of the tenant that owns the task / turn to stream logs for." name:"tenant-id" short:"i" required:""`
-	TaskID         string `help:"The id of the task to stream logs for." name:"task-id" short:"t" required:""`
-	TurnIndex      int    `help:"The turn to stream logs for." name:"turn-index" short:"n" required:""`
-	IncludeDeleted bool   `help:"Include logs for turns on deleted tasks" short:"d"`
+	TenantID       string  `help:"The id of the tenant that owns the task / turn to stream logs for." name:"tenant-id" short:"i" required:""`
+	TaskID         string  `help:"The id of the task to stream logs for." name:"task-id" short:"t" required:""`
+	TurnIndex      int     `help:"The turn to stream logs for." name:"turn-index" short:"n" required:""`
+	WorkstreamID   *string `help:"Optional. The id of the workstream the task belongs to." name:"workstream-id" short:"w" optional:""`
+	IncludeDeleted bool    `help:"Include logs for turns on deleted tasks" short:"d"`
 }
 
 func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
@@ -38,6 +39,7 @@ func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
 		1000,
 		p42.WithIncludeDeleted(o.IncludeDeleted),
 		p42.WithFeatureFlags(flags.FeatureFlags),
+		p42.WithWorkstreamID(o.WorkstreamID),
 	)
 	defer ls.Close()
 

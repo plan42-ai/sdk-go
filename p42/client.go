@@ -984,11 +984,12 @@ func (c *Client) UploadTurnLogs(ctx context.Context, req *UploadTurnLogsRequest)
 type StreamTurnLogsRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID       string `json:"-"`
-	TaskID         string `json:"-"`
-	TurnIndex      int    `json:"-"`
-	LastEventID    *int   `json:"-"`
-	IncludeDeleted *bool  `json:"-"`
+	TenantID       string  `json:"-"`
+	TaskID         string  `json:"-"`
+	TurnIndex      int     `json:"-"`
+	LastEventID    *int    `json:"-"`
+	IncludeDeleted *bool   `json:"-"`
+	WorkstreamID   *string `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -1004,6 +1005,8 @@ func (r *StreamTurnLogsRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.LastEventID)
 	case "IncludeDeleted":
 		return EvalNullable(r.IncludeDeleted)
+	case "WorkstreamID":
+		return EvalNullable(r.WorkstreamID)
 	default:
 		return nil, false
 	}
@@ -1037,6 +1040,9 @@ func (c *Client) StreamTurnLogs(ctx context.Context, req *StreamTurnLogsRequest)
 	q := u.Query()
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	if req.WorkstreamID != nil {
+		q.Set("workstreamID", *req.WorkstreamID)
 	}
 	u.RawQuery = q.Encode()
 
