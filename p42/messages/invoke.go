@@ -32,7 +32,7 @@ func (r *InvokeAgentRequest) Type() MessageType {
 
 func (r *InvokeAgentRequest) GetModel() p42.ModelType {
 	if r.Task.Model == nil {
-		return p42.ModelTypeGpt5Codex
+		return p42.ModelTypeGpt51Codex
 	}
 	return *r.Task.Model
 }
