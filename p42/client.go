@@ -865,10 +865,11 @@ type UploadTurnLogsRequest struct {
 type GetLastTurnLogRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID       string `json:"-"`
-	TaskID         string `json:"-"`
-	TurnIndex      int    `json:"-"`
-	IncludeDeleted *bool  `json:"-"`
+	TenantID       string  `json:"-"`
+	TaskID         string  `json:"-"`
+	TurnIndex      int     `json:"-"`
+	WorkstreamID   *string `json:"-"`
+	IncludeDeleted *bool   `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -881,6 +882,8 @@ func (r *GetLastTurnLogRequest) GetField(name string) (any, bool) {
 		return r.TaskID, true
 	case "TurnIndex":
 		return r.TurnIndex, true
+	case "WorkstreamID":
+		return EvalNullable(r.WorkstreamID)
 	case "IncludeDeleted":
 		return EvalNullable(r.IncludeDeleted)
 	default:
@@ -1093,6 +1096,9 @@ func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest)
 		"last",
 	)
 	q := u.Query()
+	if req.WorkstreamID != nil {
+		q.Set("workstreamID", *req.WorkstreamID)
+	}
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
 	}

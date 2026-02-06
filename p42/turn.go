@@ -214,9 +214,10 @@ func (c *Client) GetTurn(ctx context.Context, req *GetTurnRequest) (*Turn, error
 type GetLastTurnRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID       string `json:"-"`
-	TaskID         string `json:"-"`
-	IncludeDeleted *bool  `json:"-"`
+	TenantID       string  `json:"-"`
+	TaskID         string  `json:"-"`
+	WorkstreamID   *string `json:"-"`
+	IncludeDeleted *bool   `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -227,6 +228,8 @@ func (r *GetLastTurnRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "TaskID":
 		return r.TaskID, true
+	case "WorkstreamID":
+		return EvalNullable(r.WorkstreamID)
 	case "IncludeDeleted":
 		return EvalNullable(r.IncludeDeleted)
 	default:
@@ -256,6 +259,9 @@ func (c *Client) GetLastTurn(ctx context.Context, req *GetLastTurnRequest) (*Tur
 		"last",
 	)
 	q := u.Query()
+	if req.WorkstreamID != nil {
+		q.Set("workstreamID", *req.WorkstreamID)
+	}
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
 	}

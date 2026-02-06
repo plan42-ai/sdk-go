@@ -184,15 +184,17 @@ func (o *GetTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type GetLastTurnOptions struct {
-	TenantID       string `help:"The ID of the tennant that owns the task" name:"tenant-id" short:"i" required:""`
-	TaskID         string `help:"The ID of the task to fetch the last turn for" name:"task-id" short:"t" required:""`
-	IncludeDeleted bool   `help:"Set to return a turn on a deleted task" short:"d"`
+	TenantID       string  `help:"The ID of the tennant that owns the task" name:"tenant-id" short:"i" required:""`
+	TaskID         string  `help:"The ID of the task to fetch the last turn for" name:"task-id" short:"t" required:""`
+	WorkstreamID   *string `help:"The ID of the workstream containing the task." name:"workstream-id" short:"w" optional:""`
+	IncludeDeleted bool    `help:"Set to return a turn on a deleted task" short:"d"`
 }
 
 func (o *GetLastTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &p42.GetLastTurnRequest{
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
+		WorkstreamID:   o.WorkstreamID,
 		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
