@@ -129,10 +129,11 @@ func (c *Client) CreateTurn(ctx context.Context, req *CreateTurnRequest) (*Turn,
 type GetTurnRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID       string `json:"-"`
-	TaskID         string `json:"-"`
-	TurnIndex      int    `json:"-"`
-	IncludeDeleted *bool  `json:"-"`
+	TenantID       string  `json:"-"`
+	TaskID         string  `json:"-"`
+	TurnIndex      int     `json:"-"`
+	WorkstreamID   *string `json:"-"`
+	IncludeDeleted *bool   `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -145,6 +146,8 @@ func (r *GetTurnRequest) GetField(name string) (any, bool) {
 		return r.TaskID, true
 	case "TurnIndex":
 		return r.TurnIndex, true
+	case "WorkstreamID":
+		return EvalNullable(r.WorkstreamID)
 	case "IncludeDeleted":
 		return EvalNullable(r.IncludeDeleted)
 	default:
@@ -177,6 +180,9 @@ func (c *Client) GetTurn(ctx context.Context, req *GetTurnRequest) (*Turn, error
 		strconv.Itoa(req.TurnIndex),
 	)
 	q := u.Query()
+	if req.WorkstreamID != nil {
+		q.Set("workstreamID", *req.WorkstreamID)
+	}
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
 	}
@@ -305,6 +311,7 @@ type UpdateTurnRequest struct {
 	Version            int                    `json:"-"`
 	PreviousResponseID *string                `json:"PreviousResponseID,omitempty"`
 	CommitInfo         *map[string]CommitInfo `json:"CommitInfo,omitempty"`
+	WorkstreamID       *string                `json:"WorkstreamID,omitempty"`
 	Status             *string                `json:"Status,omitempty"`
 	OutputMessage      *string                `json:"OutputMessage,omitempty"`
 	ErrorMessage       *string                `json:"ErrorMessage,omitempty"`
@@ -327,6 +334,8 @@ func (r *UpdateTurnRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.PreviousResponseID)
 	case "CommitInfo":
 		return EvalNullable(r.CommitInfo)
+	case "WorkstreamID":
+		return EvalNullable(r.WorkstreamID)
 	case "Status":
 		return EvalNullable(r.Status)
 	case "OutputMessage":
