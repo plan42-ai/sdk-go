@@ -1633,7 +1633,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 If-Match: <taskVersion>
 
 {
-    "Prompt": "string"    
+    "Prompt": "string",
+    "WorkstreamID": "*string"
 }
 ```
 
@@ -1646,6 +1647,7 @@ If-Match: <taskVersion>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                                                        |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                           |
 | taskVersion                              | header   | string  | The version of the task to create the turn for. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. Adding a turn to a task will increment it's version number. |
+| WorkstreamID                             | body     | *string | Optional. The ID of the workstream the task belongs to.                                                                                                                                                                       |
 | Prompt                                   | body     | string  | The prompt to use for the turn.                                                                                                                                                                                               |
 
 ## 23.2 Response
@@ -1708,7 +1710,7 @@ The ListTurns API is used to list all turns for a task.
 ## 24.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns?maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns?workstreamID={workstreamID}&maxResults={maxResults}&token={token}&includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -1719,6 +1721,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant to list turns for.                                                                         |
 | task_id                                  | path     | string  | The ID of the task to list turns for.                                                                           |
+| workstreamID                             | query    | *string | Optional. The ID of the workstream the task belongs to.                                                         |
 | maxResults                               | query    | *int    | Optional. The maximum number of turns to return. Default is 10. Must be >=1 and <= 500.                         |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned. |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to return turns for a deleted task.                                                       |
@@ -1752,7 +1755,7 @@ GetTurn retrieves a specific turn for a task.
 ## 25.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}?includeDeleted={includeDeleted} HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}?workstreamID={workstreamID}&includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -1764,6 +1767,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | tenant_id                                | path     | string  | The ID of the tenant to get the turn for.                           |
 | task_id                                  | path     | string  | The ID of the task to get the turn for.                             |
 | turnIndex                                | path     | int     | The index of the turn to get.                                       |
+| workstreamID                             | query    | *string | Optional. The ID of the workstream the task belongs to.             |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to return a turn for a deleted task.          |
 | Authorization                            | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
@@ -1804,7 +1808,7 @@ to list all turns.
 ## 26.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/last?includeDeleted={includeDeleted} HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/last?workstreamID={workstreamID}&includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -1815,6 +1819,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|---------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant to get the last turn for.                      |
 | task_id                                  | path     | string  | The ID of the task to get the last turn for.                        |
+| workstreamID                             | query    | *string | Optional. The ID of the workstream the task belongs to.             |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to return the last turn for a deleted task.   |
 | Authorization                            | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
@@ -1865,6 +1870,7 @@ If-Match: <version>
 {
     "PreviousResponseID": "*string",
     "CommitInfo": {},    
+    "WorkstreamID": "*string",
     "Status": "*string",
     "OutputMessage": "*string", 
     "ErrorMessage": "*string"
@@ -1882,6 +1888,7 @@ If-Match: <version>
 | version                                  | header   | string                                    | The version of the turn to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
 | PreviousResponseID                       | body     | *string                                   | If set, update the turn's previous response ID.                                                                                                      |
 | CommitInfo                               | body     | *map[string][CommitInfo](#233-commitinfo) | If set, update the turn's commit info. This is a map of "org/repo" to commit hash info for that repo.                                                |
+| WorkstreamID                             | body     | *string                                   | Optional. The ID of the workstream the task belongs to.                                                                                               |
 | Status                                   | body     | *string                                   | If set, update the turn's status.                                                                                                                    |
 | OutputMessage                            | body     | *string                                   | If set, update the turn's output message.                                                                                                            |
 | ErrorMessage                             | body     | *string                                   | If set, update the turn's error message.                                                                                                             |
@@ -1935,6 +1942,7 @@ If-Match: <version>
 
 {
     "Index": int,
+    "WorkstreamID": "*string",
     "Logs": [
         {
             "Timestamp": "string",
@@ -1953,6 +1961,7 @@ If-Match: <version>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                        |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                           |
 | version                                  | header   | string  | The version of the turn to upload logs for. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| WorkstreamID                             | body     | *string | Optional. The ID of the workstream the task belongs to.                                                                                                       |
 | Index                                    | body     | int     | The log index of the first entry in the log batch. This should be the last index + 1 of the previous log batch, or 0 for the first batch.                     |
 | Logs                                     | body     | []Log   | The list of logs to upload. Each log entry should have a timestamp and message.                                                                               |
 
@@ -1980,7 +1989,7 @@ StreamTurns streams logs for a turn using Server-Sent Events (SSE).
 ## 28.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs?includeDeleted={includeDeleted} HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs?workstreamID={workstreamID}&includeDeleted={includeDeleted} HTTP/1.1
 Last-Event-ID: <last-event-id>
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -1993,6 +2002,7 @@ Accept: text/event-streamS
 | tenant_id                                | path     | string  | The ID of the tenant to stream logs for.                                                          |
 | task_id                                  | path     | string  | The ID of the task to stream logs for.                                                            |
 | turnIndex                                | path     | int     | The index of the turn to stream logs for.                                                         |
+| workstreamID                             | query    | *string | Optional. The ID of the workstream the task belongs to.                                           |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to return logs for turns on deleted tasks. |
 | Last-Event-ID                            | header   | *string | Optional. The last event ID received by the client. Used to resume streaming from the last event. |
 | Authorization                            | header   | string  | The authorization header for the request.                                                         |
@@ -2044,7 +2054,7 @@ GetLastTurnLog retrieves the last log entry for a turn.
 ## 29.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs/last?includeDeleted={includeDeleted} HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs/last?workstreamID={workstreamID}&includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -2056,6 +2066,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | tenant_id                                | path     | string  | The ID of the tenant to get the last log for.                                                     |
 | task_id                                  | path     | string  | The ID of the task to get the last log for.                                                       |
 | turnIndex                                | path     | int     | The index of the turn to get the last log for.                                                    |
+| workstreamID                             | query    | *string | Optional. The ID of the workstream the task belongs to.                                           |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to return logs for turns on deleted tasks. |
 | Authorization                            | header   | string  | The authorization header for the request.                                                         |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
