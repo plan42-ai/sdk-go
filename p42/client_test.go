@@ -4369,6 +4369,33 @@ func TestGetTurn(t *testing.T) {
 	require.Equal(t, 1, turn.TurnIndex)
 }
 
+func TestGetTurnWithWorkstream(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/abc/tasks/task/turns/1", r.URL.Path)
+			require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.Turn{TenantID: "abc", TaskID: "task", TurnIndex: 1}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	turn, err := client.GetTurn(
+		context.Background(),
+		&p42.GetTurnRequest{TenantID: "abc", TaskID: "task", TurnIndex: 1, WorkstreamID: util.Pointer("ws")},
+	)
+	require.NoError(t, err)
+	require.Equal(t, 1, turn.TurnIndex)
+}
+
 func TestGetTurnIncludeDeleted(t *testing.T) {
 	t.Parallel()
 
@@ -5133,6 +5160,8 @@ func TestUpdateTurn(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, reqBody.Status)
 			require.Equal(t, turnStatus, *reqBody.Status)
+			require.NotNil(t, reqBody.WorkstreamID)
+			require.Equal(t, "ws", *reqBody.WorkstreamID)
 
 			w.WriteHeader(http.StatusOK)
 			resp := p42.Turn{TenantID: "abc", TaskID: "task1", TurnIndex: 1}
@@ -5147,11 +5176,12 @@ func TestUpdateTurn(t *testing.T) {
 	status := turnStatus
 	turn, err := client.UpdateTurn(
 		context.Background(), &p42.UpdateTurnRequest{
-			TenantID:  "abc",
-			TaskID:    "task1",
-			TurnIndex: 1,
-			Version:   1,
-			Status:    &status,
+			TenantID:     "abc",
+			TaskID:       "task1",
+			TurnIndex:    1,
+			Version:      1,
+			WorkstreamID: util.Pointer("ws"),
+			Status:       &status,
 		},
 	)
 	require.NoError(t, err)

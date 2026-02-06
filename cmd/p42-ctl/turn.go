@@ -110,10 +110,11 @@ func (o *ListTurnsOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type UpdateTurnOptions struct {
-	TenantID  string `help:"The ID of the tennant that owns the task and turn" short:"i" required:""`
-	TaskID    string `help:"The ID of the task that contains the turn" short:"t" required:""`
-	TurnIndex int    `help:"The index of the turn to update" name:"turn-index" short:"n" required:""`
-	JSON      string `help:"The json file containing the updates to make" short:"j" default:"-"`
+	TenantID     string  `help:"The ID of the tennant that owns the task and turn" short:"i" required:""`
+	TaskID       string  `help:"The ID of the task that contains the turn" short:"t" required:""`
+	TurnIndex    int     `help:"The index of the turn to update" name:"turn-index" short:"n" required:""`
+	JSON         string  `help:"The json file containing the updates to make" short:"j" default:"-"`
+	WorkstreamID *string `help:"Optional. The id of the workstream the task belongs to." name:"workstream-id" short:"w" optional:""`
 }
 
 func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -129,16 +130,17 @@ func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
+	req.WorkstreamID = o.WorkstreamID
 	req.TenantID = o.TenantID
 	req.TaskID = o.TaskID
 	req.TurnIndex = o.TurnIndex
-
 	getReq := &p42.GetTurnRequest{
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
 		TurnIndex:      o.TurnIndex,
 		IncludeDeleted: util.Pointer(true),
 	}
+	getReq.WorkstreamID = req.WorkstreamID
 	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	turn, err := s.Client.GetTurn(ctx, getReq)
@@ -146,7 +148,6 @@ func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	req.Version = turn.Version
-	req.FeatureFlags = getReq.FeatureFlags
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	updated, err := s.Client.UpdateTurn(ctx, &req)
@@ -157,10 +158,11 @@ func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type GetTurnOptions struct {
-	TenantID       string `help:"The ID of the tennant that owns the task" name:"tenant-id" short:"i" required:""`
-	TaskID         string `help:"The ID of the task containing the turn" name:"task-id" short:"t" required:""`
-	TurnIndex      int    `help:"The index of the turn to fetch" name:"turn-index" short:"n" required:""`
-	IncludeDeleted bool   `help:"Include the turn even if defined on a deleted task" short:"d"`
+	TenantID       string  `help:"The ID of the tennant that owns the task" name:"tenant-id" short:"i" required:""`
+	TaskID         string  `help:"The ID of the task containing the turn" name:"task-id" short:"t" required:""`
+	TurnIndex      int     `help:"The index of the turn to fetch" name:"turn-index" short:"n" required:""`
+	IncludeDeleted bool    `help:"Include the turn even if defined on a deleted task" short:"d"`
+	WorkstreamID   *string `help:"Optional. The id of the workstream the task belongs to." name:"workstream-id" short:"w" optional:""`
 }
 
 func (o *GetTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -169,6 +171,7 @@ func (o *GetTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TaskID:         o.TaskID,
 		TurnIndex:      o.TurnIndex,
 		IncludeDeleted: util.Pointer(o.IncludeDeleted),
+		WorkstreamID:   o.WorkstreamID,
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
