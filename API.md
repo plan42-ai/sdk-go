@@ -1319,6 +1319,7 @@ ModelType is an enum that defines the type of model to use for the task.
 | Codex Mini        |
 | GPT-5.1 Codex     |
 | GPT-5.1 Codex Max |
+| GPT-5.2 Codex     |
 | Claude 4.5 Opus   |
 | Claude 4.6 Opus   |
 | Gemini Pro 3      |

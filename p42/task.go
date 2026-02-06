@@ -20,6 +20,7 @@ const (
 	ModelTypeCodexMini     ModelType = "Codex Mini"
 	ModelTypeGpt51Codex    ModelType = "GPT-5.1 Codex"
 	ModelTypeGpt51CodexMax ModelType = "GPT-5.1 Codex Max"
+	ModelTypeGpt52Codex    ModelType = "GPT-5.2 Codex"
 	ModelTypeClaude45Opus  ModelType = "Claude 4.5 Opus"
 	ModelTypeClaude46Opus  ModelType = "Claude 4.6 Opus"
 	ModelTypeGeminiPro3    ModelType = "Gemini Pro 3"
