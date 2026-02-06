@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/plan42-ai/sdk-go/p42"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLogStream(t *testing.T) {
@@ -66,6 +67,53 @@ func TestLogStream(t *testing.T) {
 	if err := ls.ShutdownTimeout(2 * time.Second); err != nil {
 		t.Fatalf("shutdown error: %v", err)
 	}
+}
+
+func TestLogStreamWithWorkstreamID(t *testing.T) {
+	t.Parallel()
+
+	var calls int
+	srv := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				require.Equal(t, workstreamIDThatNeedsEscaping, r.URL.Query().Get("workstreamID"))
+				switch calls {
+				case 1:
+					w.Header().Set("Content-Type", "text/event-stream")
+					fmt.Fprintf(
+						w,
+						"id: 1\nevent: log\ndata: {\"Timestamp\":\"2025-01-01T00:00:00Z\",\"Message\":\"one\"}\n\n",
+					)
+				case 2:
+					w.WriteHeader(http.StatusNoContent)
+				default:
+					t.Fatalf("unexpected call %d", calls)
+				}
+			},
+		),
+	)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	ls := p42.NewLogStream(
+		client,
+		"ten",
+		"task",
+		0,
+		1,
+		p42.WithWorkstreamID(workstreamIDThatNeedsEscaping),
+	)
+	defer ls.Close()
+
+	var logs []p42.TurnLog
+	for log := range ls.Logs() {
+		logs = append(logs, log)
+	}
+
+	require.Len(t, logs, 1)
+	require.Equal(t, "one", logs[0].Message)
+	require.NoError(t, ls.ShutdownTimeout(2*time.Second))
 }
 
 func TestLogStreamCloseDuringRead(t *testing.T) {
