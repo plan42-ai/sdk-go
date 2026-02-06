@@ -70,15 +70,17 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type ListTurnsOptions struct {
-	TenantID       string `help:"The ID of the tennant that owns the task we want to list turns for." short:"i" required:""`
-	TaskID         string `help:"The ID of the task we want to list turns for." short:"t" required:""`
-	IncludeDeleted bool   `help:"Set to return turns even if they are define on a deleted task." short:"d"`
+	TenantID       string  `help:"The ID of the tennant that owns the task we want to list turns for." short:"i" required:""`
+	TaskID         string  `help:"The ID of the task we want to list turns for." short:"t" required:""`
+	WorkstreamID   *string `help:"The ID of the workstream the task belongs to." short:"w" optional:""`
+	IncludeDeleted bool    `help:"Set to return turns even if they are define on a deleted task." short:"d"`
 }
 
 func (o *ListTurnsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	req := &p42.ListTurnsRequest{
 		TenantID:       o.TenantID,
 		TaskID:         o.TaskID,
+		WorkstreamID:   o.WorkstreamID,
 		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)

@@ -4923,6 +4923,7 @@ func TestListTurns(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			require.Equal(t, http.MethodGet, r.Method)
 			require.Equal(t, "/v1/tenants/abc/tasks/task1/turns", r.URL.Path)
+			require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
 			require.Equal(t, "20", r.URL.Query().Get("maxResults"))
 			require.Equal(t, "tok", r.URL.Query().Get("token"))
 			require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
@@ -4939,11 +4940,13 @@ func TestListTurns(t *testing.T) {
 	client := p42.NewClient(srv.URL)
 	maxResults := 20
 	tok := "tok"
+	workstreamID := "ws"
 	includeDeleted := true
 	resp, err := client.ListTurns(
 		context.Background(), &p42.ListTurnsRequest{
 			TenantID:       "abc",
 			TaskID:         "task1",
+			WorkstreamID:   &workstreamID,
 			MaxResults:     &maxResults,
 			Token:          &tok,
 			IncludeDeleted: &includeDeleted,
