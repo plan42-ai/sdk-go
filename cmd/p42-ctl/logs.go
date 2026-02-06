@@ -53,10 +53,11 @@ func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
 }
 
 type UploadLogsOptions struct {
-	TenantID  string `help:"The id of the tenant that owns the task / turn to upload logs for." name:"tenant-id" short:"i" required:""`
-	TaskID    string `help:"The id of the task to upload logs for." name:"task-id" short:"t" required:""`
-	TurnIndex int    `help:"The turn to upload logs for." name:"turn-index" short:"n" required:""`
-	JSON      string `help:"The file containing the logs to upload." short:"j" default:"-"`
+	TenantID     string  `help:"The id of the tenant that owns the task / turn to upload logs for." name:"tenant-id" short:"i" required:""`
+	TaskID       string  `help:"The id of the task to upload logs for." name:"task-id" short:"t" required:""`
+	TurnIndex    int     `help:"The turn to upload logs for." name:"turn-index" short:"n" required:""`
+	WorkstreamID *string `help:"Optional workstream id the task belongs to." name:"workstream-id" short:"w"`
+	JSON         string  `help:"The file containing the logs to upload." short:"j" default:"-"`
 }
 
 func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -75,7 +76,7 @@ func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
 		reader = f
 	}
 
-	getTurnReq := &p42.GetTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex}
+	getTurnReq := &p42.GetTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex, WorkstreamID: o.WorkstreamID}
 	err := loadFeatureFlags(s, &getTurnReq.FeatureFlags)
 	if err != nil {
 		return err
@@ -86,7 +87,7 @@ func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 
-	lastReq := &p42.GetLastTurnLogRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex}
+	lastReq := &p42.GetLastTurnLogRequest{TenantID: o.TenantID, TaskID: o.TaskID, TurnIndex: o.TurnIndex, WorkstreamID: o.WorkstreamID}
 	lastReq.FeatureFlags = getTurnReq.FeatureFlags
 	processDelegatedAuth(s, &lastReq.DelegatedAuthInfo)
 	last, err := s.Client.GetLastTurnLog(ctx, lastReq)
@@ -105,6 +106,7 @@ func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
 			TaskID:       o.TaskID,
 			TurnIndex:    o.TurnIndex,
 			Version:      turn.Version,
+			WorkstreamID: o.WorkstreamID,
 			StartIndex:   last.Index + 1,
 			Logs:         logsCh,
 			FeatureFlags: getTurnReq.FeatureFlags.FeatureFlags,

@@ -853,12 +853,13 @@ type LastTurnLog struct {
 type UploadTurnLogsRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID  string    `json:"-"`
-	TaskID    string    `json:"-"`
-	TurnIndex int       `json:"-"`
-	Version   int       `json:"-"`
-	Index     int       `json:"Index"`
-	Logs      []TurnLog `json:"Logs"`
+	TenantID     string    `json:"-"`
+	TaskID       string    `json:"-"`
+	TurnIndex    int       `json:"-"`
+	Version      int       `json:"-"`
+	WorkstreamID *string   `json:"WorkstreamID,omitempty"`
+	Index        int       `json:"Index"`
+	Logs         []TurnLog `json:"Logs"`
 }
 
 // GetLastTurnLogRequest is the request payload for GetLastTurnLog.
@@ -903,6 +904,8 @@ func (r *UploadTurnLogsRequest) GetField(name string) (any, bool) {
 		return r.TurnIndex, true
 	case "Version":
 		return r.Version, true
+	case "WorkstreamID":
+		return EvalNullable(r.WorkstreamID)
 	case "Index":
 		return r.Index, true
 	case "Logs":
