@@ -23,16 +23,18 @@ type TaskOptions struct {
 
 // MoveTaskOptions contains the flags for the `task move` command.
 type MoveTaskOptions struct {
-	TenantID     string `help:"The id of the tenant to move the task in." name:"tenant-id" short:"i" required:""`
-	TaskID       string `help:"The id of the task to move." name:"task-id" short:"t" required:""`
-	WorkstreamID string `help:"The id of the workstream to move the task to." name:"workstream-id" short:"w" required:""`
+	TenantID                string `help:"The id of the tenant to move the task in." name:"tenant-id" short:"i" required:""`
+	TaskID                  string `help:"The id of the task to move." name:"task-id" short:"t" required:""`
+	SourceWorkstreamID      string `help:"The id of the workstream containing the task." name:"source-workstream-id" short:"S" required:""`
+	DestinationWorkstreamID string `help:"The id of the workstream to move the task to." name:"dest-workstream-id" short:"D" required:""`
 }
 
 func (o *MoveTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
-	// Retrieve the task to obtain its current version and source workstream.
-	getTaskReq := &p42.GetTaskRequest{
-		TenantID: o.TenantID,
-		TaskID:   o.TaskID,
+	// Retrieve the task to obtain its current version.
+	getTaskReq := &p42.GetWorkstreamTaskRequest{
+		TenantID:     o.TenantID,
+		WorkstreamID: o.SourceWorkstreamID,
+		TaskID:       o.TaskID,
 	}
 
 	if err := loadFeatureFlags(s, &getTaskReq.FeatureFlags); err != nil {
@@ -40,22 +42,16 @@ func (o *MoveTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 	processDelegatedAuth(s, &getTaskReq.DelegatedAuthInfo)
 
-	task, err := s.Client.GetTask(ctx, getTaskReq)
+	task, err := s.Client.GetWorkstreamTask(ctx, getTaskReq)
 	if err != nil {
 		return err
 	}
 
-	if task.WorkstreamID == nil {
-		return fmt.Errorf("task %s is not associated with a workstream", o.TaskID)
-	}
-
-	sourceWSID := *task.WorkstreamID
-
 	moveReq := &p42.MoveTaskRequest{
 		TenantID:                o.TenantID,
 		TaskID:                  o.TaskID,
-		SourceWorkstreamID:      sourceWSID,
-		DestinationWorkstreamID: o.WorkstreamID,
+		SourceWorkstreamID:      o.SourceWorkstreamID,
+		DestinationWorkstreamID: o.DestinationWorkstreamID,
 		TaskVersion:             task.Version,
 	}
 	moveReq.FeatureFlags = getTaskReq.FeatureFlags
