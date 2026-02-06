@@ -129,6 +129,7 @@ var helpMap = map[string]string{
 * GPT-5.1 Codex Max
 * Claude 4.5 Opus
 * Claude 4.6 Opus
+* Gemini Pro 3
 
 --- TaskState Enum Values ---
 
@@ -179,6 +180,7 @@ var helpMap = map[string]string{
 * GPT-5.1 Codex Max
 * Claude 4.5 Opus
 * Claude 4.6 Opus
+* Gemini Pro 3
 
 --- TaskState Enum Values ---
 
