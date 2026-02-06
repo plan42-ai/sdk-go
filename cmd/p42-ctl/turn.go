@@ -20,9 +20,10 @@ type TurnOptions struct {
 }
 
 type CreateTurnOptions struct {
-	TenantID string `help:"The ID of the tenant owning the task we are adding a turn to." short:"i" required:""`
-	TaskID   string `help:"The task to add a turn to." short:"t" required:""`
-	JSON     string `help:"The json file containing the turn definition." short:"j" default:"-"`
+	TenantID     string  `help:"The ID of the tenant owning the task we are adding a turn to." short:"i" required:""`
+	TaskID       string  `help:"The task to add a turn to." short:"t" required:""`
+	JSON         string  `help:"The json file containing the turn definition." short:"j" default:"-"`
+	WorkstreamID *string `help:"Optional. The workstream ID the task belongs to." name:"workstream-id" short:"w" optional:""`
 }
 
 func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
@@ -38,17 +39,20 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
+	req.WorkstreamID = o.WorkstreamID
 
-	getTaskReq := &p42.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID}
-	getTaskReq.FeatureFlags = req.FeatureFlags
-	processDelegatedAuth(s, &getTaskReq.DelegatedAuthInfo)
-	task, err := s.Client.GetTask(ctx, getTaskReq)
+	var task *p42.Task
+	if o.WorkstreamID != nil {
+		task, err = o.getWorkstreamTask(ctx, s, req.FeatureFlags)
+	} else {
+		task, err = o.getTask(ctx, s, req.FeatureFlags)
+	}
 	if err != nil {
 		return err
 	}
 
-	getReq := &p42.GetLastTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID}
-	getReq.FeatureFlags = getTaskReq.FeatureFlags
+	getReq := &p42.GetLastTurnRequest{TenantID: o.TenantID, TaskID: o.TaskID, WorkstreamID: o.WorkstreamID}
+	getReq.FeatureFlags = req.FeatureFlags
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	last, err := s.Client.GetLastTurn(ctx, getReq)
 	if err != nil {
@@ -67,6 +71,22 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	return printJSON(turn)
+}
+
+func (o *CreateTurnOptions) getTask(ctx context.Context, s *SharedOptions, featureFlags p42.FeatureFlags) (*p42.Task, error) {
+	getTaskReq := &p42.GetTaskRequest{TenantID: o.TenantID, TaskID: o.TaskID}
+	getTaskReq.FeatureFlags = featureFlags
+	processDelegatedAuth(s, &getTaskReq.DelegatedAuthInfo)
+
+	return s.Client.GetTask(ctx, getTaskReq)
+}
+
+func (o *CreateTurnOptions) getWorkstreamTask(ctx context.Context, s *SharedOptions, featureFlags p42.FeatureFlags) (*p42.Task, error) {
+	getTaskReq := &p42.GetWorkstreamTaskRequest{TenantID: o.TenantID, WorkstreamID: *o.WorkstreamID, TaskID: o.TaskID}
+	getTaskReq.FeatureFlags = featureFlags
+	processDelegatedAuth(s, &getTaskReq.DelegatedAuthInfo)
+
+	return s.Client.GetWorkstreamTask(ctx, getTaskReq)
 }
 
 type ListTurnsOptions struct {
