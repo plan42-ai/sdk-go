@@ -4396,6 +4396,31 @@ func TestGetTurnIncludeDeleted(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetTurnWorkstreamID(t *testing.T) {
+	t.Parallel()
+
+	workstreamID := "ws"
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.Turn{TenantID: "abc", TaskID: "task", TurnIndex: 1}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.GetTurn(
+		context.Background(),
+		&p42.GetTurnRequest{TenantID: "abc", TaskID: "task", TurnIndex: 1, WorkstreamID: &workstreamID},
+	)
+	require.NoError(t, err)
+}
+
 func TestGetTurnError(t *testing.T) {
 	t.Parallel()
 	handler := http.HandlerFunc(
@@ -4494,6 +4519,31 @@ func TestGetLastTurnIncludeDeleted(t *testing.T) {
 	_, err := client.GetLastTurn(
 		context.Background(),
 		&p42.GetLastTurnRequest{TenantID: "abc", TaskID: "task", IncludeDeleted: &includeDeleted},
+	)
+	require.NoError(t, err)
+}
+
+func TestGetLastTurnWorkstreamID(t *testing.T) {
+	t.Parallel()
+
+	workstreamID := "ws"
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.Turn{TenantID: "abc", TaskID: "task", TurnIndex: 1}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.GetLastTurn(
+		context.Background(),
+		&p42.GetLastTurnRequest{TenantID: "abc", TaskID: "task", WorkstreamID: &workstreamID},
 	)
 	require.NoError(t, err)
 }
@@ -4606,6 +4656,33 @@ func TestGetLastTurnLogIncludeDeleted(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetLastTurnLogWorkstreamID(t *testing.T) {
+	t.Parallel()
+
+	workstreamID := "ws"
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(p42.LastTurnLog{})
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.GetLastTurnLog(
+		context.Background(), &p42.GetLastTurnLogRequest{
+			TenantID:     "abc",
+			TaskID:       "task",
+			TurnIndex:    1,
+			WorkstreamID: &workstreamID,
+		},
+	)
+	require.NoError(t, err)
+}
+
 func TestGetLastTurnLogPathEscaping(t *testing.T) {
 	t.Parallel()
 
@@ -4665,6 +4742,7 @@ func TestUploadTurnLogs(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&reqBody)
 			require.NoError(t, err)
 			require.Equal(t, 0, reqBody.Index)
+			require.Equal(t, util.Pointer("ws"), reqBody.WorkstreamID)
 			require.Len(t, reqBody.Logs, 1)
 			require.Equal(t, "msg", reqBody.Logs[0].Message)
 
@@ -4680,12 +4758,13 @@ func TestUploadTurnLogs(t *testing.T) {
 	logs := []p42.TurnLog{{Timestamp: time.Unix(0, 0), Message: "msg"}}
 	resp, err := client.UploadTurnLogs(
 		context.Background(), &p42.UploadTurnLogsRequest{
-			TenantID:  "abc",
-			TaskID:    "task",
-			TurnIndex: 0,
-			Version:   1,
-			Index:     0,
-			Logs:      logs,
+			TenantID:     "abc",
+			TaskID:       "task",
+			TurnIndex:    0,
+			Version:      1,
+			WorkstreamID: util.Pointer("ws"),
+			Index:        0,
+			Logs:         logs,
 		},
 	)
 	require.NoError(t, err)
@@ -4923,6 +5002,7 @@ func TestListTurns(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			require.Equal(t, http.MethodGet, r.Method)
 			require.Equal(t, "/v1/tenants/abc/tasks/task1/turns", r.URL.Path)
+			require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
 			require.Equal(t, "20", r.URL.Query().Get("maxResults"))
 			require.Equal(t, "tok", r.URL.Query().Get("token"))
 			require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
@@ -4939,11 +5019,13 @@ func TestListTurns(t *testing.T) {
 	client := p42.NewClient(srv.URL)
 	maxResults := 20
 	tok := "tok"
+	workstreamID := "ws"
 	includeDeleted := true
 	resp, err := client.ListTurns(
 		context.Background(), &p42.ListTurnsRequest{
 			TenantID:       "abc",
 			TaskID:         "task1",
+			WorkstreamID:   &workstreamID,
 			MaxResults:     &maxResults,
 			Token:          &tok,
 			IncludeDeleted: &includeDeleted,
@@ -5227,6 +5309,33 @@ func TestStreamTurnLogsIncludeDeleted(t *testing.T) {
 			TaskID:         "task",
 			TurnIndex:      0,
 			IncludeDeleted: &includeDeleted,
+		},
+	)
+	require.NoError(t, err)
+	_ = body.Close()
+}
+
+func TestStreamTurnLogsWorkstreamID(t *testing.T) {
+	t.Parallel()
+
+	workstreamID := "ws"
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
+			w.WriteHeader(http.StatusOK)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	body, err := client.StreamTurnLogs(
+		context.Background(), &p42.StreamTurnLogsRequest{
+			TenantID:     "abc",
+			TaskID:       "task",
+			TurnIndex:    0,
+			WorkstreamID: &workstreamID,
 		},
 	)
 	require.NoError(t, err)

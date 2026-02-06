@@ -158,6 +158,7 @@ type GetTurnOptions struct {
 	TenantID       string `help:"The ID of the tennant that owns the task" name:"tenant-id" short:"i" required:""`
 	TaskID         string `help:"The ID of the task containing the turn" name:"task-id" short:"t" required:""`
 	TurnIndex      int    `help:"The index of the turn to fetch" name:"turn-index" short:"n" required:""`
+	WorkstreamID   string `help:"The workstream that owns the task (optional)" name:"workstream-id" short:"w"`
 	IncludeDeleted bool   `help:"Include the turn even if defined on a deleted task" short:"d"`
 }
 
@@ -167,6 +168,9 @@ func (o *GetTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TaskID:         o.TaskID,
 		TurnIndex:      o.TurnIndex,
 		IncludeDeleted: util.Pointer(o.IncludeDeleted),
+	}
+	if o.WorkstreamID != "" {
+		req.WorkstreamID = util.Pointer(o.WorkstreamID)
 	}
 	err := loadFeatureFlags(s, &req.FeatureFlags)
 	if err != nil {
