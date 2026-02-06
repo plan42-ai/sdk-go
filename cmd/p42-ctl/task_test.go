@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/plan42-ai/sdk-go/p42"
@@ -112,6 +114,44 @@ func TestSearchTasksOptionsRunWithoutCriteria(t *testing.T) {
 	shared := SharedOptions{Client: p42.NewClient("http://example.com")}
 
 	require.Error(t, opts.Run(context.Background(), &shared))
+}
+
+func TestMoveTaskOptionsRun(t *testing.T) {
+	t.Parallel()
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	srv := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/v1/tenants/tenant/workstreams/source/tasks/task":
+					require.Equal(t, http.MethodGet, r.Method)
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(fmt.Sprintf(`{"TenantId":"tenant","TaskId":"task","Title":"","Prompt":"","Parallel":false,"RepoInfo":{},"State":"Pending","CreatedAt":"%s","UpdatedAt":"%s","Deleted":false,"Version":2}`, now, now)))
+				case "/v1/tenants/tenant/workstreams/source/tasks/task/move":
+					require.Equal(t, http.MethodPost, r.Method)
+					require.Equal(t, "2", r.Header.Get("If-Match"))
+					var body map[string]any
+					require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+					require.Equal(t, map[string]any{"DestinationWorkstreamID": "dest"}, body)
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(fmt.Sprintf(`{"Task":{"TenantId":"tenant","TaskId":"task","Title":"","Prompt":"","Parallel":false,"RepoInfo":{},"State":"Pending","CreatedAt":"%s","UpdatedAt":"%s","Deleted":false,"Version":3},"SourceWorkstream":{},"DestinationWorkstream":{}}`, now, now)))
+				default:
+					t.Fatalf("unexpected path %s", r.URL.Path)
+				}
+			},
+		),
+	)
+	defer srv.Close()
+
+	opts := MoveTaskOptions{
+		TenantID:                "tenant",
+		TaskID:                  "task",
+		SourceWorkstreamID:      "source",
+		DestinationWorkstreamID: "dest",
+	}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL)}
+
+	require.NoError(t, opts.Run(context.Background(), &shared))
 }
 
 func TestGetTaskGithubCredsOptionsRun(t *testing.T) {
