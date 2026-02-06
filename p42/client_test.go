@@ -4747,6 +4747,8 @@ func TestUploadTurnLogs(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&reqBody)
 			require.NoError(t, err)
 			require.Equal(t, 0, reqBody.Index)
+			require.NotNil(t, reqBody.WorkstreamID)
+			require.Equal(t, "ws", *reqBody.WorkstreamID)
 			require.Len(t, reqBody.Logs, 1)
 			require.Equal(t, "msg", reqBody.Logs[0].Message)
 
@@ -4760,14 +4762,16 @@ func TestUploadTurnLogs(t *testing.T) {
 
 	client := p42.NewClient(srv.URL)
 	logs := []p42.TurnLog{{Timestamp: time.Unix(0, 0), Message: "msg"}}
+	wsID := "ws"
 	resp, err := client.UploadTurnLogs(
 		context.Background(), &p42.UploadTurnLogsRequest{
-			TenantID:  "abc",
-			TaskID:    "task",
-			TurnIndex: 0,
-			Version:   1,
-			Index:     0,
-			Logs:      logs,
+			TenantID:     "abc",
+			TaskID:       "task",
+			TurnIndex:    0,
+			Version:      1,
+			WorkstreamID: &wsID,
+			Index:        0,
+			Logs:         logs,
 		},
 	)
 	require.NoError(t, err)
