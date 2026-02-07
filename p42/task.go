@@ -18,14 +18,11 @@ type ModelType string
 
 const (
 	ModelTypeCodexMini     ModelType = "Codex Mini"
-	ModelTypeO3            ModelType = "O3"
-	ModelTypeO3Pro         ModelType = "O3 Pro"
-	ModelTypeGpt5          ModelType = "GPT-5"
-	ModelTypeGpt5Codex     ModelType = "GPT-5 Codex"
 	ModelTypeGpt51Codex    ModelType = "GPT-5.1 Codex"
 	ModelTypeGpt51CodexMax ModelType = "GPT-5.1 Codex Max"
-	ModelTypeClaude4Opus   ModelType = "Claude 4 Opus"
-	ModelTypeClaude4Sonnet ModelType = "Claude 4 Sonnet"
+	ModelTypeGpt52Codex    ModelType = "GPT-5.2 Codex"
+	ModelTypeClaude45Opus  ModelType = "Claude 4.5 Opus"
+	ModelTypeClaude46Opus  ModelType = "Claude 4.6 Opus"
 	ModelTypeGeminiPro3    ModelType = "Gemini Pro 3"
 )
 

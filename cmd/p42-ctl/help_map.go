@@ -125,10 +125,12 @@ var helpMap = map[string]string{
 --- ModelType Enum Values ---
 
 * Codex Mini
-* O3
-* O3 Pro
-* Claude 4 Opus
-* Claude 4 Sonnet
+* GPT-5.1 Codex
+* GPT-5.1 Codex Max
+* GPT-5.2 Codex
+* Claude 4.5 Opus
+* Claude 4.6 Opus
+* Gemini Pro 3
 
 --- TaskState Enum Values ---
 
@@ -175,10 +177,12 @@ var helpMap = map[string]string{
 --- ModelType Enum Values ---
 
 * Codex Mini
-* O3
-* O3 Pro
-* Claude 4 Opus
-* Claude 4 Sonnet
+* GPT-5.1 Codex
+* GPT-5.1 Codex Max
+* GPT-5.2 Codex
+* Claude 4.5 Opus
+* Claude 4.6 Opus
+* Gemini Pro 3
 
 --- TaskState Enum Values ---
 
