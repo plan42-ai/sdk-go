@@ -12,13 +12,14 @@ import (
 
 // LogUploaderConfig holds configuration for LogUploader.
 type LogUploaderConfig struct {
-	Client     LogUploaderClient
-	TenantID   string
-	TaskID     string
-	TurnIndex  int
-	Version    int
-	StartIndex int
-	Logs       <-chan TurnLog
+	Client       LogUploaderClient
+	TenantID     string
+	TaskID       string
+	TurnIndex    int
+	Version      int
+	WorkstreamID *string
+	StartIndex   int
+	Logs         <-chan TurnLog
 
 	FeatureFlags map[string]bool
 
@@ -36,12 +37,13 @@ type LogUploaderClient interface {
 type LogUploader struct {
 	cg *concurrency.ContextGroup
 
-	client    LogUploaderClient
-	tenantID  string
-	taskID    string
-	turnIndex int
-	version   int
-	index     int
+	client       LogUploaderClient
+	tenantID     string
+	taskID       string
+	turnIndex    int
+	version      int
+	workstreamID *string
+	index        int
 
 	logs <-chan TurnLog
 
@@ -94,6 +96,7 @@ func NewLogUploader(cfg *LogUploaderConfig) *LogUploader {
 		taskID:        cfg.TaskID,
 		turnIndex:     cfg.TurnIndex,
 		version:       cfg.Version,
+		workstreamID:  cfg.WorkstreamID,
 		index:         cfg.StartIndex,
 		logs:          cfg.Logs,
 		featureFlags:  cfg.FeatureFlags,
@@ -167,6 +170,7 @@ func (l *LogUploader) flush() {
 			TaskID:       l.taskID,
 			TurnIndex:    l.turnIndex,
 			Version:      l.version,
+			WorkstreamID: l.workstreamID,
 			Index:        l.index,
 			Logs:         l.batch,
 			FeatureFlags: FeatureFlags{FeatureFlags: l.featureFlags},
