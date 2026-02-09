@@ -399,6 +399,7 @@ type ListTurnsRequest struct {
 	DelegatedAuthInfo
 	TenantID       string
 	TaskID         string
+	WorkstreamID   *string
 	MaxResults     *int
 	Token          *string
 	IncludeDeleted *bool
@@ -412,6 +413,8 @@ func (r *ListTurnsRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "TaskID":
 		return r.TaskID, true
+	case "WorkstreamID":
+		return EvalNullable(r.WorkstreamID)
 	case "MaxResults":
 		return EvalNullable(r.MaxResults)
 	case "Token":
@@ -444,6 +447,9 @@ func (c *Client) ListTurns(ctx context.Context, req *ListTurnsRequest) (*ListTur
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "turns")
 	q := u.Query()
+	if req.WorkstreamID != nil {
+		q.Set("workstreamID", *req.WorkstreamID)
+	}
 	if req.MaxResults != nil {
 		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
 	}
