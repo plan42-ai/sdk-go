@@ -3247,32 +3247,29 @@ The MoveTask API moves a task from one workstream to another.
 ## 57.1 Request
 
 ```http request
-POST /v1/tenants/{tenant_id}/tasks/{task_id}/move HTTP/1.1
+POST /v1/tenants/{tenant_id}/workstreams/{source_workstream_id}/tasks/{task_id}/move HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <task version>
 
 {
     "DestinationWorkstreamID": "string"
-    "TaskVersion": int,
-    "SourceWorkstreamVersion": int,
-    "DestinationWorkstreamVersion": int
 }
 ```
 
 | Parameter                                | Location | Type    | Description                                                                                                                                                  |
 |------------------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant that owns the task.                                                                                                                     |
+| source_workstream_id                     | path     | string  | The ID of the source workstream that currently owns the task.                                                                                                |
 | task_id                                  | path     | string  | The ID of the task to move.                                                                                                                                  |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                                                                    |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                       |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                          |
+| If-Match                                 | header   | string  | The version of the task to move. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.           |
 | DestinationWorkstreamID                  | body     | string  | The ID of the workstream to move the task to.                                                                                                                |
-| TaskVersion                              | body     | int     | The version of the task to move. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.           |
-| SourceWorkstreamVersion                  | body     | int     | The version of the source workstream. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.      |
-| DestinationWorkstreamVersion             | body     | int     | The version of the destination workstream. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
 
 ## 57.2 Response
 

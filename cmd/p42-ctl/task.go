@@ -51,38 +51,12 @@ func (o *MoveTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 
 	sourceWSID := *task.WorkstreamID
 
-	// Fetch versions for source and destination workstreams.
-	getSourceWSReq := &p42.GetWorkstreamRequest{
-		TenantID:     o.TenantID,
-		WorkstreamID: sourceWSID,
-	}
-	getSourceWSReq.FeatureFlags = getTaskReq.FeatureFlags
-	processDelegatedAuth(s, &getSourceWSReq.DelegatedAuthInfo)
-
-	sourceWS, err := s.Client.GetWorkstream(ctx, getSourceWSReq)
-	if err != nil {
-		return err
-	}
-
-	getDestWSReq := &p42.GetWorkstreamRequest{
-		TenantID:     o.TenantID,
-		WorkstreamID: o.WorkstreamID,
-	}
-	getDestWSReq.FeatureFlags = getTaskReq.FeatureFlags
-	processDelegatedAuth(s, &getDestWSReq.DelegatedAuthInfo)
-
-	destWS, err := s.Client.GetWorkstream(ctx, getDestWSReq)
-	if err != nil {
-		return err
-	}
-
 	moveReq := &p42.MoveTaskRequest{
-		TenantID:                     o.TenantID,
-		TaskID:                       o.TaskID,
-		DestinationWorkstreamID:      o.WorkstreamID,
-		TaskVersion:                  task.Version,
-		SourceWorkstreamVersion:      sourceWS.Version,
-		DestinationWorkstreamVersion: destWS.Version,
+		TenantID:                o.TenantID,
+		TaskID:                  o.TaskID,
+		SourceWorkstreamID:      sourceWSID,
+		DestinationWorkstreamID: o.WorkstreamID,
+		TaskVersion:             task.Version,
 	}
 	moveReq.FeatureFlags = getTaskReq.FeatureFlags
 	processDelegatedAuth(s, &moveReq.DelegatedAuthInfo)
