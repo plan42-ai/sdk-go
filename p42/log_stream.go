@@ -23,6 +23,7 @@ type LogStream struct {
 	taskID         string
 	turnIndex      int
 	includeDeleted bool
+	workstreamID   *string
 	featureFlags   map[string]bool
 	delegatedAuth  DelegatedAuthInfo
 	logs           chan TurnLog
@@ -36,6 +37,12 @@ type LogStreamOption func(s *LogStream)
 func WithIncludeDeleted(value bool) LogStreamOption {
 	return func(s *LogStream) {
 		s.includeDeleted = value
+	}
+}
+
+func WithWorkstreamID(workstreamID *string) LogStreamOption {
+	return func(s *LogStream) {
+		s.workstreamID = workstreamID
 	}
 }
 
@@ -133,6 +140,7 @@ func (l *LogStream) connectAndStream(ctx context.Context) error {
 		TaskID:            l.taskID,
 		TurnIndex:         l.turnIndex,
 		IncludeDeleted:    util.Pointer(l.includeDeleted),
+		WorkstreamID:      l.workstreamID,
 	}
 	if l.lastID != 0 {
 		req.LastEventID = &l.lastID

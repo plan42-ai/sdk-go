@@ -194,6 +194,34 @@ func TestLogStreamWithLastID_UpdatesLastID(t *testing.T) {
 	}
 }
 
+func TestLogStreamWorkstreamID(t *testing.T) {
+	t.Parallel()
+
+	var gotWorkstreamID string
+	srv := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				gotWorkstreamID = r.URL.Query().Get("workstreamID")
+				w.WriteHeader(http.StatusNoContent)
+			},
+		),
+	)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	wsID := "ws-123"
+	ls := p42.NewLogStream(client, "ten", "task", 0, 1, p42.WithWorkstreamID(&wsID))
+	defer ls.Close()
+
+	if err := ls.ShutdownTimeout(time.Second); err != nil {
+		t.Fatalf("shutdown error: %v", err)
+	}
+
+	if gotWorkstreamID != "ws-123" {
+		t.Fatalf("expected workstreamID query 'ws-123', got '%s'", gotWorkstreamID)
+	}
+}
+
 // getLogStreamLastID is a helper to access the unexported lastID field for testing.
 func getLogStreamLastID(ls interface{}) int {
 	v := reflect.ValueOf(ls)

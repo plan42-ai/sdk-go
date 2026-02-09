@@ -5325,6 +5325,33 @@ func TestStreamTurnLogsIncludeDeleted(t *testing.T) {
 	_ = body.Close()
 }
 
+func TestStreamTurnLogsWorkstreamID(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "ws-1", r.URL.Query().Get("workstreamID"))
+			w.WriteHeader(http.StatusOK)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	workstreamID := "ws-1"
+	body, err := client.StreamTurnLogs(
+		context.Background(), &p42.StreamTurnLogsRequest{
+			TenantID:     "abc",
+			TaskID:       "task",
+			TurnIndex:    0,
+			WorkstreamID: &workstreamID,
+		},
+	)
+	require.NoError(t, err)
+	_ = body.Close()
+}
+
 func TestStreamTurnLogsLastEventID(t *testing.T) {
 	t.Parallel()
 
