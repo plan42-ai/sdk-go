@@ -197,7 +197,8 @@ var helpMap = map[string]string{
 --- Input JSON Schema ---
 
 {
-    "Prompt"": "string"
+    "Prompt": "string",
+    "WorkstreamID": "*string"
 }
 `,
 	"logs upload": `
