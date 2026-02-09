@@ -3228,6 +3228,7 @@ Content-Type: application/json; charset=utf-8
 
 ```json
 {
+  "TenantID": "string",
   "Name": "string",
   "WorkstreamID": "string",
   "WorkstreamVersion": int,
@@ -3236,6 +3237,7 @@ Content-Type: application/json; charset=utf-8
 
 | Field             | Type   | Description                                                 |
 |-------------------|--------|-------------------------------------------------------------|
+| TenantID          | string | The tenant that owns the short name.                        |
 | Name              | string | The short name.                                             |
 | WorkstreamID      | string | The ID of the workstream the short name is associated with. |
 | WorkstreamVersion | int    | The version of the workstream.                              |

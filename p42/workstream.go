@@ -388,6 +388,7 @@ type AddWorkstreamShortNameRequest struct {
 
 // WorkstreamShortName represents a short name for a workstream.
 type WorkstreamShortName struct {
+	TenantID          string `json:"TenantID"`
 	Name              string `json:"Name"`
 	WorkstreamID      string `json:"WorkstreamID"`
 	WorkstreamVersion int    `json:"WorkstreamVersion"`
