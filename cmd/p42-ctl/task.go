@@ -279,10 +279,14 @@ type ListTasksOptions struct {
 	TenantID       string `help:"The ID of the tenant to list tasks for." short:"i" required:""`
 	IncludeDeleted bool   `help:"When set, includes deleted tasks in the results." short:"d" optional:""`
 	WorkstreamID   string `help:"Optional. When set, list tasks in the specified workstream." name:"workstream-id" short:"w" optional:""`
+	AfterTaskID    string `help:"Optional. When set with --workstream-id, starts listing after the specified task id." name:"after-task-id" short:"a" optional:""`
 	MaxElements    *int   `help:"Maximum number of elements to retrieve" short:"m" optional:""`
 }
 
 func (o *ListTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
+	if o.AfterTaskID != "" && o.WorkstreamID == "" {
+		return fmt.Errorf("--after-task-id requires --workstream-id")
+	}
 	if o.WorkstreamID != "" {
 		return o.runWorkstreamTasks(ctx, s)
 	}
@@ -339,6 +343,10 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 		WorkstreamID:   o.WorkstreamID,
 		IncludeDeleted: util.Pointer(o.IncludeDeleted),
 		MaxResults:     util.Pointer(10),
+	}
+
+	if o.AfterTaskID != "" {
+		req.AfterTaskID = &o.AfterTaskID
 	}
 
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
