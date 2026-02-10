@@ -923,6 +923,14 @@ type UpdateTaskRequest struct {
 	Deleted  *bool                 `json:"Deleted,omitempty"`
 }
 
+func (r *UpdateTaskRequest) GetVersion() int {
+	return r.Version
+}
+
+func (r *UpdateTaskRequest) IsEmptyUpdate() bool {
+	return r.Title == nil && r.Prompt == nil && r.Model == nil && r.RepoInfo == nil && r.Deleted == nil
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateTaskRequest) GetField(name string) (any, bool) {
