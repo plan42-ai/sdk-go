@@ -324,6 +324,10 @@ func (e *Error) Code() int {
 	return e.ResponseCode
 }
 
+func (e *Error) GetErrorType() string {
+	return e.ErrorType
+}
+
 func (e *Error) Unwrap() error {
 	return e.Cause
 }
@@ -376,6 +380,10 @@ func (e *ConflictError) Error() string {
 
 func (e *ConflictError) Code() int {
 	return e.ResponseCode
+}
+
+func (e *ConflictError) GetErrorType() string {
+	return e.ErrorType
 }
 
 func (e *ConflictError) Unwrap() error {
