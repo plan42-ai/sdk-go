@@ -1662,6 +1662,7 @@ Content-Type: application/json; charset=utf-8
 
 {
   "TenantID": "string",
+  "WorkstreamID": "*string",
   "TaskID": "string",
   "TurnIndex": int,
   "Prompt": "string",
@@ -1682,6 +1683,7 @@ Content-Type: application/json; charset=utf-8
 | Field              | Type                                     | Description                                                                                                                                                             |
 |--------------------|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | TenantID           | string                                   | The ID of the tenant that owns the turn.                                                                                                                                |
+| WorkstreamID       | *string                                  | The ID of the workstream the task belongs to. Null for non-workstream tasks.                                                                                            |
 | TaskID             | string                                   | The ID of the task the turn belongs to.                                                                                                                                 |
 | TurnIndex          | int                                      | The index of the turn. This is the next index in the sequence (i.e. latest turn index + 1).                                                                             |
 | Prompt             | string                                   | The prompt used for the turn.                                                                                                                                           |

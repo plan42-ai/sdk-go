@@ -14,6 +14,7 @@ import (
 // Turn represents a single execution turn of a task.
 type Turn struct {
 	TenantID           string                `json:"TenantId"`
+	WorkstreamID       *string               `json:"WorkstreamId,omitempty"`
 	TaskID             string                `json:"TaskId"`
 	TurnIndex          int                   `json:"TurnIndex"`
 	Prompt             string                `json:"Prompt"`
