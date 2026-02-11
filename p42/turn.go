@@ -322,6 +322,19 @@ type UpdateTurnRequest struct {
 	CompletedAt        *time.Time             `json:"CompletedAt,omitempty"`
 }
 
+// IsEmptyUpdate reports whether the request contains any turn mutations.
+func (r *UpdateTurnRequest) IsEmptyUpdate() bool {
+	if r == nil {
+		return true
+	}
+	return r.PreviousResponseID == nil &&
+		r.CommitInfo == nil &&
+		r.Status == nil &&
+		r.OutputMessage == nil &&
+		r.ErrorMessage == nil &&
+		r.CompletedAt == nil
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateTurnRequest) GetField(name string) (any, bool) {
