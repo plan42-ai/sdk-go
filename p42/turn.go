@@ -335,6 +335,14 @@ func (r *UpdateTurnRequest) IsEmptyUpdate() bool {
 		r.CompletedAt == nil
 }
 
+// GetVersion returns the optimistic concurrency control version for the request.
+func (r *UpdateTurnRequest) GetVersion() int {
+	if r == nil {
+		return 0
+	}
+	return r.Version
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateTurnRequest) GetField(name string) (any, bool) {
