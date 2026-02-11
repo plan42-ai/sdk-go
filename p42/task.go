@@ -255,7 +255,7 @@ func (c *Client) GetTaskGithubCreds(ctx context.Context, req *GetTaskGithubCreds
 }
 
 // SearchTasks performs an admin-scoped task search.
-func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*ListTasksResponse, error) {
+func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*List[Task], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -313,7 +313,7 @@ func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*Lis
 		return nil, decodeError(resp)
 	}
 
-	var out ListTasksResponse
+	var out List[Task]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
@@ -1093,15 +1093,9 @@ func (r *ListTasksRequest) GetField(name string) (any, bool) {
 	}
 }
 
-// ListTasksResponse is the response from ListTasks.
-type ListTasksResponse struct {
-	Tasks     []Task  `json:"Tasks"`
-	NextToken *string `json:"NextToken"`
-}
-
 // ListTasks retrieves the tasks for a tenant.
 // nolint: dupl
-func (c *Client) ListTasks(ctx context.Context, req *ListTasksRequest) (*ListTasksResponse, error) {
+func (c *Client) ListTasks(ctx context.Context, req *ListTasksRequest) (*List[Task], error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -1144,7 +1138,7 @@ func (c *Client) ListTasks(ctx context.Context, req *ListTasksRequest) (*ListTas
 		return nil, decodeError(resp)
 	}
 
-	var out ListTasksResponse
+	var out List[Task]
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}

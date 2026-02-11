@@ -4861,7 +4861,7 @@ func TestListTasks(t *testing.T) {
 			require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.ListTasksResponse{Tasks: []p42.Task{{TaskID: "task"}}}
+			resp := p42.List[p42.Task]{Items: []p42.Task{{TaskID: "task"}}}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -4881,8 +4881,8 @@ func TestListTasks(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	require.Len(t, resp.Tasks, 1)
-	require.Equal(t, "task", resp.Tasks[0].TaskID)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "task", resp.Items[0].TaskID)
 }
 
 func TestListTasksError(t *testing.T) {
@@ -4904,7 +4904,7 @@ func TestListTasksPathEscaping(t *testing.T) {
 			require.Equal(t, escapedTenantID, parts[3])
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.ListTasksResponse{}
+			resp := p42.List[p42.Task]{}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -8001,7 +8001,7 @@ func TestFeatureFlagsHeader(t *testing.T) {
 		{
 			name:   "ListTasks",
 			status: http.StatusOK,
-			resp:   p42.ListTasksResponse{},
+			resp:   p42.List[p42.Task]{},
 			call: func(c *p42.Client) error {
 				_, err := c.ListTasks(
 					context.Background(), &p42.ListTasksRequest{
