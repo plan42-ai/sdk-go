@@ -5015,7 +5015,7 @@ func TestListTurns(t *testing.T) {
 			require.Equal(t, "true", r.URL.Query().Get("includeDeleted"))
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.ListTurnsResponse{Turns: []p42.Turn{{TurnIndex: 1}}}
+			resp := p42.List[p42.Turn]{Items: []p42.Turn{{TurnIndex: 1}}}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -5039,8 +5039,8 @@ func TestListTurns(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	require.Len(t, resp.Turns, 1)
-	require.Equal(t, 1, resp.Turns[0].TurnIndex)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, 1, resp.Items[0].TurnIndex)
 }
 
 func TestListTurnsError(t *testing.T) {
@@ -5064,7 +5064,7 @@ func TestListTurnsPathEscaping(t *testing.T) {
 			require.Equal(t, escapedTaskID, parts[5])
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.ListTurnsResponse{}
+			resp := p42.List[p42.Turn]{}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -8083,7 +8083,7 @@ func TestFeatureFlagsHeader(t *testing.T) {
 		{
 			name:   "ListTurns",
 			status: http.StatusOK,
-			resp:   p42.ListTurnsResponse{},
+			resp:   p42.List[p42.Turn]{},
 			call: func(c *p42.Client) error {
 				_, err := c.ListTurns(
 					context.Background(), &p42.ListTurnsRequest{
