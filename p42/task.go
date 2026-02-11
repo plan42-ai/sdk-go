@@ -803,6 +803,25 @@ type UpdateWorkstreamTaskRequest struct {
 	Deleted            *bool                 `json:"Deleted,omitempty"`
 }
 
+func (r *UpdateWorkstreamTaskRequest) GetVersion() int {
+	return r.Version
+}
+
+func (r *UpdateWorkstreamTaskRequest) IsEmptyUpdate() bool {
+	return r.Title == nil &&
+		r.EnvironmentID == nil &&
+		r.Prompt == nil &&
+		r.Parallel == nil &&
+		r.Model == nil &&
+		r.AssignedToTenantID == nil &&
+		r.AssignedToAI == nil &&
+		r.RepoInfo == nil &&
+		r.State == nil &&
+		r.BeforeTaskID == nil &&
+		r.AfterTaskID == nil &&
+		r.Deleted == nil
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateWorkstreamTaskRequest) GetField(name string) (any, bool) {
