@@ -262,21 +262,22 @@ func (r *GetTenantRequest) GetField(name string) (any, bool) {
 
 // Tenant is the representation of a tenant returned by the API.
 type Tenant struct {
-	TenantID                  string     `json:"TenantId"`
-	Type                      TenantType `json:"Type"`
-	Version                   int        `json:"Version"`
-	Deleted                   bool       `json:"Deleted"`
-	CreatedAt                 time.Time  `json:"CreatedAt"`
-	UpdatedAt                 time.Time  `json:"UpdatedAt"`
-	FullName                  *string    `json:"FullName,omitempty"`
-	OrgName                   *string    `json:"OrgName,omitempty"`
-	EnterpriseName            *string    `json:"EnterpriseName,omitempty"`
-	Email                     *string    `json:"Email,omitempty"`
-	FirstName                 *string    `json:"FirstName,omitempty"`
-	LastName                  *string    `json:"LastName,omitempty"`
-	PictureURL                *string    `json:"PictureUrl,omitempty"`
-	DefaultRunnerID           *string    `json:"DefaultRunnerID,omitempty"`
-	DefaultGithubConnectionID *string    `json:"DefaultGithubConnectionID,omitempty"`
+	TenantID                   string     `json:"TenantId"`
+	Type                       TenantType `json:"Type"`
+	Version                    int        `json:"Version"`
+	Deleted                    bool       `json:"Deleted"`
+	CreatedAt                  time.Time  `json:"CreatedAt"`
+	UpdatedAt                  time.Time  `json:"UpdatedAt"`
+	FullName                   *string    `json:"FullName,omitempty"`
+	OrgName                    *string    `json:"OrgName,omitempty"`
+	EnterpriseName             *string    `json:"EnterpriseName,omitempty"`
+	Email                      *string    `json:"Email,omitempty"`
+	FirstName                  *string    `json:"FirstName,omitempty"`
+	LastName                   *string    `json:"LastName,omitempty"`
+	PictureURL                 *string    `json:"PictureUrl,omitempty"`
+	DefaultRunnerID            *string    `json:"DefaultRunnerID,omitempty"`
+	DefaultGithubConnectionID  *string    `json:"DefaultGithubConnectionID,omitempty"`
+	LatestEncryptionKeyVersion *int       `json:"LatestEncryptionKeyVersion,omitempty"`
 }
 
 func (t Tenant) ObjectType() ObjectType {

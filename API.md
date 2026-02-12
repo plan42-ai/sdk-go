@@ -219,7 +219,8 @@ Content-Type: application/json; charset=utf-8
   "LastName": "*string",
   "PictureURL": "*string",
   "DefaultRunnerID" : "*string",
-  "DefaultGithubConnectionID": "*string"
+  "DefaultGithubConnectionID": "*string",
+  "LatestEncryptionKeyVersion": "*int"
 }
 ```
 
@@ -240,6 +241,7 @@ Content-Type: application/json; charset=utf-8
 | PictureURL                | *string                      | The URL of the picture for the tenant. Optional.                                                                |
 | DefaultRunnerID           | *string                      | The ID of the default runner for the tenant. Will be nil if no default runner is defined.                       |
 | DefaultGithubConnectionID | *string                      | The ID of the default github connection for the tenant. Will be nil if no default github connection is defined. |
+| LatestEncryptionKeyVersion | *int                        | The version of the tenant encryption key used for new writes. Nil if no key has been created yet.               |
 
 See [Error Handling](#2-error-handling) for details on error responses.
 
@@ -316,7 +318,8 @@ Content-Type: application/json; charset=utf-8
   "LastName": "*string",
   "PictureURL": "*string",
   "DefaultRunnerID" : "*string",
-  "DefaultGithubConnectionID": "*string"  
+  "DefaultGithubConnectionID": "*string",
+  "LatestEncryptionKeyVersion": "*int"  
 }
 ```
 
@@ -4920,7 +4923,8 @@ Content-Type: application/json; charset=utf-8
   "LastName": "*string",
   "PictureURL": "*string",
   "DefaultRunnerID" : "*string",
-  "DefaultGithubConnectionID": "*string"
+  "DefaultGithubConnectionID": "*string",
+  "LatestEncryptionKeyVersion": "*int"
 }
 ```
 
