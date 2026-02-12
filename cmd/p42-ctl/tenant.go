@@ -15,6 +15,7 @@ type TenantOptions struct {
 	List                ListTenantsOptions               `cmd:"" help:"List all tenants."`
 	Update              UpdateTenantOptions              `cmd:"" help:"Update a tenant by ID."`
 	RotateEncryptionKey RotateTenantEncryptionKeyOptions `cmd:"" help:"Create a new tenant encryption key version."`
+	GetEncryptionKey    GetTenantEncryptionKeyOptions    `cmd:"" help:"Get metadata for a tenant encryption key version."`
 }
 
 type CreateUserOptions struct {
@@ -84,6 +85,28 @@ func (o *GetTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	return printJSON(t)
+}
+
+type GetTenantEncryptionKeyOptions struct {
+	TenantID string `help:"The ID of the tenant." short:"i" required:""`
+	Version  int    `help:"The encryption key version to fetch." short:"v" required:""`
+}
+
+func (o *GetTenantEncryptionKeyOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.GetTenantEncryptionKeyRequest{
+		TenantID: o.TenantID,
+		Version:  o.Version,
+	}
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	key, err := s.Client.GetTenantEncryptionKey(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(key)
 }
 
 type ListTenantsOptions struct{}
