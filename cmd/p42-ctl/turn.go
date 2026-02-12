@@ -116,7 +116,7 @@ func (o *ListTurnsOptions) Run(ctx context.Context, s *SharedOptions) error {
 		if err != nil {
 			return err
 		}
-		for _, tr := range resp.Turns {
+		for _, tr := range resp.Items {
 			if err := printJSON(tr); err != nil {
 				return err
 			}
