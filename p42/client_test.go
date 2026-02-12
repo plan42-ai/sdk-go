@@ -662,6 +662,90 @@ func TestGenerateWebUITokenPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestRotateTenantEncryptionKey(t *testing.T) {
+	t.Parallel()
+
+	createdAt := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodPut, r.Method)
+			require.Equal(t, "/v1/tenants/tenant-1/encryption-keys/2", r.URL.Path)
+			body, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			require.Zero(t, len(body))
+
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(
+				p42.TenantEncryptionKey{
+					TenantID:  "tenant-1",
+					Version:   2,
+					CreatedAt: createdAt,
+				},
+			)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	resp, err := client.RotateTenantEncryptionKey(
+		context.Background(),
+		&p42.RotateTenantEncryptionKeyRequest{TenantID: "tenant-1", Version: 2},
+	)
+	require.NoError(t, err)
+	require.Equal(t, "tenant-1", resp.TenantID)
+	require.Equal(t, 2, resp.Version)
+	require.Equal(t, createdAt, resp.CreatedAt)
+}
+
+func TestRotateTenantEncryptionKeyError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.RotateTenantEncryptionKey(
+		context.Background(),
+		&p42.RotateTenantEncryptionKeyRequest{TenantID: "abc", Version: 2},
+	)
+	require.Error(t, err)
+}
+
+func TestRotateTenantEncryptionKeyPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+			require.Equal(t, "5", parts[5], "Version not properly encoded in URL path")
+
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(
+				p42.TenantEncryptionKey{
+					TenantID:  tenantIDThatNeedsEscaping,
+					Version:   5,
+					CreatedAt: time.Unix(0, 0),
+				},
+			)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.RotateTenantEncryptionKey(
+		context.Background(),
+		&p42.RotateTenantEncryptionKeyRequest{TenantID: tenantIDThatNeedsEscaping, Version: 5},
+	)
+	require.NoError(t, err)
+}
+
 func TestGenerateRunnerToken(t *testing.T) {
 	t.Parallel()
 
