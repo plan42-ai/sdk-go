@@ -9,11 +9,12 @@ import (
 )
 
 type TenantOptions struct {
-	CreateUser  CreateUserOptions     `cmd:"" help:"Create a new user tenant."`
-	CurrentUser GetCurrentUserOptions `cmd:"" help:"Find a user given their auth provider token."`
-	Get         GetTenantOptions      `cmd:"" help:"Get a tenant by ID."`
-	List        ListTenantsOptions    `cmd:"" help:"List all tenants."`
-	Update      UpdateTenantOptions   `cmd:"" help:"Update a tenant by ID."`
+	CreateUser          CreateUserOptions                `cmd:"" help:"Create a new user tenant."`
+	CurrentUser         GetCurrentUserOptions            `cmd:"" help:"Find a user given their auth provider token."`
+	Get                 GetTenantOptions                 `cmd:"" help:"Get a tenant by ID."`
+	List                ListTenantsOptions               `cmd:"" help:"List all tenants."`
+	Update              UpdateTenantOptions              `cmd:"" help:"Update a tenant by ID."`
+	RotateEncryptionKey RotateTenantEncryptionKeyOptions `cmd:"" help:"Create a new tenant encryption key version."`
 }
 
 type CreateUserOptions struct {
@@ -150,4 +151,26 @@ func (o *UpdateTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 	return printJSON(updated)
+}
+
+type RotateTenantEncryptionKeyOptions struct {
+	TenantID string `help:"The ID of the tenant." name:"tenant-id" short:"i" required:""`
+	Version  int    `help:"The version number for the new tenant key (latest version + 1)." short:"v" required:""`
+}
+
+func (o *RotateTenantEncryptionKeyOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.RotateTenantEncryptionKeyRequest{
+		TenantID: o.TenantID,
+		Version:  o.Version,
+	}
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	resp, err := s.Client.RotateTenantEncryptionKey(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(resp)
 }
