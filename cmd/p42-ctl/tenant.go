@@ -9,13 +9,14 @@ import (
 )
 
 type TenantOptions struct {
-	CreateUser          CreateUserOptions                `cmd:"" help:"Create a new user tenant."`
-	CurrentUser         GetCurrentUserOptions            `cmd:"" help:"Find a user given their auth provider token."`
-	Get                 GetTenantOptions                 `cmd:"" help:"Get a tenant by ID."`
-	List                ListTenantsOptions               `cmd:"" help:"List all tenants."`
-	Update              UpdateTenantOptions              `cmd:"" help:"Update a tenant by ID."`
-	RotateEncryptionKey RotateTenantEncryptionKeyOptions `cmd:"" help:"Create a new tenant encryption key version."`
-	GetEncryptionKey    GetTenantEncryptionKeyOptions    `cmd:"" help:"Get metadata for a tenant encryption key version."`
+	CreateUser             CreateUserOptions                   `cmd:"" help:"Create a new user tenant."`
+	CurrentUser            GetCurrentUserOptions               `cmd:"" help:"Find a user given their auth provider token."`
+	Get                    GetTenantOptions                    `cmd:"" help:"Get a tenant by ID."`
+	List                   ListTenantsOptions                  `cmd:"" help:"List all tenants."`
+	Update                 UpdateTenantOptions                 `cmd:"" help:"Update a tenant by ID."`
+	RotateEncryptionKey    RotateTenantEncryptionKeyOptions    `cmd:"" help:"Create a new tenant encryption key version."`
+	GetEncryptionKey       GetTenantEncryptionKeyOptions       `cmd:"" help:"Get metadata for a tenant encryption key version."`
+	GetLatestEncryptionKey GetLatestTenantEncryptionKeyOptions `cmd:"" help:"Get the latest tenant encryption key metadata."`
 }
 
 type CreateUserOptions struct {
@@ -104,6 +105,30 @@ func (o *GetTenantEncryptionKeyOptions) Run(ctx context.Context, s *SharedOption
 
 	key, err := s.Client.GetTenantEncryptionKey(ctx, req)
 	if err != nil {
+		return err
+	}
+	return printJSON(key)
+}
+
+type GetLatestTenantEncryptionKeyOptions struct {
+	TenantID string `help:"The ID of the tenant to fetch the latest encryption key for." name:"tenant-id" short:"i" required:""`
+}
+
+func (o *GetLatestTenantEncryptionKeyOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.GetLatestTenantEncryptionKeyRequest{
+		TenantID: o.TenantID,
+	}
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	key, err := s.Client.GetLatestTenantEncryptionKey(ctx, req)
+	if err != nil {
+		if is404(err) {
+			fmt.Printf("No encryption key exists for tenant %s\n", o.TenantID)
+			return nil
+		}
 		return err
 	}
 	return printJSON(key)
