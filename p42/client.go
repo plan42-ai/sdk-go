@@ -239,6 +239,14 @@ type GetTenantRequest struct {
 	TenantID string
 }
 
+// RotateTenantEncryptionKeyRequest is the request for RotateTenantEncryptionKey.
+type RotateTenantEncryptionKeyRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID string
+	Version  int
+}
+
 // GetCurrentUserRequest is the request for GetCurrentUser.
 type GetCurrentUserRequest struct {
 	FeatureFlags
@@ -255,6 +263,18 @@ func (r *GetTenantRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
 		return r.TenantID, true
+	default:
+		return nil, false
+	}
+}
+
+// nolint: goconst
+func (r *RotateTenantEncryptionKeyRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "Version":
+		return r.Version, true
 	default:
 		return nil, false
 	}
@@ -282,6 +302,17 @@ type Tenant struct {
 
 func (t Tenant) ObjectType() ObjectType {
 	return ObjectTypeTenant
+}
+
+// TenantEncryptionKey contains metadata about a tenant encryption key version.
+type TenantEncryptionKey struct {
+	TenantID  string    `json:"TenantID"`
+	Version   int       `json:"Version"`
+	CreatedAt time.Time `json:"CreatedAt"`
+}
+
+func (k TenantEncryptionKey) ObjectType() ObjectType {
+	return ObjectTypeTenantEncryptionKey
 }
 
 // ListTenantsRequest is the request for ListTenants.
@@ -337,6 +368,7 @@ type ObjectType string
 
 const (
 	ObjectTypeTenant                 ObjectType = "Tenant"
+	ObjectTypeTenantEncryptionKey    ObjectType = "TenantEncryptionKey"
 	ObjectTypeEnvironment            ObjectType = "Environment"
 	ObjectTypeWebUITokenThumbprint   ObjectType = "WebUITokenThumbprint"
 	ObjectTypeTurn                   ObjectType = "Turn"
@@ -403,6 +435,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 		switch tmp.CurrentType {
 		case ObjectTypeTenant:
 			current = &Tenant{}
+		case ObjectTypeTenantEncryptionKey:
+			current = &TenantEncryptionKey{}
 		case ObjectTypeEnvironment:
 			current = &Environment{}
 		case ObjectTypeWebUITokenThumbprint:
@@ -620,6 +654,55 @@ func (c *Client) UpdateTenant(ctx context.Context, req *UpdateTenantRequest) (*T
 		return nil, err
 	}
 	return &tenant, nil
+}
+
+// RotateTenantEncryptionKey creates a new tenant encryption key version for a tenant.
+// nolint: dupl
+func (c *Client) RotateTenantEncryptionKey(ctx context.Context, req *RotateTenantEncryptionKeyRequest) (*TenantEncryptionKey, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.Version <= 0 {
+		return nil, fmt.Errorf("version must be positive")
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"encryption-keys",
+		strconv.Itoa(req.Version),
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out TenantEncryptionKey
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // GetCurrentUser retrieves the tenant information for the current user.

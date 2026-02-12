@@ -5394,3 +5394,52 @@ Content-Type: application/json; charset=utf-8
 |-----------|-------------------------|------------------------------------------------------------------------------------------------|
 | NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
 | Items     | [][Turn](#232-Response) | A list of turn metadata objects representing active turns.                                     |
+
+# 98. RotateTenantEncryptionKey
+
+The RotateTenantEncryptionKey API creates a new tenant encryption key version for a tenant. The caller supplies the
+next version number in the URL path. The request fails with a 409 Conflict if the version is not exactly the latest
+version + 1. The API never returns key material in the response.
+
+## 98.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/encryption-keys/{version} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant whose key should be rotated.                   |
+| version                                  | path     | int     | The version number for the new key. Must equal latest version + 1.  |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+This request does not have a body.
+
+## 98.2 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http response
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "Version": int,
+  "CreatedAt": "string"
+}
+```
+
+| Field     | Type   | Description                                        |
+|-----------|--------|----------------------------------------------------|
+| TenantID  | string | The ID of the tenant that owns the key.            |
+| Version   | int    | The version number of the new key.                 |
+| CreatedAt | string | The timestamp when the key version was created.    |
+
+If the provided version does not match the next expected version, a 409 Conflict is returned.

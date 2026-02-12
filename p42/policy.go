@@ -178,6 +178,7 @@ const (
 	ActionSearchRepos                 Action = "SearchRepos"
 	ActionListActiveTurns             Action = "ListActiveTurns"
 	ActionListRepoBranches            Action = "ListRepoBranches"
+	ActionRotateTenantEncryptionKey   Action = "RotateTenantEncryptionKey"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -500,6 +501,7 @@ func init() {
 			ActionSearchRepos,                 // (0x0000_0000_0020_0000, 0)
 			ActionListActiveTurns,             // (0x0000_0000_0040_0000, 0)
 			ActionListRepoBranches,            // (0x0000_0000_0080_0000, 0)
+			ActionRotateTenantEncryptionKey,   // (0x0000_0000_0100_0000, 0)
 
 		},
 		ActionBitVector{
