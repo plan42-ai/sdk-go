@@ -136,6 +136,18 @@ func (r *UpdateWorkstreamRequest) GetVersion() int {
 	return r.Version
 }
 
+// IsEmptyUpdate reports whether the request has no mutations set.
+func (r *UpdateWorkstreamRequest) IsEmptyUpdate() bool {
+	if r == nil {
+		return true
+	}
+	return r.Name == nil &&
+		r.Description == nil &&
+		r.Paused == nil &&
+		r.Deleted == nil &&
+		r.DefaultShortName == nil
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateWorkstreamRequest) GetField(name string) (any, bool) {

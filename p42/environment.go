@@ -287,6 +287,24 @@ func (r *UpdateEnvironmentRequest) GetVersion() int {
 	return r.Version
 }
 
+// IsEmptyUpdate reports whether the request has no mutations set.
+func (r *UpdateEnvironmentRequest) IsEmptyUpdate() bool {
+	if r == nil {
+		return true
+	}
+	return r.Name == nil &&
+		r.Description == nil &&
+		r.Context == nil &&
+		r.Repos == nil &&
+		r.SetupScript == nil &&
+		r.DockerImage == nil &&
+		r.AllowedHosts == nil &&
+		r.EnvVars == nil &&
+		r.Deleted == nil &&
+		r.RunnerID == nil &&
+		r.GithubConnectionID == nil
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateEnvironmentRequest) GetField(name string) (any, bool) {
