@@ -830,6 +830,86 @@ func runTenantEncryptionKeyPathEscapingTest(
 	require.NoError(t, err)
 }
 
+func TestGetLatestTenantEncryptionKey(t *testing.T) {
+	t.Parallel()
+
+	createdAt := time.Date(2024, time.February, 2, 0, 0, 0, 0, time.UTC)
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/tenant-1/encryption-keys/latest", r.URL.Path)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(
+				p42.TenantEncryptionKey{
+					TenantID:  "tenant-1",
+					Version:   7,
+					CreatedAt: createdAt,
+				},
+			)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	resp, err := client.GetLatestTenantEncryptionKey(
+		context.Background(),
+		&p42.GetLatestTenantEncryptionKeyRequest{TenantID: "tenant-1"},
+	)
+	require.NoError(t, err)
+	require.Equal(t, "tenant-1", resp.TenantID)
+	require.Equal(t, 7, resp.Version)
+	require.Equal(t, createdAt, resp.CreatedAt)
+}
+
+func TestGetLatestTenantEncryptionKeyError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.GetLatestTenantEncryptionKey(
+		context.Background(),
+		&p42.GetLatestTenantEncryptionKeyRequest{TenantID: "tenant-1"},
+	)
+	require.Error(t, err)
+}
+
+func TestGetLatestTenantEncryptionKeyPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+			require.Equal(t, "latest", parts[5])
+
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(
+				p42.TenantEncryptionKey{
+					TenantID:  tenantIDThatNeedsEscaping,
+					Version:   9,
+					CreatedAt: time.Unix(0, 0),
+				},
+			)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.GetLatestTenantEncryptionKey(
+		context.Background(),
+		&p42.GetLatestTenantEncryptionKeyRequest{TenantID: tenantIDThatNeedsEscaping},
+	)
+	require.NoError(t, err)
+}
+
 func TestGenerateRunnerToken(t *testing.T) {
 	t.Parallel()
 

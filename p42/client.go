@@ -255,6 +255,13 @@ type GetTenantEncryptionKeyRequest struct {
 	Version  int
 }
 
+// GetLatestTenantEncryptionKeyRequest is the request for GetLatestTenantEncryptionKey.
+type GetLatestTenantEncryptionKeyRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID string
+}
+
 // GetCurrentUserRequest is the request for GetCurrentUser.
 type GetCurrentUserRequest struct {
 	FeatureFlags
@@ -295,6 +302,16 @@ func (r *GetTenantEncryptionKeyRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "Version":
 		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// nolint: goconst
+func (r *GetLatestTenantEncryptionKeyRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
 	default:
 		return nil, false
 	}
@@ -744,6 +761,52 @@ func (c *Client) GetTenantEncryptionKey(ctx context.Context, req *GetTenantEncry
 		url.PathEscape(req.TenantID),
 		"encryption-keys",
 		strconv.Itoa(req.Version),
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out TenantEncryptionKey
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetLatestTenantEncryptionKey retrieves metadata for the latest tenant encryption key version.
+// nolint: dupl
+func (c *Client) GetLatestTenantEncryptionKey(ctx context.Context, req *GetLatestTenantEncryptionKeyRequest) (*TenantEncryptionKey, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"encryption-keys",
+		"latest",
 	)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
