@@ -5443,3 +5443,51 @@ Content-Type: application/json; charset=utf-8
 | CreatedAt | string | The timestamp when the key version was created.    |
 
 If the provided version does not match the next expected version, a 409 Conflict is returned.
+
+# 99. GetTenantEncryptionKey
+
+The GetTenantEncryptionKey API retrieves metadata for a specific tenant encryption key version. Key material is never
+returned in the response. The request returns 404 Not Found if the tenant does not have the requested version.
+
+## 99.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/encryption-keys/{version} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant whose key metadata should be retrieved.        |
+| version                                  | path     | int     | The version number of the encryption key to fetch.                  |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+This request does not have a body.
+
+## 99.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "Version": int,
+  "CreatedAt": "string"
+}
+```
+
+| Field     | Type   | Description                                        |
+|-----------|--------|----------------------------------------------------|
+| TenantID  | string | The ID of the tenant that owns the key.            |
+| Version   | int    | The version number of the requested key.           |
+| CreatedAt | string | The timestamp when the key version was created.    |
+
+If the specified version does not exist, a 404 Not Found is returned.

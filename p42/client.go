@@ -247,6 +247,14 @@ type RotateTenantEncryptionKeyRequest struct {
 	Version  int
 }
 
+// GetTenantEncryptionKeyRequest is the request for GetTenantEncryptionKey.
+type GetTenantEncryptionKeyRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID string
+	Version  int
+}
+
 // GetCurrentUserRequest is the request for GetCurrentUser.
 type GetCurrentUserRequest struct {
 	FeatureFlags
@@ -270,6 +278,18 @@ func (r *GetTenantRequest) GetField(name string) (any, bool) {
 
 // nolint: goconst
 func (r *RotateTenantEncryptionKeyRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "Version":
+		return r.Version, true
+	default:
+		return nil, false
+	}
+}
+
+// nolint: goconst
+func (r *GetTenantEncryptionKeyRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "TenantID":
 		return r.TenantID, true
@@ -695,6 +715,55 @@ func (c *Client) RotateTenantEncryptionKey(ctx context.Context, req *RotateTenan
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out TenantEncryptionKey
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetTenantEncryptionKey retrieves metadata for a tenant encryption key version.
+// nolint: dupl
+func (c *Client) GetTenantEncryptionKey(ctx context.Context, req *GetTenantEncryptionKeyRequest) (*TenantEncryptionKey, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.Version <= 0 {
+		return nil, fmt.Errorf("version must be positive")
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"encryption-keys",
+		strconv.Itoa(req.Version),
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
 		return nil, decodeError(resp)
 	}
 
