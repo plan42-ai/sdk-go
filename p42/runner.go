@@ -90,6 +90,19 @@ func (r *UpdateRunnerRequest) GetVersion() int {
 	return r.Version
 }
 
+// IsEmptyUpdate reports whether the request has no mutations set.
+func (r *UpdateRunnerRequest) IsEmptyUpdate() bool {
+	if r == nil {
+		return true
+	}
+	return r.Name == nil &&
+		r.Description == nil &&
+		r.IsCloud == nil &&
+		r.RunsTasks == nil &&
+		r.ProxiesGithub == nil &&
+		r.Deleted == nil
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateRunnerRequest) GetField(name string) (any, bool) {

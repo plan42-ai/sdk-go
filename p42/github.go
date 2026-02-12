@@ -716,6 +716,23 @@ func (r *UpdateGithubConnectionRequest) GetVersion() int {
 	return r.Version
 }
 
+// IsEmptyUpdate reports whether the request has no mutations set.
+func (r *UpdateGithubConnectionRequest) IsEmptyUpdate() bool {
+	if r == nil {
+		return true
+	}
+	return r.Private == nil &&
+		r.RunnerID == nil &&
+		r.GithubUserLogin == nil &&
+		r.GithubUserID == nil &&
+		r.OAuthToken == nil &&
+		r.RefreshToken == nil &&
+		r.TokenExpiry == nil &&
+		r.State == nil &&
+		r.StateExpiry == nil &&
+		r.Name == nil
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateGithubConnectionRequest) GetField(name string) (any, bool) {
