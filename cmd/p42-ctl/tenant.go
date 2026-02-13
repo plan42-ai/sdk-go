@@ -15,7 +15,7 @@ type TenantOptions struct {
 	List                ListTenantsOptions               `cmd:"" help:"List all tenants."`
 	Update              UpdateTenantOptions              `cmd:"" help:"Update a tenant by ID."`
 	RotateEncryptionKey RotateTenantEncryptionKeyOptions `cmd:"" help:"Create a new tenant encryption key version."`
-	GetEncryptionKey GetTenantEncryptionKeyOptions `cmd:"" help:"Get metadata for a tenant encryption key version."`
+	GetEncryptionKey    GetTenantEncryptionKeyOptions    `cmd:"" help:"Get metadata for a tenant encryption key version."`
 }
 
 type CreateUserOptions struct {

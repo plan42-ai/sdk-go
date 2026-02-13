@@ -466,9 +466,15 @@ func (r *ListTurnsRequest) GetField(name string) (any, bool) {
 	}
 }
 
+// ListTurnsResponse is the response from ListTurns.
+type ListTurnsResponse struct {
+	Turns     []Turn  `json:"Turns"`
+	NextToken *string `json:"NextToken"`
+}
+
 // ListTurns retrieves the turns for a task.
 // nolint: dupl
-func (c *Client) ListTurns(ctx context.Context, req *ListTurnsRequest) (*List[Turn], error) {
+func (c *Client) ListTurns(ctx context.Context, req *ListTurnsRequest) (*ListTurnsResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -516,7 +522,7 @@ func (c *Client) ListTurns(ctx context.Context, req *ListTurnsRequest) (*List[Tu
 		return nil, decodeError(resp)
 	}
 
-	var out List[Turn]
+	var out ListTurnsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
