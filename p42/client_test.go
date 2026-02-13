@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -715,20 +716,106 @@ func TestRotateTenantEncryptionKeyError(t *testing.T) {
 
 func TestRotateTenantEncryptionKeyPathEscaping(t *testing.T) {
 	t.Parallel()
+	runTenantEncryptionKeyPathEscapingTest(
+		t,
+		http.MethodPut,
+		5,
+		http.StatusCreated,
+		func(ctx context.Context, client *p42.Client) (*p42.TenantEncryptionKey, error) {
+			return client.RotateTenantEncryptionKey(
+				ctx,
+				&p42.RotateTenantEncryptionKeyRequest{TenantID: tenantIDThatNeedsEscaping, Version: 5},
+			)
+		},
+	)
+}
+
+func TestGetTenantEncryptionKey(t *testing.T) {
+	t.Parallel()
+
+	createdAt := time.Date(2024, time.February, 2, 0, 0, 0, 0, time.UTC)
 
 	handler := http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/tenant-1/encryption-keys/2", r.URL.Path)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(
+				p42.TenantEncryptionKey{
+					TenantID:  "tenant-1",
+					Version:   2,
+					CreatedAt: createdAt,
+				},
+			)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	resp, err := client.GetTenantEncryptionKey(
+		context.Background(),
+		&p42.GetTenantEncryptionKeyRequest{TenantID: "tenant-1", Version: 2},
+	)
+	require.NoError(t, err)
+	require.Equal(t, "tenant-1", resp.TenantID)
+	require.Equal(t, 2, resp.Version)
+	require.Equal(t, createdAt, resp.CreatedAt)
+}
+
+func TestGetTenantEncryptionKeyError(t *testing.T) {
+	t.Parallel()
+
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.GetTenantEncryptionKey(
+		context.Background(),
+		&p42.GetTenantEncryptionKeyRequest{TenantID: "abc", Version: 2},
+	)
+	require.Error(t, err)
+}
+
+func TestGetTenantEncryptionKeyPathEscaping(t *testing.T) {
+	t.Parallel()
+	runTenantEncryptionKeyPathEscapingTest(
+		t,
+		http.MethodGet,
+		7,
+		http.StatusOK,
+		func(ctx context.Context, client *p42.Client) (*p42.TenantEncryptionKey, error) {
+			return client.GetTenantEncryptionKey(
+				ctx,
+				&p42.GetTenantEncryptionKeyRequest{TenantID: tenantIDThatNeedsEscaping, Version: 7},
+			)
+		},
+	)
+}
+
+func runTenantEncryptionKeyPathEscapingTest(
+	t *testing.T,
+	expectedMethod string,
+	version int,
+	statusCode int,
+	invoke func(context.Context, *p42.Client) (*p42.TenantEncryptionKey, error),
+) {
+	t.Helper()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, expectedMethod, r.Method)
 			escapedPath := r.URL.EscapedPath()
 			parts := strings.Split(escapedPath, "/")
 			require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
 			require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
-			require.Equal(t, "5", parts[5], "Version not properly encoded in URL path")
+			require.Equal(t, strconv.Itoa(version), parts[5], "Version not properly encoded in URL path")
 
-			w.WriteHeader(http.StatusCreated)
+			w.WriteHeader(statusCode)
 			_ = json.NewEncoder(w).Encode(
 				p42.TenantEncryptionKey{
 					TenantID:  tenantIDThatNeedsEscaping,
-					Version:   5,
+					Version:   version,
 					CreatedAt: time.Unix(0, 0),
 				},
 			)
@@ -739,10 +826,7 @@ func TestRotateTenantEncryptionKeyPathEscaping(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	_, err := client.RotateTenantEncryptionKey(
-		context.Background(),
-		&p42.RotateTenantEncryptionKeyRequest{TenantID: tenantIDThatNeedsEscaping, Version: 5},
-	)
+	_, err := invoke(context.Background(), client)
 	require.NoError(t, err)
 }
 
