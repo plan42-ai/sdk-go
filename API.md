@@ -5538,3 +5538,55 @@ Content-Type: application/json; charset=utf-8
 | CreatedAt | string | The timestamp when the key version was created.    |
 
 If the tenant does not yet have a key, a 404 Not Found error is returned.
+
+# 101. ListTenantEncryptionKeys
+
+The ListTenantEncryptionKeys API returns metadata for tenant encryption key versions with pagination support. Key
+material is never exposed in responses.
+
+## 101.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/encryption-keys?maxResults={maxResults}&token={token} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant whose keys should be listed.                   |
+| maxResults                               | query    | *int    | Maximum number of keys to return. Optional. Range: 1-500.           |
+| token                                    | query    | *string | Token for retrieving the next page. Optional.                       |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 101.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Items": [
+    {
+      "TenantID": "string",
+      "Version": int,
+      "CreatedAt": "string"
+    }
+  ],
+  "NextToken": "*string"
+}
+```
+
+| Field     | Type                  | Description                                 |
+|-----------|-----------------------|---------------------------------------------|
+| Items     | []TenantEncryptionKey | List of tenant encryption key metadata.     |
+| NextToken | *string               | Token to retrieve the next page of results. |
+
+Each `TenantEncryptionKey` object contains the fields described in
+[RotateTenantEncryptionKey](#98-rotatetenantencryptionkey).
