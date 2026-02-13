@@ -17,6 +17,7 @@ type TenantOptions struct {
 	RotateEncryptionKey    RotateTenantEncryptionKeyOptions    `cmd:"" help:"Create a new tenant encryption key version."`
 	GetEncryptionKey       GetTenantEncryptionKeyOptions       `cmd:"" help:"Get metadata for a tenant encryption key version."`
 	GetLatestEncryptionKey GetLatestTenantEncryptionKeyOptions `cmd:"" help:"Get the latest tenant encryption key metadata."`
+	ListEncryptionKeys     ListTenantEncryptionKeysOptions     `cmd:"" help:"List tenant encryption key versions."`
 }
 
 type CreateUserOptions struct {
@@ -125,13 +126,48 @@ func (o *GetLatestTenantEncryptionKeyOptions) Run(ctx context.Context, s *Shared
 
 	key, err := s.Client.GetLatestTenantEncryptionKey(ctx, req)
 	if err != nil {
-		if is404(err) {
-			fmt.Printf("No encryption key exists for tenant %s\n", o.TenantID)
-			return nil
-		}
 		return err
 	}
 	return printJSON(key)
+}
+
+type ListTenantEncryptionKeysOptions struct {
+	TenantID string `help:"The ID of the tenant." short:"i" required:""`
+}
+
+func (o *ListTenantEncryptionKeysOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var flags p42.FeatureFlags
+	if err := loadFeatureFlags(s, &flags); err != nil {
+		return err
+	}
+
+	var token *string
+	for {
+		req := &p42.ListTenantEncryptionKeysRequest{
+			TenantID: o.TenantID,
+			Token:    token,
+		}
+		req.FeatureFlags = flags
+		processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+		resp, err := s.Client.ListTenantEncryptionKeys(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, key := range resp.Items {
+			if err := printJSON(key); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+
+	return nil
 }
 
 type ListTenantsOptions struct{}
