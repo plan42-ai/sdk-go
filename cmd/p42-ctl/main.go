@@ -162,6 +162,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Tenant.GetLatestEncryptionKey.Run(options.Ctx, &options.SharedOptions)
 	case "tenant get-encryption-key":
 		return options.Tenant.GetEncryptionKey.Run(options.Ctx, &options.SharedOptions)
+	case "tenant list-encryption-keys":
+		return options.Tenant.ListEncryptionKeys.Run(options.Ctx, &options.SharedOptions)
 	case "tenant list":
 		return options.Tenant.List.Run(options.Ctx, &options.SharedOptions)
 	case "tenant update":
