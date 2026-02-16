@@ -14,6 +14,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/plan42-ai/clock"
+	"github.com/plan42-ai/sdk-go/internal/util"
 	sigv4clientutil "github.com/plan42-ai/sigv4util/client"
 )
 
@@ -362,6 +363,54 @@ type Tenant struct {
 
 func (t Tenant) ObjectType() ObjectType {
 	return ObjectTypeTenant
+}
+
+// Equals compares two tenants field-by-field.
+func (t *Tenant) Equals(other *Tenant) bool {
+	if t == other {
+		return true
+	}
+	if t == nil || other == nil {
+		return false
+	}
+	if t.TenantID != other.TenantID ||
+		t.Type != other.Type ||
+		t.Version != other.Version ||
+		t.Deleted != other.Deleted {
+		return false
+	}
+	if !util.EqualsMS(t.CreatedAt, other.CreatedAt) || !util.EqualsMS(t.UpdatedAt, other.UpdatedAt) {
+		return false
+	}
+	if !equalStringPtr(t.FullName, other.FullName) ||
+		!equalStringPtr(t.OrgName, other.OrgName) ||
+		!equalStringPtr(t.EnterpriseName, other.EnterpriseName) ||
+		!equalStringPtr(t.Email, other.Email) ||
+		!equalStringPtr(t.FirstName, other.FirstName) ||
+		!equalStringPtr(t.LastName, other.LastName) ||
+		!equalStringPtr(t.PictureURL, other.PictureURL) ||
+		!equalStringPtr(t.DefaultRunnerID, other.DefaultRunnerID) ||
+		!equalStringPtr(t.DefaultGithubConnectionID, other.DefaultGithubConnectionID) {
+		return false
+	}
+	if !equalIntPtr(t.LatestEncryptionKeyVersion, other.LatestEncryptionKeyVersion) {
+		return false
+	}
+	return true
+}
+
+func equalStringPtr(a, b *string) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
+func equalIntPtr(a, b *int) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
 }
 
 // TenantEncryptionKey contains metadata about a tenant encryption key version.
