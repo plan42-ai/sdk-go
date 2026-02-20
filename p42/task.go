@@ -36,6 +36,15 @@ const (
 	TaskStateCompleted          TaskState = "Completed"
 )
 
+// ReasoningLevel represents the reasoning/thinking intensity for model execution.
+type ReasoningLevel string
+
+const (
+	ReasoningLevelLow    ReasoningLevel = "Low"
+	ReasoningLevelMedium ReasoningLevel = "Medium"
+	ReasoningLevelHigh   ReasoningLevel = "High"
+)
+
 // RepoInfo contains information about a repository used in a task's environment.
 type RepoInfo struct {
 	PRLink            *string    `json:"PRLink,omitempty"`
@@ -57,6 +66,7 @@ type Task struct {
 	Prompt             string               `json:"Prompt"`
 	Parallel           bool                 `json:"Parallel"`
 	Model              *ModelType           `json:"Model"`
+	ReasoningLevel     *ReasoningLevel      `json:"ReasoningLevel,omitempty"`
 	AssignedToTenantID *string              `json:"AssignedToTenantId,omitempty"`
 	AssignedToAI       bool                 `json:"AssignedToAI"`
 	TaskNumber         *int                 `json:"TaskNumber,omitempty"`
@@ -411,13 +421,14 @@ func (c *Client) GetWorkstreamTask(ctx context.Context, req *GetWorkstreamTaskRe
 type CreateTaskRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID      string               `json:"-"`
-	TaskID        string               `json:"-"`
-	Title         string               `json:"Title"`
-	EnvironmentID *string              `json:"EnvironmentId,omitempty"`
-	Prompt        string               `json:"Prompt"`
-	Model         *ModelType           `json:"Model,omitempty"`
-	RepoInfo      map[string]*RepoInfo `json:"RepoInfo"`
+	TenantID       string               `json:"-"`
+	TaskID         string               `json:"-"`
+	Title          string               `json:"Title"`
+	EnvironmentID  *string              `json:"EnvironmentId,omitempty"`
+	Prompt         string               `json:"Prompt"`
+	Model          *ModelType           `json:"Model,omitempty"`
+	ReasoningLevel *ReasoningLevel      `json:"ReasoningLevel,omitempty"`
+	RepoInfo       map[string]*RepoInfo `json:"RepoInfo"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -436,6 +447,8 @@ func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 		return r.Prompt, true
 	case "Model":
 		return EvalNullable(r.Model)
+	case "ReasoningLevel":
+		return EvalNullable(r.ReasoningLevel)
 	case "RepoInfo":
 		return r.RepoInfo, true
 	default:
@@ -503,6 +516,7 @@ type CreateWorkstreamTaskRequest struct {
 	Prompt             *string              `json:"Prompt,omitempty"`
 	Parallel           *bool                `json:"Parallel,omitempty"`
 	Model              *ModelType           `json:"Model,omitempty"`
+	ReasoningLevel     *ReasoningLevel      `json:"ReasoningLevel,omitempty"`
 	AssignedToTenantID *string              `json:"AssignedToTenantId,omitempty"`
 	AssignedToAI       bool                 `json:"AssignedToAI"`
 	RepoInfo           map[string]*RepoInfo `json:"RepoInfo,omitempty"`
@@ -529,6 +543,8 @@ func (r *CreateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.Parallel)
 	case "Model":
 		return EvalNullable(r.Model)
+	case "ReasoningLevel":
+		return EvalNullable(r.ReasoningLevel)
 	case "AssignedToTenantID":
 		return EvalNullable(r.AssignedToTenantID)
 	case "AssignedToAI":
@@ -794,6 +810,7 @@ type UpdateWorkstreamTaskRequest struct {
 	Prompt             *string               `json:"Prompt,omitempty"`
 	Parallel           *bool                 `json:"Parallel,omitempty"`
 	Model              *ModelType            `json:"Model,omitempty"`
+	ReasoningLevel     *ReasoningLevel       `json:"ReasoningLevel,omitempty"`
 	AssignedToTenantID *string               `json:"AssignedToTenantId,omitempty"`
 	AssignedToAI       *bool                 `json:"AssignedToAI,omitempty"`
 	RepoInfo           *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
@@ -825,6 +842,8 @@ func (r *UpdateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.Parallel)
 	case "Model":
 		return EvalNullable(r.Model)
+	case "ReasoningLevel":
+		return EvalNullable(r.ReasoningLevel)
 	case "AssignedToTenantID":
 		return EvalNullable(r.AssignedToTenantID)
 	case "AssignedToAI":
@@ -913,14 +932,15 @@ func (c *Client) UpdateWorkstreamTask(ctx context.Context, req *UpdateWorkstream
 type UpdateTaskRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID string                `json:"-"`
-	TaskID   string                `json:"-"`
-	Version  int                   `json:"-"`
-	Title    *string               `json:"Title,omitempty"`
-	Prompt   *string               `json:"Prompt,omitempty"`
-	Model    *ModelType            `json:"Model,omitempty"`
-	RepoInfo *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
-	Deleted  *bool                 `json:"Deleted,omitempty"`
+	TenantID       string                `json:"-"`
+	TaskID         string                `json:"-"`
+	Version        int                   `json:"-"`
+	Title          *string               `json:"Title,omitempty"`
+	Prompt         *string               `json:"Prompt,omitempty"`
+	Model          *ModelType            `json:"Model,omitempty"`
+	ReasoningLevel *ReasoningLevel       `json:"ReasoningLevel,omitempty"`
+	RepoInfo       *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
+	Deleted        *bool                 `json:"Deleted,omitempty"`
 }
 
 func (r *UpdateTaskRequest) GetVersion() int {
@@ -928,7 +948,7 @@ func (r *UpdateTaskRequest) GetVersion() int {
 }
 
 func (r *UpdateTaskRequest) IsEmptyUpdate() bool {
-	return r.Title == nil && r.Prompt == nil && r.Model == nil && r.RepoInfo == nil && r.Deleted == nil
+	return r.Title == nil && r.Prompt == nil && r.Model == nil && r.ReasoningLevel == nil && r.RepoInfo == nil && r.Deleted == nil
 }
 
 // GetField retrieves the value of a field by name.
@@ -947,6 +967,8 @@ func (r *UpdateTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.Prompt)
 	case "Model":
 		return EvalNullable(r.Model)
+	case "ReasoningLevel":
+		return EvalNullable(r.ReasoningLevel)
 	case "RepoInfo":
 		return EvalNullable(r.RepoInfo)
 	case "Deleted":
