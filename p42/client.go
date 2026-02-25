@@ -1189,15 +1189,17 @@ func (t WebUITokenThumbprint) ObjectType() ObjectType {
 
 // TurnLog represents a single log entry for a turn.
 type TurnLog struct {
-	Timestamp time.Time `json:"Timestamp"`
-	Message   string    `json:"Message"`
+	Timestamp       time.Time `json:"Timestamp"`
+	Message         string    `json:"Message"`
+	ProviderMessage string    `json:"ProviderMessage,omitempty"`
 }
 
 // LastTurnLog represents the last log entry for a turn.
 type LastTurnLog struct {
-	Index     int       `json:"Index"`
-	Timestamp time.Time `json:"Timestamp"`
-	Message   string    `json:"Message"`
+	Index           int       `json:"Index"`
+	Timestamp       time.Time `json:"Timestamp"`
+	Message         string    `json:"Message"`
+	ProviderMessage string    `json:"ProviderMessage,omitempty"`
 }
 
 // UploadTurnLogsRequest is the request payload for UploadTurnLogs.
