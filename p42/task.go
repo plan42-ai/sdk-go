@@ -820,6 +820,10 @@ type UpdateWorkstreamTaskRequest struct {
 	Deleted            *bool                 `json:"Deleted,omitempty"`
 }
 
+func (r *UpdateWorkstreamTaskRequest) GetVersion() int {
+	return r.Version
+}
+
 // GetField retrieves the value of a field by name.
 // nolint: goconst
 func (r *UpdateWorkstreamTaskRequest) GetField(name string) (any, bool) {
