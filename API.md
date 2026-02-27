@@ -2359,21 +2359,34 @@ X-Event-Horizon-Signed-Headers: <signed headers>
     "Name": "string",
     "Description": "string"
     "DefaultShortName": "string",
+    "OrchestrationMode" : "*OrchestrationMode"
 }
 ```
 
-| Parameter                                | Location | Type    | Description                                                                 |
-|------------------------------------------|----------|---------|-----------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to create the workstream for.                          |
-| workstream_id                            | path     | string  | The ID of the workstream to create. This must be a v4 UUID.                 |
-| Authorization                            | header   | string  | The authorization header for the request.                                   |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                      |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.         |
-| Name                                     | body     | string  | The name of the workstream.                                                 |
-| Description                              | body     | string  | The description of the workstream.                                          |
-| DefaultShortName                         | body     | string  | Optional. A default short name to use for tasks created in this workstream. |
+| Parameter                                | Location | Type                                         | Description                                                                                     |
+|------------------------------------------|----------|----------------------------------------------|-------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                                       | The ID of the tenant to create the workstream for.                                              |
+| workstream_id                            | path     | string                                       | The ID of the workstream to create. This must be a v4 UUID.                                     |
+| Authorization                            | header   | string                                       | The authorization header for the request.                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                                      | The authorization header for the delegating principal.                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string                                      | The signed headers for the request, when authenticating with Sigv4.                             |
+| Name                                     | body     | string                                       | The name of the workstream.                                                                     |
+| Description                              | body     | string                                       | The description of the workstream.                                                              |
+| DefaultShortName                         | body     | string                                       | Optional. A default short name to use for tasks created in this workstream.                     |
+| OrchestrationMode                        | body     | *[OrchestrationMode](#352-OrchestrationMode) | Optional. The orchestration mode for the workstream. When not specified, defaults to "OnMerge". |
 
-## 35.2 Response
+# 35.2 OrchestrationMode
+
+OrchestrationMode is an enum that specifies the "orchestration mode" for a workstream. This configures when tasks in a
+workstream are automatically executed.
+
+| OrchestrationMode | Description                                                                                                                                                                                                                                                                                                                                                                                                                            |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| OnMerge           | Tasks are automatically executed once their predecessors are merged. This is the default for new workstreams if none is not speccified. This settings prevents the AI from executing subsequent tasks in a Workstream until the preceeding tasks have been fullyy reviwed by humans and merged into the updstream branch.                                                                                                              |
+| OnReadyForReview  | Task are automatically executed once all predecessor tasks are moved from "draft" to "ready for review". This setting allows you to "stack" completed tasks before merging them, but still requires a human to review one task before subsequent tasks are started. This is useful when you want to make progress on several tasks before getting a PR from a peer.                                                                    |
+| OnPush            | Tasks are automatically executed once all predecessor tasks are moved to the "Awaiting Code Review" state, without first requring a human to review. This is best for Vibe Coding, and will allow you to make progress through Workstream's quickly. However, if you end up needing to make changes to an early task in the Workstream after subsequent tasks have started, it can lead to quite a bit of re-work and increased costs. | 
+
+## 35.3 Response
 On success a 201 CREATED is returned with the following JSON body:
 
 ```http request
@@ -2392,22 +2405,24 @@ Content-Type: application/json; charset=utf-8
   "Deleted": bool,
   "DefaultShortName": "string",
   "TaskCounter": int,
+  "OrchestrationMode": "OrchestrationMode"
 }
 ```
 
-| Field            | Type   | Description                                                                              |
-|------------------|--------|------------------------------------------------------------------------------------------|
-| WorkstreamID     | string | The ID of the workstream.                                                                |
-| TenantID         | string | The ID of the tenant that owns the workstream.                                           |
-| Name             | string | The name of the workstream.                                                              |
-| Description      | string | The description of the workstream.                                                       |
-| CreatedAt        | string | The timestamp when the workstream was created, in ISO 8601 format.                       |
-| UpdatedAt        | string | The timestamp when the workstream was last updated, in ISO 8601 format.                  |
-| Version          | int    | The version of the workstream. This is incremented every time the workstream is updated. |
-| Paused           | bool   | Whether the workstream is paused. Defaults to true for new workstreams.                  |
-| Deleted          | bool   | Whether the workstream has been deleted.                                                 |
-| DefaultShortName | string | The default short name to use for tasks created in this workstream.                      |
-| TaskCounter      | int    | The counter used to generate unique short names for tasks in this workstream.            |
+| Field             | Type                                        | Description                                                                                                         |
+|-------------------|---------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| WorkstreamID      | string                                      | The ID of the workstream.                                                                                           |
+| TenantID          | string                                      | The ID of the tenant that owns the workstream.                                                                      |
+| Name              | string                                      | The name of the workstream.                                                                                         |
+| Description       | string                                      | The description of the workstream.                                                                                  |
+| CreatedAt         | string                                      | The timestamp when the workstream was created, in ISO 8601 format.                                                  |
+| UpdatedAt         | string                                      | The timestamp when the workstream was last updated, in ISO 8601 format.                                             |
+| Version           | int                                         | The version of the workstream. This is incremented every time the workstream is updated.                            |
+| Paused            | bool                                        | Whether the workstream is paused. Defaults to true for new workstreams.                                             |
+| Deleted           | bool                                        | Whether the workstream has been deleted.                                                                            |
+| DefaultShortName  | string                                      | The default short name to use for tasks created in this workstream.                                                 |
+| TaskCounter       | int                                         | The counter used to generate unique short names for tasks in this workstream.                                       |
+| OrchestrationMode | [OrchestrationMode](#352-OrchestrationMode) | The orchestration mode for the workstream. This determines when tasks in the workstream are automatically executed. |
 
 # 36. ListWorkstreams
 
@@ -2494,7 +2509,8 @@ Content-Type: application/json; charset=utf-8
   "Paused": bool,
   "Deleted": bool,
   "DefaultShortName": "string",
-  "TaskCounter": int
+  "TaskCounter": int,
+  "OrchestrationMode": "OrchestrationMode"
 }
 ```
 
@@ -2519,23 +2535,25 @@ If-Match: <version>
     "Description": "*string",
     "Paused": "*bool",
     "Deleted": "*bool",
-    "DefaultShortName": "*string"
+    "DefaultShortName": "*string",
+    "OrchestrationMode" : "*OrchestrationMode"
 }
 ```
 
-| Parameter                                | Location | Type    | Description                                                                                                                                               |
-|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to update the workstream for.                                                                                                        |
-| workstream_id                            | path     | string  | The ID of the workstream to update.                                                                                                                       |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                 |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                    |
-| X-Event-Horizon-Signed-Headers           | header   | *string |                                                                                                                                                           | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
-| version                                  | header   | string  | The version of the workstream to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
-| Name                                     | body     | *string | If set, update the name of the workstream.                                                                                                                |
-| Description                              | body     | *string | If set, update the description of the workstream.                                                                                                         |
-| Paused                                   | body     | *bool   | If set, update whether the workstream is paused.                                                                                                          |
-| Deleted                                  | body     | *bool   | If set to false, undelete the workstream.                                                                                                                 |
-| DefaultShortName                         | body     | *string | If set, update the default short name to use for tasks created in this workstream.                                                                        |
+| Parameter                                | Location | Type                                         | Description                                                                                                                                               |
+|------------------------------------------|----------|----------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                                       | The ID of the tenant to update the workstream for.                                                                                                        |
+| workstream_id                            | path     | string                                       | The ID of the workstream to update.                                                                                                                       |
+| Authorization                            | header   | string                                       | The authorization header for the request.                                                                                                                 |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                                      | The authorization header for the delegating principal.                                                                                                    |
+| X-Event-Horizon-Signed-Headers           | header   | *string                                      |                                                                                                                                                           | The signed headers for the request, when authenticating with Sigv4.                                                                                         |
+| version                                  | header   | string                                       | The version of the workstream to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned |
+| Name                                     | body     | *string                                      | If set, update the name of the workstream.                                                                                                                |
+| Description                              | body     | *string                                      | If set, update the description of the workstream.                                                                                                         |
+| Paused                                   | body     | *bool                                        | If set, update whether the workstream is paused.                                                                                                          |
+| Deleted                                  | body     | *bool                                        | If set to false, undelete the workstream.                                                                                                                 |
+| DefaultShortName                         | body     | *string                                      | If set, update the default short name to use for tasks created in this workstream.                                                                        |
+| OrchestrationMode                        | body     | *[OrchestrationMode](#352-OrchestrationMode) | If set, update the orchestration mode for the workstream.                                                                                                 |
 
 ## 38.2 Response
 
@@ -2554,7 +2572,8 @@ Content-Type: application/json; charset=utf-8
   "UpdatedAt": "string",
   "Version": int,
   "Paused": bool,
-  "Deleted": bool
+  "Deleted": bool,
+  "OrchestrationMode": "OrchestrationMode"
 }
 ```
 
@@ -3349,8 +3368,8 @@ Content-Type: application/json; charset=utf-8
 | Field                 | Type                        | Description                                        |
 |-----------------------|-----------------------------|----------------------------------------------------|
 | Task                  | [Task](#183-response)       | The updated task after the move.                   |
-| SourceWorkstream      | [Workstream](#352-response) | The updated source workstream after the move.      |
-| DestinationWorkstream | [Workstream](#352-response) | The updated destination workstream after the move. |
+| SourceWorkstream      | [Workstream](#353-response) | The updated source workstream after the move.      |
+| DestinationWorkstream | [Workstream](#353-response) | The updated destination workstream after the move. |
 
 # 58. MoveShortName
 The MoveShortName API moves a short name from one workstream to another.
@@ -3428,8 +3447,8 @@ Content-Type: application/json; charset=utf-8
 
 | Field                 | Type                        | Description                                        |
 |-----------------------|-----------------------------|----------------------------------------------------|
-| SourceWorkstream      | [Workstream](#352-response) | The updated source workstream after the move.      |
-| DestinationWorkstream | [Workstream](#352-response) | The updated destination workstream after the move. |
+| SourceWorkstream      | [Workstream](#353-response) | The updated source workstream after the move.      |
+| DestinationWorkstream | [Workstream](#353-response) | The updated destination workstream after the move. |
 
 # 59. ListTenants
 
