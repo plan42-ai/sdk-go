@@ -11,19 +11,29 @@ import (
 	"time"
 )
 
+// OrchestrationMode represents how tasks in a workstream are orchestrated.
+type OrchestrationMode string
+
+const (
+	OrchestrationModeOnMerge          OrchestrationMode = "OnMerge"
+	OrchestrationModeOnReadyForReview OrchestrationMode = "OnReadyForReview"
+	OrchestrationModeOnPush           OrchestrationMode = "OnPush"
+)
+
 // Workstream represents a workstream in Event Horizon.
 type Workstream struct {
-	WorkstreamID     string    `json:"WorkstreamId"`
-	TenantID         string    `json:"TenantId"`
-	Name             string    `json:"Name"`
-	Description      string    `json:"Description"`
-	CreatedAt        time.Time `json:"CreatedAt"`
-	UpdatedAt        time.Time `json:"UpdatedAt"`
-	Version          int       `json:"Version"`
-	Paused           bool      `json:"Paused"`
-	Deleted          bool      `json:"Deleted"`
-	DefaultShortName string    `json:"DefaultShortName"`
-	TaskCounter      int       `json:"TaskCounter"`
+	WorkstreamID      string            `json:"WorkstreamId"`
+	TenantID          string            `json:"TenantId"`
+	Name              string            `json:"Name"`
+	Description       string            `json:"Description"`
+	CreatedAt         time.Time         `json:"CreatedAt"`
+	UpdatedAt         time.Time         `json:"UpdatedAt"`
+	Version           int               `json:"Version"`
+	Paused            bool              `json:"Paused"`
+	Deleted           bool              `json:"Deleted"`
+	DefaultShortName  string            `json:"DefaultShortName"`
+	TaskCounter       int               `json:"TaskCounter"`
+	OrchestrationMode OrchestrationMode `json:"OrchestrationMode"`
 }
 
 func (w *Workstream) IsDeleted() bool {
@@ -125,11 +135,12 @@ type UpdateWorkstreamRequest struct {
 	WorkstreamID string `json:"-"`
 	Version      int    `json:"-"`
 
-	Name             *string `json:"Name,omitempty"`
-	Description      *string `json:"Description,omitempty"`
-	Paused           *bool   `json:"Paused,omitempty"`
-	Deleted          *bool   `json:"Deleted,omitempty"`
-	DefaultShortName *string `json:"DefaultShortName,omitempty"`
+	Name              *string            `json:"Name,omitempty"`
+	Description       *string            `json:"Description,omitempty"`
+	Paused            *bool              `json:"Paused,omitempty"`
+	Deleted           *bool              `json:"Deleted,omitempty"`
+	DefaultShortName  *string            `json:"DefaultShortName,omitempty"`
+	OrchestrationMode *OrchestrationMode `json:"OrchestrationMode,omitempty"`
 }
 
 func (r *UpdateWorkstreamRequest) GetVersion() int {
@@ -145,7 +156,8 @@ func (r *UpdateWorkstreamRequest) IsEmptyUpdate() bool {
 		r.Description == nil &&
 		r.Paused == nil &&
 		r.Deleted == nil &&
-		r.DefaultShortName == nil
+		r.DefaultShortName == nil &&
+		r.OrchestrationMode == nil
 }
 
 // GetField retrieves the value of a field by name.
@@ -168,6 +180,8 @@ func (r *UpdateWorkstreamRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.Deleted)
 	case "DefaultShortName":
 		return EvalNullable(r.DefaultShortName)
+	case "OrchestrationMode":
+		return EvalNullable(r.OrchestrationMode)
 	default:
 		return nil, false
 	}
@@ -765,9 +779,10 @@ type CreateWorkstreamRequest struct {
 	TenantID     string `json:"-"`
 	WorkstreamID string `json:"-"`
 
-	Name             string  `json:"Name"`
-	Description      string  `json:"Description"`
-	DefaultShortName *string `json:"DefaultShortName,omitempty"`
+	Name              string             `json:"Name"`
+	Description       string             `json:"Description"`
+	DefaultShortName  *string            `json:"DefaultShortName,omitempty"`
+	OrchestrationMode *OrchestrationMode `json:"OrchestrationMode,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -784,6 +799,8 @@ func (r *CreateWorkstreamRequest) GetField(name string) (any, bool) {
 		return r.Description, true
 	case "DefaultShortName":
 		return EvalNullable(r.DefaultShortName)
+	case "OrchestrationMode":
+		return EvalNullable(r.OrchestrationMode)
 	default:
 		return nil, false
 	}
