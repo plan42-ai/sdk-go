@@ -73,6 +73,7 @@ type Task struct {
 	RepoInfo           map[string]*RepoInfo `json:"RepoInfo"`
 	LastTurnStatus     *string              `json:"LastTurnStatus,omitempty"`
 	LastTurnIndex      *int                 `json:"LastTurnIndex,omitempty"`
+	Attachments        []Attachment         `json:"Attachments,omitempty"`
 	State              TaskState            `json:"State"`
 	CreatedAt          time.Time            `json:"CreatedAt"`
 	UpdatedAt          time.Time            `json:"UpdatedAt"`
@@ -429,6 +430,7 @@ type CreateTaskRequest struct {
 	Model          *ModelType           `json:"Model,omitempty"`
 	ReasoningLevel *ReasoningLevel      `json:"ReasoningLevel,omitempty"`
 	RepoInfo       map[string]*RepoInfo `json:"RepoInfo"`
+	Attachments    []Attachment         `json:"Attachments,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -451,6 +453,8 @@ func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.ReasoningLevel)
 	case "RepoInfo":
 		return r.RepoInfo, true
+	case "Attachments":
+		return r.Attachments, true
 	default:
 		return nil, false
 	}
@@ -520,6 +524,7 @@ type CreateWorkstreamTaskRequest struct {
 	AssignedToTenantID *string              `json:"AssignedToTenantId,omitempty"`
 	AssignedToAI       bool                 `json:"AssignedToAI"`
 	RepoInfo           map[string]*RepoInfo `json:"RepoInfo,omitempty"`
+	Attachments        []Attachment         `json:"Attachments,omitempty"`
 	State              *TaskState           `json:"State,omitempty"`
 }
 
@@ -551,6 +556,8 @@ func (r *CreateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 		return r.AssignedToAI, true
 	case "RepoInfo":
 		return r.RepoInfo, true
+	case "Attachments":
+		return r.Attachments, true
 	case "State":
 		return EvalNullable(r.State)
 	default:

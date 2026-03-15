@@ -18,6 +18,7 @@ type Turn struct {
 	TaskID             string                `json:"TaskId"`
 	TurnIndex          int                   `json:"TurnIndex"`
 	Prompt             string                `json:"Prompt"`
+	Attachments        []Attachment          `json:"Attachments,omitempty"`
 	ReasoningLevel     *ReasoningLevel       `json:"ReasoningLevel,omitempty"`
 	PreviousResponseID *string               `json:"PreviousResponseID,omitempty"`
 	CommitInfo         map[string]CommitInfo `json:"CommitInfo"`
@@ -47,6 +48,7 @@ type CreateTurnRequest struct {
 	TurnIndex      int             `json:"-"`
 	TaskVersion    int             `json:"-"`
 	Prompt         string          `json:"Prompt"`
+	Attachments    []Attachment    `json:"Attachments,omitempty"`
 	ReasoningLevel *ReasoningLevel `json:"ReasoningLevel,omitempty"`
 	WorkstreamID   *string         `json:"WorkstreamID,omitempty"`
 }
@@ -64,6 +66,8 @@ func (c *CreateTurnRequest) GetField(name string) (any, bool) {
 		return c.TaskVersion, true
 	case "Prompt":
 		return c.Prompt, true
+	case "Attachments":
+		return c.Attachments, true
 	case "ReasoningLevel":
 		return EvalNullable(c.ReasoningLevel)
 	case "WorkstreamID":
