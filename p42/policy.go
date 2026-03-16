@@ -40,14 +40,15 @@ func CreateArray[T ~string, BV Bitvector[BV]](bv BV, dec map[BV]T) []T {
 	}
 	var ret []T
 	var bit BV
+	bit = bit.One()
 
-	for i := 0; i < 64; i++ {
-		bit = bit.Lsh(1)
+	for i := 0; i < 128; i++ {
 		if bv.And(bit).NonZero() {
 			if item, ok := dec[bit]; ok {
 				ret = append(ret, item)
 			}
 		}
+		bit = bit.Lsh(1)
 	}
 	return ret
 }
@@ -333,6 +334,10 @@ type ActionBitVector struct {
 	Low  int64
 }
 
+func (bv ActionBitVector) One() ActionBitVector {
+	return ActionBitVector{High: 0, Low: 1}
+}
+
 func (bv ActionBitVector) Lsh(n uint) ActionBitVector {
 	// #nosec: G115: twe are doing a logical left shift... no overflow.
 	return ActionBitVector{
@@ -372,6 +377,10 @@ func (bv ActionBitVector) NonZero() bool {
 
 type SmallBitVector uint64
 
+func (s SmallBitVector) One() SmallBitVector {
+	return 1
+}
+
 func (s SmallBitVector) Lsh(n uint) SmallBitVector {
 	return s << n
 }
@@ -397,6 +406,7 @@ func (s SmallBitVector) NonZero() bool {
 }
 
 type Bitvector[T any] interface {
+	One() T
 	Lsh(n uint) T
 	And(other T) T
 	Or(other T) T
