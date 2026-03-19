@@ -83,3 +83,76 @@ func (c *Client) CreateFile(ctx context.Context, req *CreateFileRequest) (*File,
 	}
 	return &out, nil
 }
+
+// DownloadURL contains a presigned URL for downloading a file.
+type DownloadURL struct {
+	TenantID    string    `json:"TenantID"`
+	FileID      string    `json:"FileID"`
+	DownloadURL string    `json:"DownloadURL"`
+	CreatedAt   time.Time `json:"CreatedAt"`
+}
+
+// GetDownloadURLRequest is the request payload for GetDownloadURL.
+type GetDownloadURLRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	FileID   string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *GetDownloadURLRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "FileID":
+		return r.FileID, true
+	default:
+		return nil, false
+	}
+}
+
+// GetDownloadURL retrieves a presigned URL for downloading a file.
+func (c *Client) GetDownloadURL(ctx context.Context, req *GetDownloadURLRequest) (*DownloadURL, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.FileID == "" {
+		return nil, fmt.Errorf("file id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "files", url.PathEscape(req.FileID), "download-url")
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out DownloadURL
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
