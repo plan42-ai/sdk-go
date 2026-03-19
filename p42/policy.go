@@ -184,6 +184,7 @@ const (
 	ActionGetLatestTenantEncryptionKey Action = "GetLatestTenantEncryptionKey"
 	ActionListTenantEncryptionKeys     Action = "ListTenantEncryptionKeys"
 	ActionCreateFile                   Action = "CreateFile"
+	ActionGetDownloadURL               Action = "GetDownloadUrl"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -520,6 +521,7 @@ func init() {
 			ActionGetLatestTenantEncryptionKey, // (0x0000_0000_0400_0000, 0)
 			ActionListTenantEncryptionKeys,     // (0x0000_0000_0800_0000, 0)
 			ActionCreateFile,                   // (0x0000_0000_1000_0000, 0)
+			ActionGetDownloadURL,               // (0x0000_0000_2000_0000, 0)
 
 		},
 		ActionBitVector{
