@@ -3672,7 +3672,7 @@ the order of tasks use the UpdateWorkstreamTask API and set one of the BeforeTas
 ## 61.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks?maxResults={maxResults}&token={token}&afterTaskId={afterTaskId}&includeDeleted={includeDeleted}?taskNumber={taskNumber} HTTP/1.1
+GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks?maxResults={maxResults}&token={token}&afterTaskId={afterTaskId}&includeDeleted={includeDeleted}&taskNumber={taskNumber} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -3687,7 +3687,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | maxResults                               | query    | *int    | Optional. The maximum number of tasks to return. Default is 10. Must be >=1 and <= 500.                                                                                 |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned.                                                         |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted tasks in the results.                                                                                                          |
-| taskNumber                               | query    | *int    | Optional. When set, returns tghhe task with the given task number. If no such task exists, an empty list is returned. If this parameter is set, afterTaskId is ignored. |
+| taskNumber                               | query    | *int    | Optional. When set, returns the task with the given task number. If no such task exists, an empty list is returned. If this parameter is set, afterTaskId is ignored. |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                                                                               |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                  |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                     |
