@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -155,4 +156,139 @@ func (c *Client) GetDownloadURL(ctx context.Context, req *GetDownloadURLRequest)
 	}
 
 	return &out, nil
+}
+
+// ListFilesRequest represents the request payload for ListFiles.
+type ListFilesRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID   string
+	MaxResults *int
+	NextToken  *string
+}
+
+// GetField retrieves the value of a field by name.
+// nolint:goconst
+func (r *ListFilesRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "MaxResults":
+		return EvalNullable(r.MaxResults)
+	case "NextToken":
+		return EvalNullable(r.NextToken)
+	default:
+		return nil, false
+	}
+}
+
+// ListFiles lists tenant-owned files with pagination support.
+func (c *Client) ListFiles(ctx context.Context, req *ListFilesRequest) (*List[*FileMetadata], error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.MaxResults != nil && (*req.MaxResults < 1 || *req.MaxResults > 500) {
+		return nil, fmt.Errorf("max results must be between 1 and 500")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "files")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.NextToken != nil {
+		q.Set("token", *req.NextToken)
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out List[*FileMetadata]
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// DeleteFileRequest represents the request payload for DeleteFile.
+type DeleteFileRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string
+	FileID   string
+}
+
+// GetField retrieves the value of a field by name.
+// nolint:goconst
+func (r *DeleteFileRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "FileID":
+		return r.FileID, true
+	default:
+		return nil, false
+	}
+}
+
+// DeleteFile hard deletes file contents while preserving metadata.
+func (c *Client) DeleteFile(ctx context.Context, req *DeleteFileRequest) error {
+	if req == nil {
+		return fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return fmt.Errorf("tenant id is required")
+	}
+	if req.FileID == "" {
+		return fmt.Errorf("file id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "files", url.PathEscape(req.FileID))
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return decodeError(resp)
+	}
+
+	return nil
 }

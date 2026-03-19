@@ -3094,6 +3094,183 @@ func TestListRunnerTokensValidation(t *testing.T) {
 	require.EqualError(t, err, "runner id is required")
 }
 
+func TestListFiles(t *testing.T) {
+	t.Parallel()
+
+	maxResults := 25
+	nextToken := "next-token"
+	now := time.Date(2024, time.February, 2, 0, 0, 0, 0, time.UTC)
+	malwareDone := now.Add(time.Hour)
+	isMalicious := false
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/files", r.URL.Path)
+		require.Equal(t, "25", r.URL.Query().Get("maxResults"))
+		require.Equal(t, nextToken, r.URL.Query().Get("token"))
+
+		w.WriteHeader(http.StatusOK)
+		resp := p42.List[*p42.FileMetadata]{
+			NextToken: util.Pointer("more"),
+			Items: []*p42.FileMetadata{{
+				TenantID:               "abc",
+				FileID:                 "file1",
+				CreatedAt:              now,
+				IsMalicious:            util.Pointer(isMalicious),
+				MalwareScanCompletedAt: util.Pointer(malwareDone),
+				ModerationScanInfo: &p42.ModerationScanInfo{
+					ID:    "modr-1",
+					Model: "omni-moderation-latest",
+					Results: []p42.ModerationScanResults{{
+						Flagged:                   false,
+						Categories:                map[string]bool{"violence": false},
+						CategoryScores:            map[string]float64{"violence": 0.01},
+						CategoryAppliedInputTypes: map[string][]string{"violence": {"image"}},
+					}},
+				},
+			}},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	resp, err := client.ListFiles(context.Background(), &p42.ListFilesRequest{
+		TenantID:   "abc",
+		MaxResults: &maxResults,
+		NextToken:  &nextToken,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp.NextToken)
+	require.Equal(t, "more", *resp.NextToken)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "file1", resp.Items[0].FileID)
+	require.NotNil(t, resp.Items[0].MalwareScanCompletedAt)
+	if resp.Items[0].MalwareScanCompletedAt != nil {
+		require.True(t, resp.Items[0].MalwareScanCompletedAt.Equal(malwareDone))
+	}
+	require.NotNil(t, resp.Items[0].ModerationScanInfo)
+	if resp.Items[0].ModerationScanInfo != nil {
+		require.Len(t, resp.Items[0].ModerationScanInfo.Results, 1)
+		require.Equal(t, 0.01, resp.Items[0].ModerationScanInfo.Results[0].CategoryScores["violence"])
+	}
+}
+
+func TestListFilesError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListFiles(context.Background(), &p42.ListFilesRequest{TenantID: "abc"})
+	require.Error(t, err)
+}
+
+func TestListFilesPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 5, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, "files", parts[4], "files segment missing in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		resp := p42.List[*p42.FileMetadata]{}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.ListFiles(context.Background(), &p42.ListFilesRequest{TenantID: tenantIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
+func TestListFilesValidation(t *testing.T) {
+	t.Parallel()
+
+	client := p42.NewClient("http://example.com")
+	_, err := client.ListFiles(context.Background(), nil)
+	require.Error(t, err)
+
+	_, err = client.ListFiles(context.Background(), &p42.ListFilesRequest{})
+	require.EqualError(t, err, "tenant id is required")
+
+	zero := 0
+	_, err = client.ListFiles(context.Background(), &p42.ListFilesRequest{TenantID: "tenant", MaxResults: &zero})
+	require.EqualError(t, err, "max results must be between 1 and 500")
+
+	tooMany := 501
+	_, err = client.ListFiles(context.Background(), &p42.ListFilesRequest{TenantID: "tenant", MaxResults: &tooMany})
+	require.EqualError(t, err, "max results must be between 1 and 500")
+}
+
+func TestDeleteFile(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodDelete, r.Method)
+		require.Equal(t, "/v1/tenants/abc/files/file1", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	err := client.DeleteFile(context.Background(), &p42.DeleteFileRequest{TenantID: "abc", FileID: "file1"})
+	require.NoError(t, err)
+}
+
+func TestDeleteFileError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	err := client.DeleteFile(context.Background(), &p42.DeleteFileRequest{TenantID: "abc", FileID: "file1"})
+	require.Error(t, err)
+}
+
+func TestDeleteFilePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, "files", parts[4], "files segment missing in URL path")
+		require.Equal(t, escapedRunnerID, parts[5], "FileID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	err := client.DeleteFile(context.Background(), &p42.DeleteFileRequest{TenantID: tenantIDThatNeedsEscaping, FileID: runnerIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
+func TestDeleteFileValidation(t *testing.T) {
+	t.Parallel()
+
+	client := p42.NewClient("http://example.com")
+	err := client.DeleteFile(context.Background(), nil)
+	require.Error(t, err)
+
+	err = client.DeleteFile(context.Background(), &p42.DeleteFileRequest{FileID: "file"})
+	require.EqualError(t, err, "tenant id is required")
+
+	err = client.DeleteFile(context.Background(), &p42.DeleteFileRequest{TenantID: "tenant"})
+	require.EqualError(t, err, "file id is required")
+}
+
 func TestWriteResponse(t *testing.T) {
 	t.Parallel()
 

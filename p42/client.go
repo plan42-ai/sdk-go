@@ -1501,3 +1501,28 @@ type List[T any] struct {
 	Items     []T     `json:"Items"`
 	NextToken *string `json:"NextToken,omitempty"`
 }
+
+// FileMetadata describes metadata for a tenant-owned file object.
+type FileMetadata struct {
+	TenantID               string              `json:"TenantID"`
+	FileID                 string              `json:"FileID"`
+	CreatedAt              time.Time           `json:"CreatedAt"`
+	IsMalicious            *bool               `json:"IsMalicious,omitempty"`
+	MalwareScanCompletedAt *time.Time          `json:"MalwareScanCompletedAt,omitempty"`
+	ModerationScanInfo     *ModerationScanInfo `json:"ModerationScanInfo,omitempty"`
+}
+
+// ModerationScanInfo contains content moderation metadata for a file.
+type ModerationScanInfo struct {
+	ID      string                  `json:"ID"`
+	Model   string                  `json:"Model"`
+	Results []ModerationScanResults `json:"Results"`
+}
+
+// ModerationScanResults contains category-level moderation results.
+type ModerationScanResults struct {
+	Flagged                   bool                `json:"Flagged"`
+	Categories                map[string]bool     `json:"Categories"`
+	CategoryScores            map[string]float64  `json:"CategoryScores"`
+	CategoryAppliedInputTypes map[string][]string `json:"CategoryAppliedInputTypes"`
+}
