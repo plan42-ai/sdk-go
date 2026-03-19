@@ -1,0 +1,85 @@
+package p42
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+	"time"
+)
+
+// CreateFileRequest is the request for CreateFile.
+type CreateFileRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID string `json:"-"`
+	FileID   string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint:goconst
+func (r *CreateFileRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "FileID":
+		return r.FileID, true
+	default:
+		return nil, false
+	}
+}
+
+// File contains metadata about a file object and its upload URL.
+type File struct {
+	TenantID  string    `json:"TenantID"`
+	FileID    string    `json:"FileID"`
+	UploadURL string    `json:"UploadURL"`
+	CreatedAt time.Time `json:"CreatedAt"`
+}
+
+func (f File) ObjectType() ObjectType {
+	return ObjectTypeFile
+}
+
+// CreateFile creates a new file object and returns a presigned upload URL.
+// nolint: dupl
+func (c *Client) CreateFile(ctx context.Context, req *CreateFileRequest) (*File, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.FileID == "" {
+		return nil, fmt.Errorf("file id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "files", url.PathEscape(req.FileID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, decodeError(resp)
+	}
+
+	var out File
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
