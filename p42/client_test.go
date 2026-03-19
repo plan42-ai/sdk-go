@@ -57,6 +57,8 @@ const (
 	escapedQueueID                      = "queue%2F..%2F..%2Fid"
 	messageIDThatNeedsEscaping          = "message/../../id"
 	escapedMessageID                    = "message%2F..%2F..%2Fid"
+	fileIDThatNeedsEscaping             = "file/../../id"
+	escapedFileID                       = "file%2F..%2F..%2Fid"
 
 	tokenID         = "tok"
 	taskTitle       = "new"
@@ -3523,6 +3525,70 @@ func TestDeleteEnvironmentPathEscaping(t *testing.T) {
 			EnvironmentID: environmentIDThatNeedsEscaping,
 			Version:       1,
 		},
+	)
+	require.NoError(t, err)
+}
+
+func TestDeleteFile(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodDelete, r.Method)
+			require.Equal(t, "/v1/tenants/abc/files/file", r.URL.Path)
+
+			w.WriteHeader(http.StatusNoContent)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	err := client.DeleteFile(
+		context.Background(),
+		&p42.DeleteFileRequest{TenantID: "abc", FileID: "file"},
+	)
+	require.NoError(t, err)
+}
+
+func TestDeleteFileError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+	err := client.DeleteFile(
+		context.Background(),
+		&p42.DeleteFileRequest{TenantID: "abc", FileID: "file"},
+	)
+	var clientErr *p42.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestDeleteFilePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+			require.Equal(t, escapedFileID, parts[5], "FileID not properly escaped in URL path")
+
+			w.WriteHeader(http.StatusNoContent)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	err := client.DeleteFile(
+		context.Background(),
+		&p42.DeleteFileRequest{TenantID: tenantIDThatNeedsEscaping, FileID: fileIDThatNeedsEscaping},
 	)
 	require.NoError(t, err)
 }
