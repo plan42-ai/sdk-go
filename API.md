@@ -1297,21 +1297,23 @@ X-Event-Horizon-Signed-Headers: <signed headers>
   "Prompt": "string",
   "Model": "*ModelType",
   "RepoInfo" : {}
+  "FileIDs" :[]
 }
 ```
 
-| Parameter                                | Location | Type                                  | Description                                                                     |
-|------------------------------------------|----------|---------------------------------------|---------------------------------------------------------------------------------|
-| tenant_id                                | path     | string                                | The ID of the tenant to create the task for.                                    |
-| task_id                                  | path     | string                                | The ID of the task to create. This must be a v4 UUID.                           |
-| Authorization                            | header   | string                                | The authorization header for the request.                                       |
-| X-Event-Horizon-Delegating-Authorization | header   | *string                               | The authorization header for the delegating principal.                          |
-| X-Event-Horizon-Signed-Headers           | header   | *string                               | The signed headers for the request, when authenticating with Sigv4.             |
-| Title                                    | body     | string                                | The title of the task.                                                          |
-| EnvironmentID                            | body     | string                                | The ID of the environment to execute the task in.                               |
-| Prompt                                   | body     | string                                | The prompt to use for the task.                                                 |
-| Model                                    | body     | [ModelType](#182-modeltype)           | The model to use for the task. Required if the task is not assigned to a human. |
-| RepoInfo                                 | body     | map[string][*RepoInfo](#185-repoinfo) | A map of "org/repo" to repo info.                                               |
+| Parameter                                | Location | Type                                  | Description                                                                           |
+|------------------------------------------|----------|---------------------------------------|---------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                                | The ID of the tenant to create the task for.                                          |
+| task_id                                  | path     | string                                | The ID of the task to create. This must be a v4 UUID.                                 |
+| Authorization                            | header   | string                                | The authorization header for the request.                                             |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                               | The authorization header for the delegating principal.                                |
+| X-Event-Horizon-Signed-Headers           | header   | *string                               | The signed headers for the request, when authenticating with Sigv4.                   |
+| Title                                    | body     | string                                | The title of the task.                                                                |
+| EnvironmentID                            | body     | string                                | The ID of the environment to execute the task in.                                     |
+| Prompt                                   | body     | string                                | The prompt to use for the task.                                                       |
+| Model                                    | body     | [ModelType](#182-modeltype)           | The model to use for the task. Required if the task is not assigned to a human.       |
+| RepoInfo                                 | body     | map[string][*RepoInfo](#185-repoinfo) | A map of "org/repo" to repo info.                                                     |
+| FileIDs                                  | body     | []string                              | A list of file IDs to attach to the task. At most 25 files can be attached to a task. |
 
 ## 18.2 ModelType
 
@@ -1356,7 +1358,9 @@ Content-Type: application/json; charset=utf-8
   "UpdatedAt": "string",
   "Deleted": bool,
   "Version": int,
-  "TaskNumber": int
+  "TaskNumber": int,
+  "FileIDs": [],
+  "NewFileIDs": [],
 }
 ```
 
@@ -1381,6 +1385,8 @@ Content-Type: application/json; charset=utf-8
 | Deleted            | bool                                    | Whether the task has been deleted.                                                                                                                                    |
 | Version            | int                                     | The version of the task. This is incremented every time the task is updated.                                                                                          |
 | TaskNumber         | *int                                    | The number of the task within the workstream. This is a sequential number assigned when the task is created. Is nil if the task is not part of a workstream.          |
+| FileIDs            | []string                                | A list of file IDs attached to the task.                                                                                                                              |
+| NewFileIDs         | []string                                | A list of new file IDS that were attached to a task, but have not yet been sent to the model.                                                                         |
 
 ## 18.5 RepoInfo
 
@@ -1513,7 +1519,9 @@ Content-Type: application/json; charset=utf-8
   "CreatedAt": "string",
   "UpdatedAt": "string",
   "Deleted": bool,
-  "Version": int
+  "Version": int,
+  "FileIDs" : [],
+  "NewFileIDs" : []
 }
 ```
 
@@ -1539,23 +1547,25 @@ If-Match: <version>
     "Prompt": "*string",
     "Model": "*ModelType",
     "RepoInfo" : {},
-    "Deleted": *bool
+    "Deleted": *bool,
+    "NewFileIDs" : []string
 }
 ```
 
-| Parameter                                | Location | Type                   | Description                                                                                                                                          |
-|------------------------------------------|----------|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string                 | The ID of the tenant to update the task for.                                                                                                         |
-| task_id                                  | path     | string                 | The ID of the task to update.                                                                                                                        |
-| Authorization                            | header   | string                 | The authorization header for the request.                                                                                                            |
-| X-Event-Horizon-Delegating-Authorization | header   | *string                | The authorization header for the delegating principal.                                                                                               |
-| X-Event-Horizon-Signed-Headers           | header   | *string                | The signed headers for the request, when authenticating with Sigv4.                                                                                  |
-| version                                  | header   | string                 | The version of the task to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
-| Title                                    | body     | *string                | If set, update the task's title.                                                                                                                     |
-| Prompt                                   | body     | *string                | If set, update the task's prompt.                                                                                                                    |
-| Model                                    | body     | *ModelType             | If set, update the task's model type.                                                                                                                |
-| RepoInfo                                 | body     | map[string][*RepoInfo] | If set, update the task's repository info. This tracks branch names and PR links for each repo used in the environment.                              |
-| Deleted                                  | body     | *bool                  | If set to false, undelete the task. May not be set to true. Use DeleteTask instead.                                                                  |
+| Parameter                                | Location | Type                   | Description                                                                                                                                                                                                                                                                                                                                                                   |
+|------------------------------------------|----------|------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                 | The ID of the tenant to update the task for.                                                                                                                                                                                                                                                                                                                                  |
+| task_id                                  | path     | string                 | The ID of the task to update.                                                                                                                                                                                                                                                                                                                                                 |
+| Authorization                            | header   | string                 | The authorization header for the request.                                                                                                                                                                                                                                                                                                                                     |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                | The authorization header for the delegating principal.                                                                                                                                                                                                                                                                                                                        |
+| X-Event-Horizon-Signed-Headers           | header   | *string                | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                                                                                                                                                                           |
+| version                                  | header   | string                 | The version of the task to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned.                                                                                                                                                                                                                          |
+| Title                                    | body     | *string                | If set, update the task's title.                                                                                                                                                                                                                                                                                                                                              |
+| Prompt                                   | body     | *string                | If set, update the task's prompt.                                                                                                                                                                                                                                                                                                                                             |
+| Model                                    | body     | *ModelType             | If set, update the task's model type.                                                                                                                                                                                                                                                                                                                                         |
+| RepoInfo                                 | body     | map[string][*RepoInfo] | If set, update the task's repository info. This tracks branch names and PR links for each repo used in the environment.                                                                                                                                                                                                                                                       |
+| Deleted                                  | body     | *bool                  | If set to false, undelete the task. May not be set to true. Use DeleteTask instead.                                                                                                                                                                                                                                                                                           |
+| NewFileIDS                               | body     | *[]string              | If set, updates the list of new file IDs to attach to the task. Entries added to this list are added to the FileIDs[] array. Removing an entry from this list communicate to the next iteration of the agent that the file has already been uploaded to the model and does not need to be resent. At most 25 files can be attached to a task, including existing attachments. |
 
 ## 21.2 Response
 
@@ -1582,7 +1592,8 @@ Content-Type: application/json; charset=utf-8
   "UpdatedAt": "string",
   "Deleted": bool,
   "Version": int,
-  "TaskNumber": int
+  "TaskNumber": int,
+  "FileIDs": []
 }
 ```
 See [CreateTask](#183-response) for details on the response fields.
@@ -1641,21 +1652,23 @@ If-Match: <taskVersion>
 
 {
     "Prompt": "string",
-    "WorkstreamID": "*string"
+    "WorkstreamID": "*string",
+    "AdditionalFileIDs": []
 }
 ```
 
-| Parameter                                | Location | Type    | Description                                                                                                                                                                                                                   |
-|------------------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant to create the turn for.                                                                                                                                                                                  |
-| task_id                                  | path     | string  | The ID of the task to create the turn for.                                                                                                                                                                                    |
-| turnIndex                                | path     | int     | The index of the turn to create. This must be the next index in the sequence (i.e. latest turn index + 1).                                                                                                                    |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                                                                                     |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                                                                        |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                           |
-| taskVersion                              | header   | string  | The version of the task to create the turn for. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. Adding a turn to a task will increment it's version number. |
-| WorkstreamID                             | body     | *string | Optional. The ID of the workstream the task belongs to.                                                                                                                                                                       |
-| Prompt                                   | body     | string  | The prompt to use for the turn.                                                                                                                                                                                               |
+| Parameter                                | Location | Type     | Description                                                                                                                                                                                                                                    |
+|------------------------------------------|----------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string   | The ID of the tenant to create the turn for.                                                                                                                                                                                                   |
+| task_id                                  | path     | string   | The ID of the task to create the turn for.                                                                                                                                                                                                     |
+| turnIndex                                | path     | int      | The index of the turn to create. This must be the next index in the sequence (i.e. latest turn index + 1).                                                                                                                                     |
+| Authorization                            | header   | string   | The authorization header for the request.                                                                                                                                                                                                      |
+| X-Event-Horizon-Delegating-Authorization | header   | *string  | The authorization header for the delegating principal.                                                                                                                                                                                         |
+| X-Event-Horizon-Signed-Headers           | header   | *string  | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                                            |
+| taskVersion                              | header   | string   | The version of the task to create the turn for. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. Adding a turn to a task will increment it's version number.                  |
+| WorkstreamID                             | body     | *string  | Optional. The ID of the workstream the task belongs to.                                                                                                                                                                                        |
+| Prompt                                   | body     | string   | The prompt to use for the turn.                                                                                                                                                                                                                |
+| AdditionalFileIDs                        | body     | []string | A list of additional file IDs to attach to the task when creating the turn. These entries are added to both the FileIDs and NewFieldIDs arrays in the task object. At most 25 files can be attached to a turn, including existing attachments. |
 
 ## 23.2 Response
 
@@ -3558,7 +3571,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
     "AssignedToTenantID": "*string",
     "AssignedToAI": "bool",
     "RepoInfo": {},
-    "State": "*TaskState"
+    "State": "*TaskState",
+    "FileIDs": []
 }
 ```
 
@@ -3579,6 +3593,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | AssignedToAI                             | body     | bool                         | Whether the task is assigned to AI.                                                                     |
 | RepoInfo                                 | body     | [RepoInfo](#185-repoinfo)    | Optional. Information about the repository associated with the task.                                    |
 | State                                    | body     | [TaskState](#186-taskstate)  | Optional. The state of the task. If not specified, will default to "Pending".                           |
+| FileIDs                                  | body     | []string                     | Optional. A list of file IDs to attach to the task.                                                     | 
 
 ## 60.2 Validation / Semantics
 
@@ -3644,7 +3659,8 @@ Content-Type: application/json; charset=utf-8
     "UpdatedAt": "string",
     "Deleted": bool,
     "Version": int,
-    "TaskNumber": int
+    "TaskNumber": int,
+    "FileIDs": []
 }
 ```
 
@@ -3720,31 +3736,35 @@ If-Match: <version>
     "State": "*TaskState",
     "BeforeTaskID": "*string",
     "AfterTaskID": "*string",
-    "Deleted": "*bool"
+    "Deleted": "*bool",
+    "NewFileIDs": [],
+    "RemoveFileIDs": []
 }
 ```
 
-| Parameter                                | Location | Type                         | Description                                                                                                              |
-|------------------------------------------|----------|------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                                | path     | string                       | The ID of the tenant that owns the workstream.                                                                           |
-| workstream_id                            | path     | string                       | The ID of the workstream that owns the task.                                                                             |
-| task_id                                  | path     | string                       | The ID of the task to update.                                                                                            |
-| Authorization                            | header   | string                       | The authorization header for the request.                                                                                |
-| X-Event-Horizon-Delegating-Authorization | header   | *string                      | The authorization header for the delegating principal.                                                                   |
-| X-Event-Horizon-Signed-Headers           | header   | *string                      | The signed headers for the request, when authenticating with Sigv4.                                                      |
-| Version                                  | header   | string                       | The expected version of the task. Used for optimistic concurrency control.                                               |
-| Title                                    | body     | *string                      | Optional. When set, updates the task title.                                                                              |
-| EnvironmentID                            | body     | **string                     | Optional. When set, updates the task's environment.                                                                      |
-| Prompt                                   | body     | *string                      | Optional. When                                                                                                           |
-| Parallel                                 | body     | *bool                        | Optional. If set, updates whether the task is marked as parallel.                                                        |
-| Model                                    | body     | *[ModelType](#182-modeltype) | Optional. The new AI model of the task.                                                                                  |
-| AssignedToTenantID                       | body     | *string                      | Optional. When set, updates the tenant the task is assigned to.                                                          |
-| AssignedToAI                             | body     | *bool                        | Optional. When set, updates whether the task is assigned to AI.                                                          |
-| RepoInfo                                 | body     | *[RepoInfo](#185-repoinfo)   | Optional. When set, updates the repository information of the task.                                                      |
-| State                                    | body     | *[TaskState](#186-taskstate) | Optional. When set, updates the state of the task.                                                                       |
-| BeforeTaskID                             | body     | *string                      | Optional. If set, moves the task to be ordered before the given task. Cannot be combined with AfterTaskID.               |
-| AfterTaskID                              | body     | *string                      | Optional. If set, moves the task to be ordered after the given task. Cannot be combined with BeforeTaskID.               |
-| Deleted                                  | body     | *bool                        | Optional. If false, undeletes the task. To delete a task, call the [DeleteWorkstreamTask](#66-deleteworkstreamtask) api. |
+| Parameter                                | Location | Type                         | Description                                                                                                                                                                                                                                                                    |
+|------------------------------------------|----------|------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                       | The ID of the tenant that owns the workstream.                                                                                                                                                                                                                                 |
+| workstream_id                            | path     | string                       | The ID of the workstream that owns the task.                                                                                                                                                                                                                                   |
+| task_id                                  | path     | string                       | The ID of the task to update.                                                                                                                                                                                                                                                  |
+| Authorization                            | header   | string                       | The authorization header for the request.                                                                                                                                                                                                                                      |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                      | The authorization header for the delegating principal.                                                                                                                                                                                                                         |
+| X-Event-Horizon-Signed-Headers           | header   | *string                      | The signed headers for the request, when authenticating with Sigv4.                                                                                                                                                                                                            |
+| Version                                  | header   | string                       | The expected version of the task. Used for optimistic concurrency control.                                                                                                                                                                                                     |
+| Title                                    | body     | *string                      | Optional. When set, updates the task title.                                                                                                                                                                                                                                    |
+| EnvironmentID                            | body     | **string                     | Optional. When set, updates the task's environment.                                                                                                                                                                                                                            |
+| Prompt                                   | body     | *string                      | Optional. When                                                                                                                                                                                                                                                                 |
+| Parallel                                 | body     | *bool                        | Optional. If set, updates whether the task is marked as parallel.                                                                                                                                                                                                              |
+| Model                                    | body     | *[ModelType](#182-modeltype) | Optional. The new AI model of the task.                                                                                                                                                                                                                                        |
+| AssignedToTenantID                       | body     | *string                      | Optional. When set, updates the tenant the task is assigned to.                                                                                                                                                                                                                |
+| AssignedToAI                             | body     | *bool                        | Optional. When set, updates whether the task is assigned to AI.                                                                                                                                                                                                                |
+| RepoInfo                                 | body     | *[RepoInfo](#185-repoinfo)   | Optional. When set, updates the repository information of the task.                                                                                                                                                                                                            |
+| State                                    | body     | *[TaskState](#186-taskstate) | Optional. When set, updates the state of the task.                                                                                                                                                                                                                             |
+| BeforeTaskID                             | body     | *string                      | Optional. If set, moves the task to be ordered before the given task. Cannot be combined with AfterTaskID.                                                                                                                                                                     |
+| AfterTaskID                              | body     | *string                      | Optional. If set, moves the task to be ordered after the given task. Cannot be combined with BeforeTaskID.                                                                                                                                                                     |
+| Deleted                                  | body     | *bool                        | Optional. If false, undeletes the task. To delete a task, call the [DeleteWorkstreamTask](#66-deleteworkstreamtask) api.                                                                                                                                                       |
+| NewFileIDs                               | body     | []string                     | Optional. When set, update the tasks's NewFileIDs list. Entries added to this list are also added to FileIDs. Removing an entry from this list signals to the next iteration of the agent that the file has already been uploaded to the model and does not need to be resent. |
+| RemoveFileIDs                            | body     | []string                     | Optional. A list of file IDs to remove from the task. Will fail if an entry is present in FileIDs, but not present in NewFileIDs.                                                                                                                                              |
 
 ## 62.2 Response
 On success a 200 OK is returned with the following JSON body:
@@ -3853,7 +3873,8 @@ Content-Type: application/json; charset=utf-8
     "UpdatedAt": "string",
     "Deleted": bool,
     "Version": int,
-    "TaskNumber": int
+    "TaskNumber": int,
+    "FileIDs" : [],
 }
 
 ```
@@ -5592,3 +5613,212 @@ Content-Type: application/json; charset=utf-8
 
 Each `TenantEncryptionKey` object contains the fields described in
 [RotateTenantEncryptionKey](#98-rotatetenantencryptionkey).
+
+# 102. CreateFile
+
+The CreateFile API creates a new file object, and returns a presigned S3 URL that can be used to upload the file
+contents. Te presigned S3 URL can be used to upload the file at most once, and expires after 1 hour and 5 mins.
+A new upload URL cannot be created for a file. To create a new upload URL, a new file object must be created by calling
+CreateFile again with a different file_id.
+
+The file content will be deleted 35 days after the file is created.
+
+The file may not be larger than 30 MB. If an attempt is made to upload a file larger than that, it will be rejected by S3.
+This was chose because the smallest limit between Anthropic (32 MB), Google (100 MB), and Open AI(50 MB) is 32MB. A
+30MB file size ensure we can send each attachment in a single message to all providers, and have room to add extra
+prompts with it should we need to.
+
+Once the file content has been uploaded to S3, it can be attached to a task when calling CreateTask, UpdateTask, CreateTurn, CreateWorkstreamTask or UpdateWorkstreamTask.
+
+## 102.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/files/{file_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+Content-Length: 0
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that will own the file.                        |
+| file_id                                  | path     | string  | The ID of the file to create. Must be a V4 UUID.                    |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 102.2 Response
+On success a 201 CREATED is returned with the following JSON body:
+
+```http response
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "FileID": "string",  
+  "UploadURL": "string",
+  "CreatedAt": "string"
+}
+```
+
+# 103. GetDownloadUrl
+
+The GetDownloadUrl API returns a presigned S3 URL that can be used to download file content. A presigned S3 URL is only returned if:
+
+1. The file content has been uploaded to S3.
+2. The file object was created < 35 days ago (i.e. the S3 upload has not yet been deleted).
+3. A malware scan has been completed, and the file is not flagged as malicious.
+4. A moderation scan has completed, and the file is not flagged as violating content policies.
+
+The returned URL is valid for 1 hour and 5 mins from the time of the request.
+
+## 103.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/files/{file_id}/download-url HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the file.                            |
+| file_id                                  | path     | string  | The ID of the file to get the download URL for.                     |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 103.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "FileID": "string",  
+  "DownloadURL": "string",
+  "CreatedAt": "string"
+}
+```
+
+# 104. ListFiles 
+
+The ListFiles API is an admin api that returns metadata for files owned by a tenant, with pagination support. 
+
+## 104.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/files?maxResults={maxResults}&token={token} HTTP/1.1 
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                         |
+|--------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                      | path     | string  | The ID of the tenant whose files should be listed.                  |
+| maxResults                     | query    | *int    | Maximum number of files to return. Optional. Range: 1-500.          |
+| token                          | query    | *string | Token for retrieving the next page. Optional.                       |
+| Authorization                  | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 104.2 Response
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Items": [
+    {
+      "TenantID": "string",
+      "FileID": "string",  
+      "CreatedAt": "string",
+      "IsMalicious": *bool,
+      "MalwareScanCompletedAt": "*string",
+      "ModerationScanResults": {}
+    }
+  ],
+  "NextToken": "*string"
+}
+```
+
+| Field     | Type                                 | Description                                 |
+|-----------|--------------------------------------|---------------------------------------------|
+| Items     | [[]FileMetadata](#1043-filemetadata) | List of file metadata objects.              |
+| NextToken | *string                              | Token to retrieve the next page of results. | 
+
+## 104.3 FileMetadata
+
+FileMetadata objects describe metadata for a file object.
+
+| Field                  | Type                                              | Description                                                                                                       |
+|------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| TenantID               | string                                            | The ID of the tenant that owns the file.                                                                          |
+| FileID                 | string                                            | The ID of the file.                                                                                               |
+| CreatedAt              | string                                            | The timestamp when the file object was created.                                                                   |
+| IsMalicious            | *bool                                             | Whether the file was flagged as malicious by the malware. Will be null if the malware scan has not completed yet. |
+| MalwareScanCompletedAt | *string                                           | The timestamp when the malware scan completed. Will be null if the scan has not completed yet.                    |
+| ModerationScanInfo     | [*ModerationScanInfo](#1044-moderation-scan-info) | The response from the content moderation scan. Will be null if the scan has not completed yet.                    |
+
+## 104.4 ModerationScanInfo
+
+ModerationScanInfo provides metadata about the content moderation scan results for a file. It's essentially a copy
+of the OpenAI moderation endpoint response.
+
+See here for OpenAI moderation API docs: https://developers.openai.com/api/docs/guides/moderation?example=images&lang=curl
+
+| Field   | Type                                                     | Description                                  |
+|---------|----------------------------------------------------------|----------------------------------------------|
+| ID      | string                                                   | The Open AI moderation response ID.          |
+| Model   | string                                                   | The Open AI model used for scanning.         |
+| Results | [[]ModerationScanResults](#1045-moderation-scan-results) | The list of moderation results for the file. |
+
+## 104.5 ModerationScanResults
+
+ModerationScanResults provides details about the content moderation scan for a file, including which categories were flagged.
+
+| Field                     | Type                | Description                                                                                                                                                                                                   |
+|---------------------------|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Flagged                   | bool                | Whether the file was flagged by content moderation.                                                                                                                                                           |
+| Categories                | map[string]bool     | The categories that were flagged. The key is the category name, and the value is whether that category was flagged.                                                                                           |
+| CategoryScores            | map[string]float    | The scores for each category. The key is the category name, and the value is the score for that category.                                                                                                     |
+| CategoryAppliedInputTypes | map[string][]string | The input types that contributed to each category being flagged. The key is the category name, and the value is a list of input types (e.g. "text", "image") that contributed to that category being flagged. |
+
+# 105. DeleteFile
+
+The DeleteFile API is an admin api that hard deletes file content from S3, but does not remove the associated metadata
+entry. This is called when a file fails a content moderation scan.
+
+## 105.1 Request
+
+```http request
+DELETE /v1/tenants/{tenant_id}/files/{file_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```   
+
+| Parameter                      | Location | Type    | Description                                                         |
+|--------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                      | path     | string  | The ID of the tenant that owns the file.                            |
+| file_id                        | path     | string  | The ID of the file to delete.                                       |
+| Authorization                  | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 105.2 Response
+
+On success a 204 No Content is returned with an empty body. 
+
+```http response
+HTTP/1.1 204 No Content
+```
