@@ -489,6 +489,7 @@ const (
 	ObjectTypeGithubConnection       ObjectType = "GithubConnection"
 	ObjectTypeFeatureFlag            ObjectType = "FeatureFlag"
 	ObjectTypeFeatureFlagOverride    ObjectType = "FeatureFlagOverride"
+	ObjectTypeFile                   ObjectType = "File"
 	ObjectTypeWorkstream             ObjectType = "Workstream"
 	ObjectTypeWorkstreamShortName    ObjectType = "WorkstreamShortName"
 	ObjectTypeWorkstreamTaskConflict ObjectType = "WorkstreamTaskConflict"
@@ -568,6 +569,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &FeatureFlag{}
 		case ObjectTypeFeatureFlagOverride:
 			current = &FeatureFlagOverride{}
+		case ObjectTypeFile:
+			current = &File{}
 		case ObjectTypeWorkstream:
 			current = &Workstream{}
 		case ObjectTypeWorkstreamShortName:

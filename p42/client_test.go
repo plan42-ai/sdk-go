@@ -57,6 +57,8 @@ const (
 	escapedQueueID                      = "queue%2F..%2F..%2Fid"
 	messageIDThatNeedsEscaping          = "message/../../id"
 	escapedMessageID                    = "message%2F..%2F..%2Fid"
+	fileIDThatNeedsEscaping             = "file/../../id"
+	escapedFileID                       = "file%2F..%2F..%2Fid"
 
 	tokenID         = "tok"
 	taskTitle       = "new"
@@ -623,6 +625,73 @@ func TestGenerateWebUIToken(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Equal(t, "jwt", resp.JWT)
+}
+
+func TestCreateFile(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodPut, r.Method)
+			require.Equal(t, "/v1/tenants/abc/files/file-123", r.URL.Path)
+
+			w.WriteHeader(http.StatusCreated)
+			resp := p42.File{
+				TenantID:  "abc",
+				FileID:    "file-123",
+				UploadURL: "https://example.com/upload",
+				CreatedAt: time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC),
+			}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	file, err := client.CreateFile(context.Background(), &p42.CreateFileRequest{TenantID: "abc", FileID: "file-123"})
+	require.NoError(t, err)
+	require.Equal(t, "abc", file.TenantID)
+	require.Equal(t, "file-123", file.FileID)
+	require.Equal(t, "https://example.com/upload", file.UploadURL)
+}
+
+func TestCreateFileError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.CreateFile(context.Background(), &p42.CreateFileRequest{TenantID: "abc", FileID: "file-123"})
+	var clientErr *p42.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestCreateFileEscapesPath(t *testing.T) {
+	t.Parallel()
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodPut, r.Method)
+			require.Equal(t, "/v1/tenants/"+escapedTenantID+"/files/"+escapedFileID, r.URL.EscapedPath())
+
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(
+				p42.File{TenantID: tenantIDThatNeedsEscaping, FileID: fileIDThatNeedsEscaping, UploadURL: "https://example.com/upload"},
+			)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.CreateFile(
+		context.Background(),
+		&p42.CreateFileRequest{TenantID: tenantIDThatNeedsEscaping, FileID: fileIDThatNeedsEscaping},
+	)
+	require.NoError(t, err)
 }
 
 func TestGenerateWebUITokenError(t *testing.T) {
