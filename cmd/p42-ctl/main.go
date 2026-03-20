@@ -110,6 +110,7 @@ type Options struct {
 	Environment EnvironmentOptions `cmd:""`
 	Task        TaskOptions        `cmd:""`
 	Turn        TurnOptions        `cmd:""`
+	File        FileOptions        `cmd:""`
 	Logs        LogsOptions        `cmd:""`
 	FeatureFlag FeatureFlagOptions `cmd:""`
 	Workstream  WorkstreamOptions  `cmd:""`
@@ -234,6 +235,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Turn.GetLast.Run(options.Ctx, &options.SharedOptions)
 	case "turn list-active":
 		return options.Turn.ListActive.Run(options.Ctx, &options.SharedOptions)
+	case "file upload":
+		return options.File.Upload.Run(options.Ctx, &options.SharedOptions)
 	case "logs stream":
 		return options.Logs.Stream.Run(options.Ctx, &options.SharedOptions)
 	case "logs upload":

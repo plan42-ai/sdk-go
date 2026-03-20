@@ -5666,18 +5666,22 @@ Content-Type: application/json; charset=utf-8
   "TenantID": "string",
   "FileID": "string",  
   "Name" : "string",
+  "Bucket": "string",
+  "Key": "string",
   "UploadURL": "string",
   "CreatedAt": "string"
 }
 ```
 
-| Field     | Type   | Description                                                                                                                                                                   |
-|-----------|--------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| TenantID  | string | The ID of the tenant that owns the file.                                                                                                                                      |
-| FileID    | string | The unique ID of the file.                                                                                                                                                    |
-| Name      | string | The name of the file. File names are not required to be unique. We add support for them so that you can reference file names for attachments when communicating with the LLM. |
-| UploadURL | string | A presigned S3 URL that can be used to upload the file content. The URL is valid for 1 hour and 5 mins. The file content must be uploaded to S3 before the URL expires.       |
-| CreatedAt | string | The timestamp when the file object was created.                                                                                                                               |
+| Field     | Type   | Description                                                                                                                                                                                                                                                                                                          |
+|-----------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| TenantID  | string | The ID of the tenant that owns the file.                                                                                                                                                                                                                                                                             |
+| FileID    | string | The unique ID of the file.                                                                                                                                                                                                                                                                                           |
+| Name      | string | The name of the file. File names are not required to be unique. We add support for them so that you can reference file names for attachments when communicating with the LLM.                                                                                                                                        |
+| Bucket    | string | The name of the S3 bucket to upload the file to.                                                                                                                                                                                                                                                                     |
+| Key       | string | The name of the S3 object to upload the file to. The combination of bucket and key is unique for each file.                                                                                                                                                                                                          |
+| UploadURL | string | A presigned S3 POST URL that can be used to upload the file content. The URL is valid for 1 hour and 5 mins. It will be restricted to a maximum size range, will restrict the file name being written, and will only allow the file to written once. The file content must be uploaded to S3 before the URL expires. |
+| CreatedAt | string | The timestamp when the file object was created.                                                                                                                                                                                                                                                                      |
 
 
 # 103. GetDownloadUrl
