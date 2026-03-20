@@ -40,15 +40,14 @@ func TestUploadFileOptionsRunSingleFile(t *testing.T) {
 
 	var createdName string
 	var uploadedBody []byte
-	var uploadContentLength string
+	var uploadMethod string
 
 	uploadSrv := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			require.Equal(t, http.MethodPut, r.Method)
+			uploadMethod = r.Method
 			var err error
 			uploadedBody, err = io.ReadAll(r.Body)
 			require.NoError(t, err)
-			uploadContentLength = r.Header.Get("Content-Length")
 			w.WriteHeader(http.StatusOK)
 		}),
 	)
@@ -65,7 +64,9 @@ func TestUploadFileOptionsRunSingleFile(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-			fmt.Fprintf(w, `{"TenantID":"tenant","FileID":"file-123","Name":%q,"UploadURL":%q,"CreatedAt":"2024-01-02T03:04:05Z"}`,
+			fmt.Fprintf(
+				w,
+				`{"TenantID":"tenant","FileID":"file-123","Name":%q,"Bucket":"bucket-name","Key":"foo.txt","UploadURL":%q,"CreatedAt":"2024-01-02T03:04:05Z"}`,
 				req.Name,
 				uploadSrv.URL+"/bucket-name/foo.txt?X-Amz-Signature=123",
 			)
@@ -93,23 +94,21 @@ func TestUploadFileOptionsRunSingleFile(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "foo.txt", createdName)
+	require.Equal(t, http.MethodPut, uploadMethod)
 	require.Equal(t, []byte("hello world"), uploadedBody)
-	require.Equal(t, "11", uploadContentLength)
 	require.Contains(t, string(output), "foo.txt")
 	require.Contains(t, string(output), "file-123")
 	require.Contains(t, string(output), "11B")
 }
 
-func TestPrintUploadedFileRows(t *testing.T) {
-	t.Parallel()
-
+func TestPrintUploadedFiles(t *testing.T) {
 	stdout := os.Stdout
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
 	os.Stdout = w
 	defer func() { os.Stdout = stdout }()
 
-	printUploadedFileRows([]uploadedFileRow{{name: "foo.txt", fileID: "id-1", size: 12}, {name: "longer-name.txt", fileID: "id-2", size: 120 * 1024}})
+	printUploadedFiles([]uploadedFile{{name: "foo.txt", fileID: "id-1", size: 12}, {name: "longer-name.txt", fileID: "id-2", size: 120 * 1024}})
 	require.NoError(t, w.Close())
 
 	output, err := io.ReadAll(r)

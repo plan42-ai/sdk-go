@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"math"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -27,17 +28,15 @@ type FileOptions struct {
 type UploadFileOptions struct {
 	TenantID string   `help:"The tenant to upload the file for." name:"tenant-id" short:"i" required:""`
 	Name     *string  `help:"The name of the file to upload. Only valid with a single file or standard input." name:"name"`
-	Verbose  bool     `help:"Enable verbose logging to stderr while creating file objects and uploading to S3." short:"v"`
 	Files    []string `arg:"" optional:"" name:"files" help:"The files to upload. If omitted, content is read from standard input."`
 }
 
 type uploadSource struct {
 	name string
-	data []byte
-	size int64
+	path string
 }
 
-type uploadedFileRow struct {
+type uploadedFile struct {
 	name   string
 	fileID string
 	size   int64
@@ -50,28 +49,29 @@ func (o *UploadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	sources, err := o.loadSources()
-	if err != nil {
+	sources := o.loadSources()
+
+	var featureFlags p42.FeatureFlags
+	if err := loadFeatureFlags(s, &featureFlags); err != nil {
 		return err
 	}
 
+	delegatedAuth := p42.DelegatedAuthInfo{}
+	processDelegatedAuth(s, &delegatedAuth)
+
 	client := newUploadHTTPClient()
-	rows := make([]uploadedFileRow, 0, len(sources))
+	files := make([]uploadedFile, 0, len(sources))
 
 	for _, source := range sources {
-		if o.Verbose {
-			logger.InfoContext(ctx, "creating file object", "tenant_id", o.TenantID, "name", source.name, "size", source.size)
-		}
+		logger.InfoContext(ctx, "creating file object", "tenant_id", o.TenantID, "name", source.name)
 
 		createReq := &p42.CreateFileRequest{
-			TenantID: o.TenantID,
-			FileID:   uuid.NewString(),
-			Name:     source.name,
+			FeatureFlags:      featureFlags,
+			DelegatedAuthInfo: delegatedAuth,
+			TenantID:          o.TenantID,
+			FileID:            uuid.NewString(),
+			Name:              source.name,
 		}
-		if err := loadFeatureFlags(s, &createReq.FeatureFlags); err != nil {
-			return err
-		}
-		processDelegatedAuth(s, &createReq.DelegatedAuthInfo)
 
 		fileObj, err := s.Client.CreateFile(ctx, createReq)
 		if err != nil {
@@ -79,98 +79,143 @@ func (o *UploadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 			continue
 		}
 
-		if o.Verbose {
-			logger.InfoContext(ctx, "uploading file to s3", "tenant_id", o.TenantID, "name", source.name, "file_id", fileObj.FileID)
-		}
+		logger.InfoContext(
+			ctx,
+			"uploading file to s3",
+			"tenant_id", o.TenantID,
+			"name", source.name,
+			"file_id", fileObj.FileID,
+			"bucket", fileObj.Bucket,
+			"key", fileObj.Key,
+		)
 
-		if err := uploadFileToPresignedURL(ctx, client, fileObj.UploadURL, source); err != nil {
+		size, err := uploadFileToPresignedURL(ctx, client, fileObj.UploadURL, source)
+		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "failed to upload %s: %v\n", source.name, err)
 			continue
 		}
 
-		rows = append(rows, uploadedFileRow{name: source.name, fileID: fileObj.FileID, size: source.size})
+		files = append(files, uploadedFile{name: source.name, fileID: fileObj.FileID, size: size})
 	}
 
-	printUploadedFileRows(rows)
+	printUploadedFiles(files)
 	return nil
 }
 
-func (o *UploadFileOptions) loadSources() ([]uploadSource, error) {
+func (o *UploadFileOptions) loadSources() []uploadSource {
 	if len(o.Files) == 0 {
-		data, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			return nil, err
-		}
 		name := "stdin"
 		if o.Name != nil {
 			name = *o.Name
 		}
-		if err := validateUploadSize(int64(len(data)), name); err != nil {
-			return nil, err
-		}
-		return []uploadSource{{name: name, data: data, size: int64(len(data))}}, nil
+		return []uploadSource{{name: name, path: "-"}}
 	}
 
 	sources := make([]uploadSource, 0, len(o.Files))
 	for _, path := range o.Files {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
 		name := filepath.Base(path)
 		if len(o.Files) == 1 && o.Name != nil {
 			name = *o.Name
 		}
-		size := int64(len(data))
-		if err := validateUploadSize(size, name); err != nil {
-			return nil, err
-		}
-		sources = append(sources, uploadSource{name: name, data: data, size: size})
+		sources = append(sources, uploadSource{name: name, path: path})
 	}
 
-	return sources, nil
+	return sources
 }
 
-func validateUploadSize(size int64, name string) error {
-	if size > maxUploadFileSizeBytes {
-		return fmt.Errorf("file %s exceeds the 30MB upload limit", name)
+func openUploadSource(source uploadSource) (io.ReadCloser, error) {
+	if source.path == "-" {
+		return io.NopCloser(os.Stdin), nil
 	}
-	return nil
+	file, err := os.Open(source.path)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
 }
 
 func newUploadHTTPClient() *awshttp.BuildableClient {
 	return awshttp.NewBuildableClient()
 }
 
-func uploadFileToPresignedURL(ctx context.Context, client *awshttp.BuildableClient, uploadURL string, source uploadSource) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, uploadURL, bytes.NewReader(source.data))
+func uploadFileToPresignedURL(ctx context.Context, client *awshttp.BuildableClient, uploadURL string, source uploadSource) (int64, error) {
+	reader, err := openUploadSource(source)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	req.ContentLength = source.size
+	defer reader.Close()
+
+	countingReader := &countingReadCloser{ReadCloser: reader}
+
+	method := http.MethodPost
+	contentType := "application/octet-stream"
+	body := io.Reader(countingReader)
+
+	if strings.Contains(uploadURL, "X-Amz-Algorithm=") || strings.Contains(uploadURL, "X-Amz-Signature=") {
+		method = http.MethodPut
+	} else {
+		var multipartBody multipartBodyBuffer
+		writer := multipart.NewWriter(&multipartBody)
+		part, err := writer.CreateFormFile("file", source.name)
+		if err != nil {
+			return 0, err
+		}
+		if _, err := io.Copy(part, countingReader); err != nil {
+			return 0, err
+		}
+		if err := writer.Close(); err != nil {
+			return 0, err
+		}
+		body = &multipartBody
+		contentType = writer.FormDataContentType()
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, uploadURL, body)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", contentType)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return fmt.Errorf("upload request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return 0, fmt.Errorf("upload request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
-	return nil
+	if countingReader.size > maxUploadFileSizeBytes {
+		return 0, fmt.Errorf("file %s exceeds the 30MB upload limit", source.name)
+	}
+	return countingReader.size, nil
 }
 
-func printUploadedFileRows(rows []uploadedFileRow) {
-	if len(rows) == 0 {
+func printUploadedFiles(files []uploadedFile) {
+	if len(files) == 0 {
 		return
 	}
 
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	for _, row := range rows {
-		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\n", row.name, row.fileID, formatFileSize(row.size))
+	for _, file := range files {
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\n", file.name, file.fileID, formatFileSize(file.size))
 	}
 	_ = tw.Flush()
+}
+
+type countingReadCloser struct {
+	io.ReadCloser
+	size int64
+}
+
+func (r *countingReadCloser) Read(p []byte) (int, error) {
+	n, err := r.ReadCloser.Read(p)
+	r.size += int64(n)
+	return n, err
+}
+
+type multipartBodyBuffer struct {
+	bytes.Buffer
 }
 
 func formatFileSize(size int64) string {

@@ -40,6 +40,8 @@ type File struct {
 	TenantID  string    `json:"TenantID"`
 	FileID    string    `json:"FileID"`
 	Name      string    `json:"Name"`
+	Bucket    string    `json:"Bucket"`
+	Key       string    `json:"Key"`
 	UploadURL string    `json:"UploadURL"`
 	CreatedAt time.Time `json:"CreatedAt"`
 }

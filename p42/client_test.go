@@ -638,6 +638,8 @@ func TestCreateFile(t *testing.T) {
 			resp := p42.File{
 				TenantID:  "abc",
 				FileID:    "file-123",
+				Bucket:    "bucket",
+				Key:       "key",
 				UploadURL: "https://example.com/upload",
 				CreatedAt: time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC),
 			}
@@ -678,7 +680,7 @@ func TestCreateFileEscapesPath(t *testing.T) {
 
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(
-				p42.File{TenantID: tenantIDThatNeedsEscaping, FileID: fileIDThatNeedsEscaping, UploadURL: "https://example.com/upload"},
+				p42.File{TenantID: tenantIDThatNeedsEscaping, FileID: fileIDThatNeedsEscaping, Bucket: "bucket", Key: "key", UploadURL: "https://example.com/upload"},
 			)
 		},
 	)
