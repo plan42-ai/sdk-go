@@ -19,8 +19,6 @@ import (
 	"github.com/plan42-ai/sdk-go/p42"
 )
 
-const maxUploadFileSizeBytes = 30 * 1024 * 1024
-
 type FileOptions struct {
 	Upload UploadFileOptions `cmd:"" help:"Upload one or more files for a tenant."`
 }
@@ -34,6 +32,7 @@ type UploadFileOptions struct {
 type uploadSource struct {
 	name string
 	path string
+	size *int64
 }
 
 type uploadedFile struct {
@@ -117,6 +116,12 @@ func (o *UploadFileOptions) loadSources() []uploadSource {
 		if len(o.Files) == 1 && o.Name != nil {
 			name = *o.Name
 		}
+		info, err := os.Stat(path)
+		if err == nil {
+			size := info.Size()
+			sources = append(sources, uploadSource{name: name, path: path, size: &size})
+			continue
+		}
 		sources = append(sources, uploadSource{name: name, path: path})
 	}
 
@@ -139,21 +144,37 @@ func newUploadHTTPClient() *awshttp.BuildableClient {
 }
 
 func uploadFileToPresignedURL(ctx context.Context, client *awshttp.BuildableClient, uploadURL string, source uploadSource) (int64, error) {
+	if source.size != nil {
+		return uploadFileToPresignedPOST(ctx, client, uploadURL, source, *source.size)
+	}
+
 	reader, err := openUploadSource(source)
 	if err != nil {
 		return 0, err
 	}
 	defer reader.Close()
 
-	countingReader := &countingReadCloser{ReadCloser: reader}
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return 0, err
+	}
+	return uploadBufferToPresignedPOST(ctx, client, uploadURL, source.name, data)
+}
 
-	var multipartBody multipartBodyBuffer
+func uploadFileToPresignedPOST(ctx context.Context, client *awshttp.BuildableClient, uploadURL string, source uploadSource, size int64) (int64, error) {
+	file, err := os.Open(source.path)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	var multipartBody bytes.Buffer
 	writer := multipart.NewWriter(&multipartBody)
 	part, err := writer.CreateFormFile("file", source.name)
 	if err != nil {
 		return 0, err
 	}
-	if _, err := io.Copy(part, countingReader); err != nil {
+	if _, err := io.Copy(part, file); err != nil {
 		return 0, err
 	}
 	if err := writer.Close(); err != nil {
@@ -175,10 +196,39 @@ func uploadFileToPresignedURL(ctx context.Context, client *awshttp.BuildableClie
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 		return 0, fmt.Errorf("upload request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
-	if countingReader.size > maxUploadFileSizeBytes {
-		return 0, fmt.Errorf("file %s exceeds the 30MB upload limit", source.name)
+	return size, nil
+}
+
+func uploadBufferToPresignedPOST(ctx context.Context, client *awshttp.BuildableClient, uploadURL string, fileName string, data []byte) (int64, error) {
+	var multipartBody bytes.Buffer
+	writer := multipart.NewWriter(&multipartBody)
+	part, err := writer.CreateFormFile("file", fileName)
+	if err != nil {
+		return 0, err
 	}
-	return countingReader.size, nil
+	if _, err := part.Write(data); err != nil {
+		return 0, err
+	}
+	if err := writer.Close(); err != nil {
+		return 0, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, &multipartBody)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return 0, fmt.Errorf("upload request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	return int64(len(data)), nil
 }
 
 func printUploadedFiles(files []uploadedFile) {
@@ -191,21 +241,6 @@ func printUploadedFiles(files []uploadedFile) {
 		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\n", file.name, file.fileID, formatFileSize(file.size))
 	}
 	_ = tw.Flush()
-}
-
-type countingReadCloser struct {
-	io.ReadCloser
-	size int64
-}
-
-func (r *countingReadCloser) Read(p []byte) (int, error) {
-	n, err := r.ReadCloser.Read(p)
-	r.size += int64(n)
-	return n, err
-}
-
-type multipartBodyBuffer struct {
-	bytes.Buffer
 }
 
 func formatFileSize(size int64) string {
