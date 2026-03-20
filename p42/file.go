@@ -1,6 +1,7 @@
 package p42
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,7 @@ type CreateFileRequest struct {
 	DelegatedAuthInfo
 	TenantID string `json:"-"`
 	FileID   string `json:"-"`
+	Name     string `json:"Name"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -26,6 +28,8 @@ func (r *CreateFileRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "FileID":
 		return r.FileID, true
+	case "Name":
+		return r.Name, true
 	default:
 		return nil, false
 	}
@@ -35,6 +39,7 @@ func (r *CreateFileRequest) GetField(name string) (any, bool) {
 type File struct {
 	TenantID  string    `json:"TenantID"`
 	FileID    string    `json:"FileID"`
+	Name      string    `json:"Name"`
 	UploadURL string    `json:"UploadURL"`
 	CreatedAt time.Time `json:"CreatedAt"`
 }
@@ -55,12 +60,22 @@ func (c *Client) CreateFile(ctx context.Context, req *CreateFileRequest) (*File,
 	if req.FileID == "" {
 		return nil, fmt.Errorf("file id is required")
 	}
+	if req.Name == "" {
+		return nil, fmt.Errorf("name is required")
+	}
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "files", url.PathEscape(req.FileID))
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), nil)
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(req); err != nil {
+		return nil, err
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), &buf)
 	if err != nil {
 		return nil, err
 	}
+	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "application/json")
 	processFeatureFlags(httpReq, req.FeatureFlags)
 
@@ -89,8 +104,9 @@ func (c *Client) CreateFile(ctx context.Context, req *CreateFileRequest) (*File,
 type DownloadURL struct {
 	TenantID    string    `json:"TenantID"`
 	FileID      string    `json:"FileID"`
-	DownloadURL string    `json:"DownloadURL"`
+	Name        string    `json:"Name"`
 	CreatedAt   time.Time `json:"CreatedAt"`
+	DownloadURL string    `json:"DownloadURL"`
 }
 
 // GetDownloadURLRequest is the request payload for GetDownloadURL.

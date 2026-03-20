@@ -1506,6 +1506,7 @@ type List[T any] struct {
 type FileMetadata struct {
 	TenantID               string              `json:"TenantID"`
 	FileID                 string              `json:"FileID"`
+	Name                   string              `json:"Name"`
 	CreatedAt              time.Time           `json:"CreatedAt"`
 	IsMalicious            *bool               `json:"IsMalicious,omitempty"`
 	MalwareScanCompletedAt *time.Time          `json:"MalwareScanCompletedAt,omitempty"`
