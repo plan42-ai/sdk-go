@@ -68,7 +68,7 @@ func TestUploadFileOptionsRunSingleFile(t *testing.T) {
 				w,
 				`{"TenantID":"tenant","FileID":"file-123","Name":%q,"Bucket":"bucket-name","Key":"foo.txt","UploadURL":%q,"CreatedAt":"2024-01-02T03:04:05Z"}`,
 				req.Name,
-				uploadSrv.URL+"/bucket-name/foo.txt?X-Amz-Signature=123",
+				uploadSrv.URL+"/bucket-name/foo.txt",
 			)
 		}),
 	)
@@ -94,8 +94,8 @@ func TestUploadFileOptionsRunSingleFile(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "foo.txt", createdName)
-	require.Equal(t, http.MethodPut, uploadMethod)
-	require.Equal(t, []byte("hello world"), uploadedBody)
+	require.Equal(t, http.MethodPost, uploadMethod)
+	require.Contains(t, string(uploadedBody), "hello world")
 	require.Contains(t, string(output), "foo.txt")
 	require.Contains(t, string(output), "file-123")
 	require.Contains(t, string(output), "11B")

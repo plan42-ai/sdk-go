@@ -147,34 +147,24 @@ func uploadFileToPresignedURL(ctx context.Context, client *awshttp.BuildableClie
 
 	countingReader := &countingReadCloser{ReadCloser: reader}
 
-	method := http.MethodPost
-	contentType := "application/octet-stream"
-	body := io.Reader(countingReader)
-
-	if strings.Contains(uploadURL, "X-Amz-Algorithm=") || strings.Contains(uploadURL, "X-Amz-Signature=") {
-		method = http.MethodPut
-	} else {
-		var multipartBody multipartBodyBuffer
-		writer := multipart.NewWriter(&multipartBody)
-		part, err := writer.CreateFormFile("file", source.name)
-		if err != nil {
-			return 0, err
-		}
-		if _, err := io.Copy(part, countingReader); err != nil {
-			return 0, err
-		}
-		if err := writer.Close(); err != nil {
-			return 0, err
-		}
-		body = &multipartBody
-		contentType = writer.FormDataContentType()
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, uploadURL, body)
+	var multipartBody multipartBodyBuffer
+	writer := multipart.NewWriter(&multipartBody)
+	part, err := writer.CreateFormFile("file", source.name)
 	if err != nil {
 		return 0, err
 	}
-	req.Header.Set("Content-Type", contentType)
+	if _, err := io.Copy(part, countingReader); err != nil {
+		return 0, err
+	}
+	if err := writer.Close(); err != nil {
+		return 0, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, &multipartBody)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, err := client.Do(req)
 	if err != nil {
