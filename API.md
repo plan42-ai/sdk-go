@@ -5636,19 +5636,26 @@ Once the file content has been uploaded to S3, it can be attached to a task when
 ```http request
 PUT /v1/tenants/{tenant_id}/files/{file_id} HTTP/1.1
 Accept: application/json
+Content-Type: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
-Content-Length: 0
+
+{
+    "Name": string,
+    "Size": int
+}
 ```
 
-| Parameter                                | Location | Type    | Description                                                         |
-|------------------------------------------|----------|---------|---------------------------------------------------------------------|
-| tenant_id                                | path     | string  | The ID of the tenant that will own the file.                        |
-| file_id                                  | path     | string  | The ID of the file to create. Must be a V4 UUID.                    |
-| Authorization                            | header   | string  | The authorization header for the request.                           |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+| Parameter                                | Location | Type    | Description                                                                                                      |
+|------------------------------------------|----------|---------|------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that will own the file.                                                                     |
+| file_id                                  | path     | string  | The ID of the file to create. Must be a V4 UUID.                                                                 |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                        |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                           |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                              |
+| Name                                     | body     | string  | The name of the file. Required.                                                                                  |
+| Size                                     | body     | int     | The size of the file in bytes. Required. Must be between 1 and 31457280 (30 MB). The presigned upload URL will enforce this exact size via the Content-Length header in the SigV4 signature. |
 
 ## 102.2 Response
 On success a 201 CREATED is returned with the following JSON body:
@@ -5660,10 +5667,22 @@ Content-Type: application/json; charset=utf-8
 {
   "TenantID": "string",
   "FileID": "string",  
+  "Name" : "string",
+  "Size": int,
   "UploadURL": "string",
   "CreatedAt": "string"
 }
 ```
+
+| Field     | Type   | Description                                                                                                                                                                                                                                                                                                          |
+|-----------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| TenantID  | string | The ID of the tenant that owns the file.                                                                                                                                                                                                                                                                             |
+| FileID    | string | The unique ID of the file.                                                                                                                                                                                                                                                                                           |
+| Name      | string | The name of the file. File names are not required to be unique. We add support for them so that you can reference file names for attachments when communicating with the LLM.                                                                                                                                        |
+| Size      | int    | The size of the file in bytes.                                                                                                                                                                                                                                                                                       |
+| UploadURL | string | A presigned S3 PUT URL that can be used to upload the file content. The URL is valid for 1 hour and 5 mins. The SigV4 signature includes `Content-Length` (set to the Size specified in the request) and `If-None-Match: *`, which means the upload will be rejected if the content size does not match or if the object has already been written. The file content must be uploaded to S3 before the URL expires. |
+| CreatedAt | string | The timestamp when the file object was created.                                                                                                                                                                                                                                                                      |
+
 
 # 103. GetDownloadUrl
 
@@ -5705,14 +5724,27 @@ Content-Type: application/json; charset=utf-8
 {
   "TenantID": "string",
   "FileID": "string",  
-  "DownloadURL": "string",
+  "Name": "string",
   "CreatedAt": "string"
+  "DownloadURL": "string",
+  
 }
 ```
 
+| Field       | Type   | Description                                                                                               |
+|-------------|--------|-----------------------------------------------------------------------------------------------------------|
+| TenantID    | string | The ID of the tenant that owns the file.                                                                  |
+| FileID      | string | The unique ID of the file.                                                                                |
+| Name        | string | The name of the file.                                                                                     |
+| CreatedAt   | string | The timestamp when the file object was created.                                                           |
+| DownloadURL | string | A presigned S3 URL that can be used to download the file content. The URL is valid for 1 hour and 5 mins. |
+
 # 104. ListFiles 
 
-The ListFiles API is an admin api that returns metadata for files owned by a tenant, with pagination support. 
+The ListFiles API is an admin api that returns metadata for files owned by a tenant, with pagination support. Files are
+returned in decreasing order of creation time (i.e. newest files are returned first). This API is designed to be used by
+internal tools. To get the files associated with a specific task, fetch the tasks (i.e. GetTask, GetWorkstreamTask,
+ListTask, ListWorkstreamTasks, etc.) and look at the `FileIDs` array.
 
 ## 104.1 Request
 
@@ -5743,6 +5775,8 @@ Content-Type: application/json; charset=utf-8
     {
       "TenantID": "string",
       "FileID": "string",  
+      "Name": "string",
+      "Size": int,
       "CreatedAt": "string",
       "IsMalicious": *bool,
       "MalwareScanCompletedAt": "*string",
@@ -5766,6 +5800,8 @@ FileMetadata objects describe metadata for a file object.
 |------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
 | TenantID               | string                                            | The ID of the tenant that owns the file.                                                                          |
 | FileID                 | string                                            | The ID of the file.                                                                                               |
+| Name                   | string                                            | The name of the file.                                                                                             |
+| Size                   | int                                               | The size of the file in bytes.                                                                                    |
 | CreatedAt              | string                                            | The timestamp when the file object was created.                                                                   |
 | IsMalicious            | *bool                                             | Whether the file was flagged as malicious by the malware. Will be null if the malware scan has not completed yet. |
 | MalwareScanCompletedAt | *string                                           | The timestamp when the malware scan completed. Will be null if the scan has not completed yet.                    |

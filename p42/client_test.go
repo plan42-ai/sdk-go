@@ -649,7 +649,7 @@ func TestCreateFile(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	file, err := client.CreateFile(context.Background(), &p42.CreateFileRequest{TenantID: "abc", FileID: "file-123"})
+	file, err := client.CreateFile(context.Background(), &p42.CreateFileRequest{TenantID: "abc", FileID: "file-123", Name: "test.txt", Size: 1024})
 	require.NoError(t, err)
 	require.Equal(t, "abc", file.TenantID)
 	require.Equal(t, "file-123", file.FileID)
@@ -661,7 +661,7 @@ func TestCreateFileError(t *testing.T) {
 	srv, client := serveBadRequest()
 	defer srv.Close()
 
-	_, err := client.CreateFile(context.Background(), &p42.CreateFileRequest{TenantID: "abc", FileID: "file-123"})
+	_, err := client.CreateFile(context.Background(), &p42.CreateFileRequest{TenantID: "abc", FileID: "file-123", Name: "test.txt", Size: 1024})
 	var clientErr *p42.Error
 	require.ErrorAs(t, err, &clientErr)
 	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
@@ -689,7 +689,7 @@ func TestCreateFileEscapesPath(t *testing.T) {
 	client := p42.NewClient(srv.URL)
 	_, err := client.CreateFile(
 		context.Background(),
-		&p42.CreateFileRequest{TenantID: tenantIDThatNeedsEscaping, FileID: fileIDThatNeedsEscaping},
+		&p42.CreateFileRequest{TenantID: tenantIDThatNeedsEscaping, FileID: fileIDThatNeedsEscaping, Name: "test.txt", Size: 1024},
 	)
 	require.NoError(t, err)
 }
