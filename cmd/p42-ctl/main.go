@@ -114,6 +114,7 @@ type Options struct {
 	FeatureFlag FeatureFlagOptions `cmd:""`
 	Workstream  WorkstreamOptions  `cmd:""`
 	Runner      RunnerOptions      `cmd:""`
+	File        FileOptions        `cmd:""`
 	Ctx         context.Context    `kong:"-"`
 }
 
@@ -302,6 +303,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Runner.ListTokens.Run(options.Ctx, &options.SharedOptions)
 	case "runner revoke-token":
 		return options.Runner.RevokeToken.Run(options.Ctx, &options.SharedOptions)
+	case "file upload":
+		return options.File.Upload.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
