@@ -3101,6 +3101,8 @@ func TestListFiles(t *testing.T) {
 	nextToken := "next-token"
 	now := time.Date(2024, time.February, 2, 0, 0, 0, 0, time.UTC)
 	malwareDone := now.Add(time.Hour)
+	moderationDone := now.Add(2 * time.Hour)
+	updatedAt := now.Add(3 * time.Hour)
 	isMalicious := false
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -3113,12 +3115,15 @@ func TestListFiles(t *testing.T) {
 		resp := p42.List[*p42.FileMetadata]{
 			NextToken: util.Pointer("more"),
 			Items: []*p42.FileMetadata{{
-				TenantID:               "abc",
-				FileID:                 "file1",
-				CreatedAt:              now,
-				IsMalicious:            util.Pointer(isMalicious),
-				MalwareScanCompletedAt: util.Pointer(malwareDone),
-				ModerationScanInfo: &p42.ModerationScanInfo{
+				TenantID:                  "abc",
+				FileID:                    "file1",
+				CreatedAt:                 now,
+				IsMalicious:               util.Pointer(isMalicious),
+				MalwareScanCompletedAt:    util.Pointer(malwareDone),
+				ModerationScanCompletedAt: util.Pointer(moderationDone),
+				UpdatedAt:                 util.Pointer(updatedAt),
+				Version:                   7,
+				ModerationScanResults: &p42.ModerationScanInfo{
 					ID:    "modr-1",
 					Model: "omni-moderation-latest",
 					Results: []p42.ModerationScanResults{{
@@ -3151,11 +3156,20 @@ func TestListFiles(t *testing.T) {
 	if resp.Items[0].MalwareScanCompletedAt != nil {
 		require.True(t, resp.Items[0].MalwareScanCompletedAt.Equal(malwareDone))
 	}
-	require.NotNil(t, resp.Items[0].ModerationScanInfo)
-	if resp.Items[0].ModerationScanInfo != nil {
-		require.Len(t, resp.Items[0].ModerationScanInfo.Results, 1)
-		require.Equal(t, 0.01, resp.Items[0].ModerationScanInfo.Results[0].CategoryScores["violence"])
+	require.NotNil(t, resp.Items[0].ModerationScanCompletedAt)
+	if resp.Items[0].ModerationScanCompletedAt != nil {
+		require.True(t, resp.Items[0].ModerationScanCompletedAt.Equal(moderationDone))
 	}
+	require.NotNil(t, resp.Items[0].ModerationScanResults)
+	if resp.Items[0].ModerationScanResults != nil {
+		require.Len(t, resp.Items[0].ModerationScanResults.Results, 1)
+		require.Equal(t, 0.01, resp.Items[0].ModerationScanResults.Results[0].CategoryScores["violence"])
+	}
+	require.NotNil(t, resp.Items[0].UpdatedAt)
+	if resp.Items[0].UpdatedAt != nil {
+		require.True(t, resp.Items[0].UpdatedAt.Equal(updatedAt))
+	}
+	require.Equal(t, 7, resp.Items[0].Version)
 }
 
 func TestListFilesError(t *testing.T) {
@@ -3268,6 +3282,202 @@ func TestDeleteFileValidation(t *testing.T) {
 	require.EqualError(t, err, "tenant id is required")
 
 	err = client.DeleteFile(context.Background(), &p42.DeleteFileRequest{TenantID: "tenant"})
+	require.EqualError(t, err, "file id is required")
+}
+
+func TestGetFile(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2024, time.March, 3, 10, 0, 0, 0, time.UTC)
+	moderationDone := now.Add(time.Hour)
+	updatedAt := now.Add(2 * time.Hour)
+	isMalicious := true
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/abc/files/file1", r.URL.Path)
+
+		w.WriteHeader(http.StatusOK)
+		resp := p42.FileMetadata{
+			TenantID:                  "abc",
+			FileID:                    "file1",
+			Name:                      "example.txt",
+			Size:                      1234,
+			CreatedAt:                 now,
+			IsMalicious:               util.Pointer(isMalicious),
+			MalwareScanCompletedAt:    util.Pointer(now.Add(-time.Minute)),
+			ModerationScanCompletedAt: util.Pointer(moderationDone),
+			UpdatedAt:                 util.Pointer(updatedAt),
+			Version:                   2,
+			ModerationScanResults: &p42.ModerationScanInfo{
+				ID:    "modr-123",
+				Model: "omni-moderation-latest",
+				Results: []p42.ModerationScanResults{{
+					Flagged:        false,
+					Categories:     map[string]bool{"self-harm": false},
+					CategoryScores: map[string]float64{"self-harm": 0.001},
+				}},
+			},
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	resp, err := client.GetFile(context.Background(), &p42.GetFileRequest{TenantID: "abc", FileID: "file1"})
+	require.NoError(t, err)
+	require.Equal(t, "example.txt", resp.Name)
+	require.Equal(t, 1234, resp.Size)
+	require.Equal(t, 2, resp.Version)
+	require.NotNil(t, resp.ModerationScanResults)
+}
+
+func TestGetFileError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.GetFile(context.Background(), &p42.GetFileRequest{TenantID: "abc", FileID: "file1"})
+	require.Error(t, err)
+}
+
+func TestGetFilePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, "files", parts[4], "files segment missing in URL path")
+		require.Equal(t, escapedFileID, parts[5], "FileID not properly escaped in URL path")
+
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(p42.FileMetadata{})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.GetFile(context.Background(), &p42.GetFileRequest{TenantID: tenantIDThatNeedsEscaping, FileID: fileIDThatNeedsEscaping})
+	require.NoError(t, err)
+}
+
+func TestGetFileValidation(t *testing.T) {
+	t.Parallel()
+
+	client := p42.NewClient("http://example.com")
+	_, err := client.GetFile(context.Background(), nil)
+	require.Error(t, err)
+	_, err = client.GetFile(context.Background(), &p42.GetFileRequest{})
+	require.EqualError(t, err, "tenant id is required")
+	_, err = client.GetFile(context.Background(), &p42.GetFileRequest{TenantID: "tenant"})
+	require.EqualError(t, err, "file id is required")
+}
+
+func TestUpdateFile(t *testing.T) {
+	t.Parallel()
+
+	isMalicious := true
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPatch, r.Method)
+		require.Equal(t, "/v1/tenants/abc/files/file1", r.URL.Path)
+		require.Equal(t, "2", r.Header.Get("If-Match"))
+
+		var body struct {
+			IsMalicious           *bool                   `json:"IsMalicious"`
+			ModerationScanResults *p42.ModerationScanInfo `json:"ModerationScanResults"`
+		}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		require.NotNil(t, body.IsMalicious)
+		require.True(t, *body.IsMalicious)
+		require.NotNil(t, body.ModerationScanResults)
+		require.Equal(t, "modr-1", body.ModerationScanResults.ID)
+
+		w.WriteHeader(http.StatusOK)
+		resp := p42.FileMetadata{TenantID: "abc", FileID: "file1", Version: 3}
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	resp, err := client.UpdateFile(
+		context.Background(),
+		&p42.UpdateFileRequest{
+			TenantID:    "abc",
+			FileID:      "file1",
+			Version:     2,
+			IsMalicious: util.Pointer(isMalicious),
+			ModerationScanResults: &p42.ModerationScanInfo{
+				ID:    "modr-1",
+				Model: "omni-moderation-latest",
+				Results: []p42.ModerationScanResults{{
+					Flagged:        false,
+					Categories:     map[string]bool{"violence": false},
+					CategoryScores: map[string]float64{"violence": 0.02},
+				}},
+			},
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, 3, resp.Version)
+}
+
+func TestUpdateFileError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.UpdateFile(context.Background(), &p42.UpdateFileRequest{TenantID: "abc", FileID: "file1", Version: 1, IsMalicious: util.Pointer(true)})
+	require.Error(t, err)
+}
+
+func TestUpdateFilePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		escapedPath := r.URL.EscapedPath()
+		parts := strings.Split(escapedPath, "/")
+		require.Equal(t, 6, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+		require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+		require.Equal(t, "files", parts[4], "files segment missing in URL path")
+		require.Equal(t, escapedFileID, parts[5], "FileID not properly escaped in URL path")
+
+		require.Equal(t, "5", r.Header.Get("If-Match"))
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(p42.FileMetadata{})
+	})
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.UpdateFile(
+		context.Background(),
+		&p42.UpdateFileRequest{
+			TenantID:    tenantIDThatNeedsEscaping,
+			FileID:      fileIDThatNeedsEscaping,
+			Version:     5,
+			IsMalicious: util.Pointer(true),
+		},
+	)
+	require.NoError(t, err)
+}
+
+func TestUpdateFileValidation(t *testing.T) {
+	t.Parallel()
+
+	client := p42.NewClient("http://example.com")
+	_, err := client.UpdateFile(context.Background(), nil)
+	require.Error(t, err)
+	_, err = client.UpdateFile(context.Background(), &p42.UpdateFileRequest{})
+	require.EqualError(t, err, "tenant id is required")
+	_, err = client.UpdateFile(context.Background(), &p42.UpdateFileRequest{TenantID: "tenant"})
 	require.EqualError(t, err, "file id is required")
 }
 

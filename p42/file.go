@@ -259,6 +259,154 @@ func (c *Client) ListFiles(ctx context.Context, req *ListFilesRequest) (*List[*F
 	return &out, nil
 }
 
+// GetFileRequest represents the request payload for GetFile.
+type GetFileRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	FileID   string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint:goconst
+func (r *GetFileRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "FileID":
+		return r.FileID, true
+	default:
+		return nil, false
+	}
+}
+
+// GetFile retrieves metadata for a specific file object.
+// nolint: dupl
+func (c *Client) GetFile(ctx context.Context, req *GetFileRequest) (*FileMetadata, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.FileID == "" {
+		return nil, fmt.Errorf("file id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "files", url.PathEscape(req.FileID))
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out FileMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// UpdateFileRequest represents the request payload for UpdateFile.
+type UpdateFileRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID string `json:"-"`
+	FileID   string `json:"-"`
+	Version  int    `json:"-"`
+
+	IsMalicious           *bool               `json:"IsMalicious,omitempty"`
+	ModerationScanResults *ModerationScanInfo `json:"ModerationScanResults,omitempty"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint:goconst
+func (r *UpdateFileRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "FileID":
+		return r.FileID, true
+	case "Version":
+		return r.Version, true
+	case "IsMalicious":
+		return EvalNullable(r.IsMalicious)
+	case "ModerationScanResults":
+		return EvalNullable(r.ModerationScanResults)
+	default:
+		return nil, false
+	}
+}
+
+// UpdateFile updates mutable metadata for a file object.
+// nolint: dupl
+func (c *Client) UpdateFile(ctx context.Context, req *UpdateFileRequest) (*FileMetadata, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.FileID == "" {
+		return nil, fmt.Errorf("file id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "files", url.PathEscape(req.FileID))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out FileMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // DeleteFileRequest represents the request payload for DeleteFile.
 type DeleteFileRequest struct {
 	FeatureFlags
