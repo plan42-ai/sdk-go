@@ -5615,7 +5615,7 @@ Content-Type: application/json; charset=utf-8
 Each `TenantEncryptionKey` object contains the fields described in
 [RotateTenantEncryptionKey](#98-rotatetenantencryptionkey).
 
-# 102. CreateFile
+   # 102. CreateFile
 
 The CreateFile API creates a new file object, and returns a presigned S3 URL that can be used to upload the file
 contents. Te presigned S3 URL can be used to upload the file at most once, and expires after 1 hour and 5 mins.
@@ -5771,41 +5771,47 @@ HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
 
 {
-  "Items": [
-    {
-      "TenantID": "string",
-      "FileID": "string",  
-      "Name": "string",
-      "Size": int,
-      "CreatedAt": "string",
-      "IsMalicious": *bool,
-      "MalwareScanCompletedAt": "*string",
-      "ModerationScanResults": {}
-    }
-  ],
+  "Items": [{
+     "TenantID": "string",
+     "FileID": "string",  
+     "Name": "string",
+     "Size": int,
+     "CreatedAt": "string",
+     "IsMalicious": *bool,
+     "MalwareScanCompletedAt": "*string",
+     "ModerationScanInfo": {},
+     "ModerationScanCompletedAt": *string,
+     "UpdatedAt": "*string",
+     "ContentType" : "*string",
+     "Version": int
+  }],
   "NextToken": "*string"
 }
 ```
 
-| Field     | Type                                 | Description                                 |
-|-----------|--------------------------------------|---------------------------------------------|
-| Items     | [[]FileMetadata](#1043-filemetadata) | List of file metadata objects.              |
-| NextToken | *string                              | Token to retrieve the next page of results. | 
+| Field     | Type                 | Description                                 |
+|-----------|----------------------|---------------------------------------------|
+| Items     | [[]File](#1043-file) | List of file metadata objects.              |
+| NextToken | *string              | Token to retrieve the next page of results. | 
 
-## 104.3 FileMetadata
+## 104.3 File
 
 FileMetadata objects describe metadata for a file object.
 
-| Field                  | Type                                              | Description                                                                                                       |
-|------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
-| TenantID               | string                                            | The ID of the tenant that owns the file.                                                                          |
-| FileID                 | string                                            | The ID of the file.                                                                                               |
-| Name                   | string                                            | The name of the file.                                                                                             |
-| Size                   | int                                               | The size of the file in bytes.                                                                                    |
-| CreatedAt              | string                                            | The timestamp when the file object was created.                                                                   |
-| IsMalicious            | *bool                                             | Whether the file was flagged as malicious by the malware. Will be null if the malware scan has not completed yet. |
-| MalwareScanCompletedAt | *string                                           | The timestamp when the malware scan completed. Will be null if the scan has not completed yet.                    |
-| ModerationScanInfo     | [*ModerationScanInfo](#1044-moderation-scan-info) | The response from the content moderation scan. Will be null if the scan has not completed yet.                    |
+| Field                     | Type                                              | Description                                                                                                       |
+|---------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| TenantID                  | string                                            | The ID of the tenant that owns the file.                                                                          |
+| FileID                    | string                                            | The ID of the file.                                                                                               |
+| Name                      | string                                            | The name of the file.                                                                                             |
+| Size                      | int                                               | The size of the file in bytes.                                                                                    |
+| CreatedAt                 | string                                            | The timestamp when the file object was created.                                                                   |
+| IsMalicious               | *bool                                             | Whether the file was flagged as malicious by the malware. Will be null if the malware scan has not completed yet. |
+| MalwareScanCompletedAt    | *string                                           | The timestamp when the malware scan completed. Will be null if the scan has not completed yet.                    |
+| ModerationScanCompletedAt | *string                                           | The timestamp when the moderation scan completed.                                                                 |
+| ModerationScanInfo        | [*ModerationScanInfo](#1044-moderation-scan-info) | The response from the content moderation scan. Will be null if the scan has not completed yet.                    |
+| UpdatedAt                 | * string                                          | The timestamp when the file object was last modified.                                                             |
+| ContentType               | *string                                           | The file's mime type.                                                                                             |
+| Version                   | int                                               | The version number of the file object                                                                             |
 
 ## 104.4 ModerationScanInfo
 
@@ -5859,3 +5865,108 @@ On success a 204 No Content is returned with an empty body.
 ```http response
 HTTP/1.1 204 No Content
 ```
+
+# 106 GetFile
+
+The GetFile API is an admin api that returns metadata about a File object.
+
+## 106.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/files/{file_id} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                      | Location | Type    | Description                                                         |
+|--------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                      | path     | string  | The ID of the tenant that owns the file.                            |
+| file_id                        | path     | string  | The ID of the file to get metadata for.                             |
+| Authorization                  | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+
+## 106.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "FileID": "string",  
+  "Name": "string",
+  "Size": int,
+  "CreatedAt": "string",
+  "IsMalicious": *bool,
+  "MalwareScanCompletedAt": "*string",
+  "ModerationScanInfo": {},
+  "ModerationScanCompletedAt": *string,
+  "UpdatedAt": "*string",
+  "ContentType" : "*string",
+  "Version": int
+}
+```
+
+See [FileMetadata](#1043-file) for more info on the response.
+
+## 107. UpdateFile
+
+The UpdateFile API is an admin api that allows updating file metadata. It's used by internal services to update
+metadata about a file as various scans complete.
+
+## 107.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/files/{file_id} HTTP/1
+Accept: application/json
+Content-Type: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+  "IsMalicious": *bool,
+  "ModerationScanInfo": *ModerationScanInfo,
+  "ContentType" : *string,
+}
+```
+
+| Parameter                      | Location | Type                | Description                                                                                                                                          |
+|--------------------------------|----------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                      | path     | string              | The ID of the tenant that owns the file.                                                                                                             |
+| file_id                        | path     | string              | The ID of the file to update.                                                                                                                        |
+| Authorization                  | header   | string              | The authorization header for the request.                                                                                                            |
+| X-Event-Horizon-Signed-Headers | header   | *string             | The signed headers for the request, when authenticating with Sigv4.                                                                                  |
+| version                        | header   | string              | The version of the file to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| IsMalicious                    | body     | *bool               | Optiopnal. When set marks the file as malicious or non-malicious. Cannot be modified once set.                                                       |
+| ModerationScanInfo             | body     | *ModerationScanInfo | Optional. Sets the results of a moderations can. Cannot be modified once set.                                                                        |
+| ContentType                    | body     | *string             | Optional. Sets the file's mime type. This is set by a lambda, using libmagic, after the file's malware scan has completed.                           |
+
+## 107.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "FileID": "string",  
+  "Name": "string",
+  "Size": int,
+  "CreatedAt": "string",
+  "IsMalicious": *bool,
+  "MalwareScanCompletedAt": "*string",
+  "ModerationScanInfo": {},
+  "ModerationScanCompletedAt": *string,
+  "UpdatedAt": "*string",
+  "ContentType" : "*string",
+  "Version": int
+}
+```   
+
+See [FileMetadata](#1043-file) for more info on the response.

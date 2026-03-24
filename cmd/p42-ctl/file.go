@@ -83,7 +83,7 @@ func (o *UploadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 			continue
 		}
 		// NOTE: This can close "reader" twice. Once inside uploadToPresignedUrl (which calls "Do" on the http request),
-		// and again when returning from Run(). That's ok. We ignore errors from the second call, and both *os.File and
+		// and again when returning from Run(). That's ok. We ignore errors from the second call, and both *os.CreateFileResponse and
 		// io.NopCloser are safe to call more than  once. The file reader will return an error the second time, but we
 		// ignore that, so it's ok.
 		defer util.Close(reader)

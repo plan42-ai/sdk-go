@@ -1502,16 +1502,20 @@ type List[T any] struct {
 	NextToken *string `json:"NextToken,omitempty"`
 }
 
-// FileMetadata describes metadata for a tenant-owned file object.
-type FileMetadata struct {
-	TenantID               string              `json:"TenantID"`
-	FileID                 string              `json:"FileID"`
-	Name                   string              `json:"Name"`
-	Size                   int                 `json:"Size"`
-	CreatedAt              time.Time           `json:"CreatedAt"`
-	IsMalicious            *bool               `json:"IsMalicious,omitempty"`
-	MalwareScanCompletedAt *time.Time          `json:"MalwareScanCompletedAt,omitempty"`
-	ModerationScanInfo     *ModerationScanInfo `json:"ModerationScanInfo,omitempty"`
+// File describes metadata for a tenant-owned file object.
+type File struct {
+	TenantID                  string              `json:"TenantID"`
+	FileID                    string              `json:"FileID"`
+	Name                      string              `json:"Name"`
+	Size                      int                 `json:"Size"`
+	CreatedAt                 time.Time           `json:"CreatedAt"`
+	IsMalicious               *bool               `json:"IsMalicious,omitempty"`
+	MalwareScanCompletedAt    *time.Time          `json:"MalwareScanCompletedAt,omitempty"`
+	ModerationScanCompletedAt *time.Time          `json:"ModerationScanCompletedAt,omitempty"`
+	ModerationScanInfo        *ModerationScanInfo `json:"ModerationScanInfo,omitempty"`
+	ContentType               *string             `json:"ContentType,omitempty"`
+	UpdatedAt                 *time.Time          `json:"UpdatedAt,omitempty"`
+	Version                   int                 `json:"Version"`
 }
 
 // ModerationScanInfo contains content moderation metadata for a file.
