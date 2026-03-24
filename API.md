@@ -5868,7 +5868,7 @@ HTTP/1.1 204 No Content
 
 # 106 GetFile
 
-The GetFile API is an admin api that returns metadata about a File object.
+The GetFile API returns metadata about a File object.
 
 ## 106.1 Request
 
@@ -5876,15 +5876,17 @@ The GetFile API is an admin api that returns metadata about a File object.
 GET /v1/tenants/{tenant_id}/files/{file_id} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
 ```
 
-| Parameter                      | Location | Type    | Description                                                         |
-|--------------------------------|----------|---------|---------------------------------------------------------------------|
-| tenant_id                      | path     | string  | The ID of the tenant that owns the file.                            |
-| file_id                        | path     | string  | The ID of the file to get metadata for.                             |
-| Authorization                  | header   | string  | The authorization header for the request.                           |
-| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
+| Parameter                                | Location | Type    | Description                                                         |
+|------------------------------------------|----------|---------|---------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant that owns the file.                            |
+| file_id                                  | path     | string  | The ID of the file to get metadata for.                             |
+| Authorization                            | header   | string  | The authorization header for the request.                           |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
 ## 106.2 Response
 
