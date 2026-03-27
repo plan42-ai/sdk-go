@@ -551,6 +551,28 @@ Action is an enum that defines the actions that a policy can allow or deny.
 | RegisterRunnerQueue       |
 | WriteResponse             |
 | CreateTurn                |
+| GetRunnerToken            |
+| ListRunnerQueues          |
+| ListAllRunnerQueues       |
+| UpdateTenant              |
+| DeleteRunnerQueue         |
+| GetRunnerQueue            |
+| PingRunnerQueue           |
+| UpdateRunnerQueue         |
+| ListOrgsForGithubConnection |
+| SearchRepos               |
+| ListActiveTurns           |
+| ListRepoBranches          |
+| RotateTenantEncryptionKey |
+| GetTenantEncryptionKey    |
+| GetLatestTenantEncryptionKey |
+| ListTenantEncryptionKeys  |
+| CreateFile                |
+| GetFile                   |
+| GetDownloadURL            |
+| ListFiles                 |
+| DeleteFile                |
+| UpdateFile                |
 
 ## 6.6 Expressions
 
