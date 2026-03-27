@@ -187,6 +187,7 @@ const (
 	ActionGetDownloadURL               Action = "GetDownloadUrl"
 	ActionListFiles                    Action = "ListFiles"
 	ActionDeleteFile                   Action = "DeleteFile"
+	ActionUpdateFile                   Action = "UpdateFile"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -526,6 +527,7 @@ func init() {
 			ActionGetDownloadURL,               // (0x0000_0000_2000_0000, 0)
 			ActionListFiles,                    // (0x0000_0000_4000_0000, 0)
 			ActionDeleteFile,                   // (0x0000_0000_8000_0000, 0)
+			ActionUpdateFile,                   // (0x0000_0001_0000_0000, 0)
 
 		},
 		ActionBitVector{

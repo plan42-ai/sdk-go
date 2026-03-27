@@ -336,6 +336,15 @@ type UpdateFileRequest struct {
 
 	IsMalicious        *bool               `json:"IsMalicious,omitempty"`
 	ModerationScanInfo *ModerationScanInfo `json:"ModerationScanInfo,omitempty"`
+	ContentType        *string             `json:"ContentType,omitempty"`
+}
+
+func (r *UpdateFileRequest) GetVersion() int {
+	return r.Version
+}
+
+func (r *UpdateFileRequest) IsEmptyUpdate() bool {
+	return r.IsMalicious == nil && r.ModerationScanInfo == nil && r.ContentType == nil
 }
 
 // GetField retrieves the value of a field by name.
@@ -352,6 +361,8 @@ func (r *UpdateFileRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.IsMalicious)
 	case "ModerationScanInfo":
 		return EvalNullable(r.ModerationScanInfo)
+	case "ContentType":
+		return EvalNullable(r.ContentType)
 	default:
 		return nil, false
 	}

@@ -3380,6 +3380,7 @@ func TestUpdateFile(t *testing.T) {
 	t.Parallel()
 
 	isMalicious := true
+	contentType := "text/plain"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPatch, r.Method)
 		require.Equal(t, "/v1/tenants/abc/files/file1", r.URL.Path)
@@ -3391,6 +3392,8 @@ func TestUpdateFile(t *testing.T) {
 		require.True(t, *body.IsMalicious)
 		require.NotNil(t, body.ModerationScanInfo)
 		require.Equal(t, "modr-1", body.ModerationScanInfo.ID)
+		require.NotNil(t, body.ContentType)
+		require.Equal(t, contentType, *body.ContentType)
 
 		w.WriteHeader(http.StatusOK)
 		resp := p42.File{TenantID: "abc", FileID: "file1", Version: 3}
@@ -3417,6 +3420,7 @@ func TestUpdateFile(t *testing.T) {
 					CategoryScores: map[string]float64{"violence": 0.02},
 				}},
 			},
+			ContentType: &contentType,
 		},
 	)
 	require.NoError(t, err)
