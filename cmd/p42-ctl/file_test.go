@@ -52,6 +52,59 @@ func TestCollectUploadCandidatesUsesStdinDefaultName(t *testing.T) {
 	require.Equal(t, []byte("hello"), candidates[0].data)
 }
 
+func TestGetFileOptionsRun(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/tenant/files/file-123", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"test.txt","Size":5,"Version":2}`))
+	}))
+	defer server.Close()
+
+	originalStdout := os.Stdout
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = stdoutWriter
+	t.Cleanup(func() { os.Stdout = originalStdout })
+
+	opts := GetFileOptions{TenantID: "tenant", FileID: "file-123"}
+	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(server.URL)})
+	require.NoError(t, err)
+	require.NoError(t, stdoutWriter.Close())
+
+	stdoutBytes, err := io.ReadAll(stdoutReader)
+	require.NoError(t, err)
+	output := string(stdoutBytes)
+	require.Contains(t, output, `"TenantID": "tenant"`)
+	require.Contains(t, output, `"FileID": "file-123"`)
+	require.Contains(t, output, `"Name": "test.txt"`)
+}
+
+func TestGetFileOptionsRunUsesDelegatedAuth(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "APIToken delegated-value", r.Header.Get("X-Event-Horizon-Delegating-Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123"}`))
+	}))
+	defer server.Close()
+
+	originalStdout := os.Stdout
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = stdoutWriter
+	t.Cleanup(func() { os.Stdout = originalStdout })
+
+	authType := "APIToken"
+	token := "delegated-value"
+	opts := GetFileOptions{TenantID: "tenant", FileID: "file-123"}
+	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(server.URL), DelegatedAuthType: &authType, DelegatedToken: &token})
+	require.NoError(t, err)
+	require.NoError(t, stdoutWriter.Close())
+	_, err = io.ReadAll(stdoutReader)
+	require.NoError(t, err)
+}
+
 func TestUploadFileOptionsRunUploadsFile(t *testing.T) {
 	var uploadedBody []byte
 	var uploadHeaders http.Header

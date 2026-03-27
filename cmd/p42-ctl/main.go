@@ -303,6 +303,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Runner.ListTokens.Run(options.Ctx, &options.SharedOptions)
 	case "runner revoke-token":
 		return options.Runner.RevokeToken.Run(options.Ctx, &options.SharedOptions)
+	case "file get":
+		return options.File.Get.Run(options.Ctx, &options.SharedOptions)
 	case "file upload", "file upload <files>":
 		return options.File.Upload.Run(options.Ctx, &options.SharedOptions)
 	default:
