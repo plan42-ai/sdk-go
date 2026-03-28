@@ -18,7 +18,32 @@ import (
 )
 
 type FileOptions struct {
+	Get    GetFileOptions    `cmd:"" help:"Fetch metadata for a tenant-owned file."`
 	Upload UploadFileOptions `cmd:"" help:"Upload one or more files for a tenant."`
+}
+
+type GetFileOptions struct {
+	TenantID string `help:"The id of the tenant that owns the file to fetch." name:"tenant-id" short:"i" required:""`
+	FileID   string `help:"The id of the file to fetch." name:"file-id" short:"f" required:""`
+}
+
+func (o *GetFileOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.GetFileRequest{
+		TenantID: o.TenantID,
+		FileID:   o.FileID,
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	file, err := s.Client.GetFile(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return printJSON(file)
 }
 
 type UploadFileOptions struct {
