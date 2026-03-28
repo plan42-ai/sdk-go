@@ -18,8 +18,44 @@ import (
 )
 
 type FileOptions struct {
+	List   ListFileOptions   `cmd:"" help:"List files owned by a tenant."`
 	Get    GetFileOptions    `cmd:"" help:"Fetch metadata for a tenant-owned file."`
 	Upload UploadFileOptions `cmd:"" help:"Upload one or more files for a tenant."`
+}
+
+type ListFileOptions struct {
+	TenantID string `help:"The id of the tenant to list files for." name:"tenant-id" short:"i" required:""`
+}
+
+func (o *ListFileOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.ListFilesRequest{TenantID: o.TenantID}
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+
+	var token *string
+	for {
+		req.NextToken = token
+		processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+		resp, err := s.Client.ListFiles(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		for _, file := range resp.Items {
+			if err := printJSON(file); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+		token = resp.NextToken
+	}
+
+	return nil
 }
 
 type GetFileOptions struct {

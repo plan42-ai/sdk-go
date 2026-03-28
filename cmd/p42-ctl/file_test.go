@@ -46,6 +46,45 @@ func TestGetFileOptionsRun(t *testing.T) {
 	require.Contains(t, output, `"Version": 2`)
 }
 
+func TestListFileOptionsRun(t *testing.T) {
+	t.Parallel()
+
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		require.Equal(t, "/v1/tenants/tenant/files", r.URL.Path)
+
+		pageToken := r.URL.Query().Get("token")
+		w.Header().Set("Content-Type", "application/json")
+		if pageToken == "" {
+			_, _ = w.Write([]byte(`{"Items":[{"TenantID":"tenant","FileID":"file-1","Name":"first.txt","Size":5,"Version":1}],"NextToken":"page-2"}`))
+			return
+		}
+
+		require.Equal(t, "page-2", pageToken)
+		_, _ = w.Write([]byte(`{"Items":[{"TenantID":"tenant","FileID":"file-2","Name":"second.txt","Size":7,"Version":2}]}`))
+	}))
+	defer apiServer.Close()
+
+	originalStdout := os.Stdout
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = stdoutWriter
+	t.Cleanup(func() { os.Stdout = originalStdout })
+
+	opts := ListFileOptions{TenantID: "tenant"}
+	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
+	require.NoError(t, stdoutWriter.Close())
+	stdoutBytes, readErr := io.ReadAll(stdoutReader)
+	require.NoError(t, readErr)
+
+	require.NoError(t, err)
+	output := string(stdoutBytes)
+	require.Contains(t, output, `"FileID": "file-1"`)
+	require.Contains(t, output, `"Name": "first.txt"`)
+	require.Contains(t, output, `"FileID": "file-2"`)
+	require.Contains(t, output, `"Name": "second.txt"`)
+}
+
 func TestFormatFileSize(t *testing.T) {
 	t.Parallel()
 
