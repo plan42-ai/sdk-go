@@ -431,6 +431,7 @@ type CreateTaskRequest struct {
 	Model          *ModelType           `json:"Model,omitempty"`
 	ReasoningLevel *ReasoningLevel      `json:"ReasoningLevel,omitempty"`
 	RepoInfo       map[string]*RepoInfo `json:"RepoInfo"`
+	FileIDs        []string             `json:"FileIDs,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -453,6 +454,8 @@ func (r *CreateTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.ReasoningLevel)
 	case "RepoInfo":
 		return r.RepoInfo, true
+	case "FileIDs":
+		return r.FileIDs, true
 	default:
 		return nil, false
 	}
@@ -523,6 +526,7 @@ type CreateWorkstreamTaskRequest struct {
 	AssignedToAI       bool                 `json:"AssignedToAI"`
 	RepoInfo           map[string]*RepoInfo `json:"RepoInfo,omitempty"`
 	State              *TaskState           `json:"State,omitempty"`
+	FileIDs            []string             `json:"FileIDs,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -555,6 +559,8 @@ func (r *CreateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 		return r.RepoInfo, true
 	case "State":
 		return EvalNullable(r.State)
+	case "FileIDs":
+		return r.FileIDs, true
 	default:
 		return nil, false
 	}
@@ -826,6 +832,8 @@ type UpdateWorkstreamTaskRequest struct {
 	BeforeTaskID       *string               `json:"BeforeTaskId,omitempty"`
 	AfterTaskID        *string               `json:"AfterTaskId,omitempty"`
 	Deleted            *bool                 `json:"Deleted,omitempty"`
+	NewFileIDs         *[]string             `json:"NewFileIDs,omitempty"`
+	RemoveFileIDs      *[]string             `json:"RemoveFileIDs,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -866,6 +874,10 @@ func (r *UpdateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.AfterTaskID)
 	case "Deleted":
 		return EvalNullable(r.Deleted)
+	case "NewFileIDs":
+		return EvalNullable(r.NewFileIDs)
+	case "RemoveFileIDs":
+		return EvalNullable(r.RemoveFileIDs)
 	default:
 		return nil, false
 	}
@@ -949,6 +961,7 @@ type UpdateTaskRequest struct {
 	ReasoningLevel *ReasoningLevel       `json:"ReasoningLevel,omitempty"`
 	RepoInfo       *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
 	Deleted        *bool                 `json:"Deleted,omitempty"`
+	NewFileIDs     *[]string             `json:"NewFileIDs,omitempty"`
 }
 
 func (r *UpdateTaskRequest) GetVersion() int {
@@ -956,7 +969,7 @@ func (r *UpdateTaskRequest) GetVersion() int {
 }
 
 func (r *UpdateTaskRequest) IsEmptyUpdate() bool {
-	return r.Title == nil && r.Prompt == nil && r.Model == nil && r.ReasoningLevel == nil && r.RepoInfo == nil && r.Deleted == nil
+	return r.Title == nil && r.Prompt == nil && r.Model == nil && r.ReasoningLevel == nil && r.RepoInfo == nil && r.Deleted == nil && r.NewFileIDs == nil
 }
 
 // GetField retrieves the value of a field by name.
@@ -981,6 +994,8 @@ func (r *UpdateTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.RepoInfo)
 	case "Deleted":
 		return EvalNullable(r.Deleted)
+	case "NewFileIDs":
+		return EvalNullable(r.NewFileIDs)
 	default:
 		return nil, false
 	}
