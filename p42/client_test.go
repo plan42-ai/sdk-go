@@ -3097,13 +3097,18 @@ func TestListRunnerTokensValidation(t *testing.T) {
 func TestListFiles(t *testing.T) {
 	t.Parallel()
 
+	const unsupportedMIMERejectionReason = "the mime type application/octet-stream is not currently supported"
+
 	maxResults := 25
 	nextToken := "next-token"
 	now := time.Date(2024, time.February, 2, 0, 0, 0, 0, time.UTC)
 	malwareDone := now.Add(time.Hour)
 	moderationDone := now.Add(2 * time.Hour)
 	updatedAt := now.Add(3 * time.Hour)
+	rejectedAt := now.Add(4 * time.Hour)
 	isMalicious := false
+	contentType := "application/octet-stream"
+	rejectionReason := unsupportedMIMERejectionReason
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
@@ -3122,6 +3127,9 @@ func TestListFiles(t *testing.T) {
 				MalwareScanCompletedAt:    util.Pointer(malwareDone),
 				ModerationScanCompletedAt: util.Pointer(moderationDone),
 				UpdatedAt:                 util.Pointer(updatedAt),
+				ContentType:               util.Pointer(contentType),
+				RejectionReason:           util.Pointer(rejectionReason),
+				RejectedAt:                util.Pointer(rejectedAt),
 				Version:                   7,
 				ModerationScanInfo: &p42.ModerationScanInfo{
 					ID:    "modr-1",
@@ -3167,6 +3175,12 @@ func TestListFiles(t *testing.T) {
 
 	require.NotNil(t, resp.Items[0].UpdatedAt)
 	require.True(t, resp.Items[0].UpdatedAt.Equal(updatedAt))
+	require.NotNil(t, resp.Items[0].ContentType)
+	require.Equal(t, contentType, *resp.Items[0].ContentType)
+	require.NotNil(t, resp.Items[0].RejectionReason)
+	require.Equal(t, rejectionReason, *resp.Items[0].RejectionReason)
+	require.NotNil(t, resp.Items[0].RejectedAt)
+	require.True(t, resp.Items[0].RejectedAt.Equal(rejectedAt))
 	require.Equal(t, 7, resp.Items[0].Version)
 }
 
@@ -3286,10 +3300,15 @@ func TestDeleteFileValidation(t *testing.T) {
 func TestGetFile(t *testing.T) {
 	t.Parallel()
 
+	const unsupportedMIMERejectionReason = "the mime type application/octet-stream is not currently supported"
+
 	now := time.Date(2024, time.March, 3, 10, 0, 0, 0, time.UTC)
 	moderationDone := now.Add(time.Hour)
 	updatedAt := now.Add(2 * time.Hour)
+	rejectedAt := now.Add(3 * time.Hour)
 	isMalicious := true
+	contentType := "application/octet-stream"
+	rejectionReason := unsupportedMIMERejectionReason
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
@@ -3306,6 +3325,9 @@ func TestGetFile(t *testing.T) {
 			MalwareScanCompletedAt:    util.Pointer(now.Add(-time.Minute)),
 			ModerationScanCompletedAt: util.Pointer(moderationDone),
 			UpdatedAt:                 util.Pointer(updatedAt),
+			ContentType:               util.Pointer(contentType),
+			RejectionReason:           util.Pointer(rejectionReason),
+			RejectedAt:                util.Pointer(rejectedAt),
 			Version:                   2,
 			ModerationScanInfo: &p42.ModerationScanInfo{
 				ID:    "modr-123",
@@ -3330,6 +3352,10 @@ func TestGetFile(t *testing.T) {
 	require.Equal(t, 1234, resp.Size)
 	require.Equal(t, 2, resp.Version)
 	require.NotNil(t, resp.ModerationScanInfo)
+	require.NotNil(t, resp.RejectionReason)
+	require.Equal(t, rejectionReason, *resp.RejectionReason)
+	require.NotNil(t, resp.RejectedAt)
+	require.True(t, resp.RejectedAt.Equal(rejectedAt))
 }
 
 func TestGetFileError(t *testing.T) {
@@ -3379,8 +3405,11 @@ func TestGetFileValidation(t *testing.T) {
 func TestUpdateFile(t *testing.T) {
 	t.Parallel()
 
+	const unsupportedMIMERejectionReason = "the mime type application/octet-stream is not currently supported"
+
 	isMalicious := true
 	contentType := "text/plain"
+	rejectionReason := unsupportedMIMERejectionReason
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPatch, r.Method)
 		require.Equal(t, "/v1/tenants/abc/files/file1", r.URL.Path)
@@ -3394,6 +3423,8 @@ func TestUpdateFile(t *testing.T) {
 		require.Equal(t, "modr-1", body.ModerationScanInfo.ID)
 		require.NotNil(t, body.ContentType)
 		require.Equal(t, contentType, *body.ContentType)
+		require.NotNil(t, body.RejectionReason)
+		require.Equal(t, rejectionReason, *body.RejectionReason)
 
 		w.WriteHeader(http.StatusOK)
 		resp := p42.File{TenantID: "abc", FileID: "file1", Version: 3}
@@ -3420,7 +3451,8 @@ func TestUpdateFile(t *testing.T) {
 					CategoryScores: map[string]float64{"violence": 0.02},
 				}},
 			},
-			ContentType: &contentType,
+			ContentType:     &contentType,
+			RejectionReason: util.Pointer(rejectionReason),
 		},
 	)
 	require.NoError(t, err)

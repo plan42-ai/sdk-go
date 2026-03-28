@@ -1514,6 +1514,8 @@ type File struct {
 	ModerationScanCompletedAt *time.Time          `json:"ModerationScanCompletedAt,omitempty"`
 	ModerationScanInfo        *ModerationScanInfo `json:"ModerationScanInfo,omitempty"`
 	ContentType               *string             `json:"ContentType,omitempty"`
+	RejectionReason           *string             `json:"RejectionReason,omitempty"`
+	RejectedAt                *time.Time          `json:"RejectedAt,omitempty"`
 	UpdatedAt                 *time.Time          `json:"UpdatedAt,omitempty"`
 	Version                   int                 `json:"Version"`
 }
