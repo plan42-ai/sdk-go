@@ -440,6 +440,26 @@ func TestDownloadFromPresignedURLReturnsErrorForFailureStatus(t *testing.T) {
 	require.EqualError(t, err, "s3 download failed with status 403: denied")
 }
 
+func TestDownloadToPathPreservesExistingFileOnFailure(t *testing.T) {
+	t.Parallel()
+
+	downloadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("denied"))
+	}))
+	defer downloadServer.Close()
+
+	outputPath := filepath.Join(t.TempDir(), "existing.txt")
+	require.NoError(t, os.WriteFile(outputPath, []byte("keep me"), 0o600))
+
+	err := downloadToPath(context.Background(), downloadServer.Client(), downloadServer.URL, outputPath)
+	require.EqualError(t, err, "s3 download failed with status 403: denied")
+
+	data, readErr := os.ReadFile(outputPath)
+	require.NoError(t, readErr)
+	require.Equal(t, "keep me", string(data))
+}
+
 func TestUploadFileOptionsRunRejectsFeatureFlagsFromStdinWhenUploadingFromStdin(t *testing.T) {
 	t.Parallel()
 

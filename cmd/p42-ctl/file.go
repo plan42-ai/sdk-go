@@ -127,18 +127,14 @@ func (o *DownloadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 
-	writer, closeWriter, err := createDownloadWriter(outputPath)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if closeWriter != nil {
-			_ = closeWriter()
+	if writeToStdout {
+		if err := downloadFromPresignedURL(ctx, downloadHTTPClient, downloadURL.DownloadURL, os.Stdout); err != nil {
+			return err
 		}
-	}()
-
-	if err := downloadFromPresignedURL(ctx, downloadHTTPClient, downloadURL.DownloadURL, writer); err != nil {
-		return err
+	} else {
+		if err := downloadToPath(ctx, downloadHTTPClient, downloadURL.DownloadURL, outputPath); err != nil {
+			return err
+		}
 	}
 
 	if !writeToStdout {
@@ -168,17 +164,32 @@ func resolveDownloadOutputPath(fileName string, output *string) (string, error) 
 	return fileName, nil
 }
 
-func createDownloadWriter(outputPath string) (io.Writer, func() error, error) {
-	if outputPath == "-" {
-		return os.Stdout, nil, nil
-	}
-
-	file, err := os.Create(outputPath)
+func downloadToPath(ctx context.Context, client *http.Client, downloadURL string, outputPath string) error {
+	dir := filepath.Dir(outputPath)
+	tmpFile, err := os.CreateTemp(dir, ".p42-download-*")
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
+	tmpPath := tmpFile.Name()
+	cleanupTmp := true
+	defer func() {
+		_ = tmpFile.Close()
+		if cleanupTmp {
+			_ = os.Remove(tmpPath)
+		}
+	}()
 
-	return file, file.Close, nil
+	if err := downloadFromPresignedURL(ctx, client, downloadURL, tmpFile); err != nil {
+		return err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpPath, outputPath); err != nil {
+		return err
+	}
+	cleanupTmp = false
+	return nil
 }
 
 func downloadFromPresignedURL(ctx context.Context, client *http.Client, downloadURL string, writer io.Writer) error {
