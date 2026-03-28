@@ -751,6 +751,11 @@ func (r *DeleteWorkstreamTaskRequest) GetField(name string) (any, bool) {
 	}
 }
 
+// GetVersion returns the expected version for optimistic concurrency control.
+func (r *DeleteWorkstreamTaskRequest) GetVersion() int {
+	return r.Version
+}
+
 // DeleteWorkstreamTask deletes a task from a workstream.
 // nolint: dupl
 func (c *Client) DeleteWorkstreamTask(ctx context.Context, req *DeleteWorkstreamTaskRequest) error {
@@ -869,6 +874,11 @@ func (r *UpdateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 	default:
 		return nil, false
 	}
+}
+
+// GetVersion returns the expected version for optimistic concurrency control.
+func (r *UpdateWorkstreamTaskRequest) GetVersion() int {
+	return r.Version
 }
 
 // UpdateWorkstreamTask updates an existing workstream task.
