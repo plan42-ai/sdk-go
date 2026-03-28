@@ -337,6 +337,7 @@ type UpdateFileRequest struct {
 	IsMalicious        *bool               `json:"IsMalicious,omitempty"`
 	ModerationScanInfo *ModerationScanInfo `json:"ModerationScanInfo,omitempty"`
 	ContentType        *string             `json:"ContentType,omitempty"`
+	RejectionReason    *string             `json:"RejectionReason,omitempty"`
 }
 
 func (r *UpdateFileRequest) GetVersion() int {
@@ -344,7 +345,7 @@ func (r *UpdateFileRequest) GetVersion() int {
 }
 
 func (r *UpdateFileRequest) IsEmptyUpdate() bool {
-	return r.IsMalicious == nil && r.ModerationScanInfo == nil && r.ContentType == nil
+	return r.IsMalicious == nil && r.ModerationScanInfo == nil && r.ContentType == nil && r.RejectionReason == nil
 }
 
 // GetField retrieves the value of a field by name.
@@ -363,6 +364,8 @@ func (r *UpdateFileRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.ModerationScanInfo)
 	case "ContentType":
 		return EvalNullable(r.ContentType)
+	case "RejectionReason":
+		return EvalNullable(r.RejectionReason)
 	default:
 		return nil, false
 	}

@@ -5692,6 +5692,7 @@ The GetDownloadUrl API returns a presigned S3 URL that can be used to download f
 2. The file object was created < 35 days ago (i.e. the S3 upload has not yet been deleted).
 3. A malware scan has been completed, and the file is not flagged as malicious.
 4. A moderation scan has completed, and the file is not flagged as violating content policies.
+5. The file has not been rejected due to an unsupported mime type.
 
 The returned URL is valid for 1 hour and 5 mins from the time of the request.
 
@@ -5780,11 +5781,13 @@ Content-Type: application/json; charset=utf-8
      "IsMalicious": *bool,
      "MalwareScanCompletedAt": "*string",
      "ModerationScanInfo": {},
-     "ModerationScanCompletedAt": *string,
-     "UpdatedAt": "*string",
-     "ContentType" : "*string",
-     "Version": int
-  }],
+	     "ModerationScanCompletedAt": *string,
+	     "UpdatedAt": "*string",
+	     "ContentType" : "*string",
+	     "RejectionReason": "*string",
+	     "RejectedAt": "*string",
+	     "Version": int
+	  }],
   "NextToken": "*string"
 }
 ```
@@ -5811,6 +5814,8 @@ FileMetadata objects describe metadata for a file object.
 | ModerationScanInfo        | [*ModerationScanInfo](#1044-moderation-scan-info) | The response from the content moderation scan. Will be null if the scan has not completed yet.                    |
 | UpdatedAt                 | * string                                          | The timestamp when the file object was last modified.                                                             |
 | ContentType               | *string                                           | The file's mime type.                                                                                             |
+| RejectionReason           | *string                                           | The reason the file was rejected. Will be null if the file has not been rejected.                                 |
+| RejectedAt                | *string                                           | The timestamp when the file was rejected. Will be null if the file has not been rejected.                         |
 | Version                   | int                                               | The version number of the file object                                                                             |
 
 ## 104.4 ModerationScanInfo
@@ -5905,11 +5910,13 @@ Content-Type: application/json; charset=utf-8
   "IsMalicious": *bool,
   "MalwareScanCompletedAt": "*string",
   "ModerationScanInfo": {},
-  "ModerationScanCompletedAt": *string,
-  "UpdatedAt": "*string",
-  "ContentType" : "*string",
-  "Version": int
-}
+	  "ModerationScanCompletedAt": *string,
+	  "UpdatedAt": "*string",
+	  "ContentType" : "*string",
+	  "RejectionReason": "*string",
+	  "RejectedAt": "*string",
+	  "Version": int
+	}
 ```
 
 See [FileMetadata](#1043-file) for more info on the response.
@@ -5930,10 +5937,11 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 If-Match: <version>
 
 {
-  "IsMalicious": *bool,
-  "ModerationScanInfo": *ModerationScanInfo,
-  "ContentType" : *string,
-}
+	  "IsMalicious": *bool,
+	  "ModerationScanInfo": *ModerationScanInfo,
+	  "ContentType" : *string,
+	  "RejectionReason": *string,
+	}
 ```
 
 | Parameter                      | Location | Type                | Description                                                                                                                                          |
@@ -5946,6 +5954,7 @@ If-Match: <version>
 | IsMalicious                    | body     | *bool               | Optiopnal. When set marks the file as malicious or non-malicious. Cannot be modified once set.                                                       |
 | ModerationScanInfo             | body     | *ModerationScanInfo | Optional. Sets the results of a moderations can. Cannot be modified once set.                                                                        |
 | ContentType                    | body     | *string             | Optional. Sets the file's mime type. This is set by a lambda, using libmagic, after the file's malware scan has completed.                           |
+| RejectionReason                | body     | *string             | Optional. Sets the reason the file was rejected. This is set by a lambda when the detected mime type is not supported. Cannot be modified once set. |
 
 ## 107.2 Response
 
