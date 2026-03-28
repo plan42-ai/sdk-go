@@ -42,13 +42,14 @@ type CommitInfo struct {
 type CreateTurnRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID       string          `json:"-"`
-	TaskID         string          `json:"-"`
-	TurnIndex      int             `json:"-"`
-	TaskVersion    int             `json:"-"`
-	Prompt         string          `json:"Prompt"`
-	ReasoningLevel *ReasoningLevel `json:"ReasoningLevel,omitempty"`
-	WorkstreamID   *string         `json:"WorkstreamID,omitempty"`
+	TenantID          string          `json:"-"`
+	TaskID            string          `json:"-"`
+	TurnIndex         int             `json:"-"`
+	TaskVersion       int             `json:"-"`
+	Prompt            string          `json:"Prompt"`
+	ReasoningLevel    *ReasoningLevel `json:"ReasoningLevel,omitempty"`
+	WorkstreamID      *string         `json:"WorkstreamID,omitempty"`
+	AdditionalFileIDs []string        `json:"AdditionalFileIDs,omitempty"`
 }
 
 // nolint: goconst
@@ -68,6 +69,8 @@ func (c *CreateTurnRequest) GetField(name string) (any, bool) {
 		return EvalNullable(c.ReasoningLevel)
 	case "WorkstreamID":
 		return EvalNullable(c.WorkstreamID)
+	case "AdditionalFileIDs":
+		return c.AdditionalFileIDs, true
 	default:
 		return nil, false
 	}
