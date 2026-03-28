@@ -3994,9 +3994,10 @@ func TestCreateTask(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&reqBody)
 			require.NoError(t, err)
 			require.Equal(t, "title", reqBody.Title)
+			require.Equal(t, []string{"file-1", "file-2"}, reqBody.FileIDs)
 
 			w.WriteHeader(http.StatusCreated)
-			resp := p42.Task{TenantID: "abc", TaskID: "task"}
+			resp := p42.Task{TenantID: "abc", TaskID: "task", FileIDs: []string{"file-1", "file-2"}, NewFileIDs: []string{"file-1", "file-2"}}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -4015,10 +4016,13 @@ func TestCreateTask(t *testing.T) {
 			Prompt:        "do",
 			Model:         &model,
 			RepoInfo:      map[string]*p42.RepoInfo{},
+			FileIDs:       []string{"file-1", "file-2"},
 		},
 	)
 	require.NoError(t, err)
 	require.Equal(t, "task", task.TaskID)
+	require.Equal(t, []string{"file-1", "file-2"}, task.FileIDs)
+	require.Equal(t, []string{"file-1", "file-2"}, task.NewFileIDs)
 }
 
 func TestCreateWorkstreamTask(t *testing.T) {
@@ -4050,9 +4054,10 @@ func TestCreateWorkstreamTask(t *testing.T) {
 			require.NotNil(t, repo)
 			require.Equal(t, "feature", repo.FeatureBranch)
 			require.Equal(t, "main", repo.TargetBranch)
+			require.Equal(t, []string{"file-1", "file-2"}, reqBody.FileIDs)
 
 			w.WriteHeader(http.StatusCreated)
-			resp := p42.Task{TenantID: "abc", TaskID: "task"}
+			resp := p42.Task{TenantID: "abc", TaskID: "task", FileIDs: []string{"file-1", "file-2"}, NewFileIDs: []string{"file-1", "file-2"}}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -4081,11 +4086,14 @@ func TestCreateWorkstreamTask(t *testing.T) {
 					TargetBranch:  "main",
 				},
 			},
-			State: &state,
+			FileIDs: []string{"file-1", "file-2"},
+			State:   &state,
 		},
 	)
 	require.NoError(t, err)
 	require.Equal(t, "task", task.TaskID)
+	require.Equal(t, []string{"file-1", "file-2"}, task.FileIDs)
+	require.Equal(t, []string{"file-1", "file-2"}, task.NewFileIDs)
 }
 
 func TestCreateWorkstreamTaskError(t *testing.T) {
@@ -4199,6 +4207,8 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 			require.Equal(t, "main", repo.TargetBranch)
 			require.NotNil(t, reqBody.State)
 			require.Equal(t, p42.TaskStateExecuting, *reqBody.State)
+			require.NotNil(t, reqBody.NewFileIDs)
+			require.Equal(t, []string{"file-3", "file-4"}, *reqBody.NewFileIDs)
 			require.NotNil(t, reqBody.BeforeTaskID)
 			require.Equal(t, "before", *reqBody.BeforeTaskID)
 			require.Nil(t, reqBody.AfterTaskID)
@@ -4206,7 +4216,7 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 			require.True(t, *reqBody.Deleted)
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.Task{TenantID: "abc", TaskID: "task"}
+			resp := p42.Task{TenantID: "abc", TaskID: "task", FileIDs: []string{"file-1", "file-2", "file-3", "file-4"}, NewFileIDs: []string{"file-3", "file-4"}}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -4228,6 +4238,7 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 	}
 	state := p42.TaskStateExecuting
 	before := util.Pointer("before")
+	newFileIDs := []string{"file-3", "file-4"}
 	deleted := true
 
 	task, err := client.UpdateWorkstreamTask(
@@ -4244,6 +4255,7 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 			AssignedToTenantID: util.Pointer("tenant-b"),
 			AssignedToAI:       util.Pointer(assignedToAI),
 			RepoInfo:           &repoInfo,
+			NewFileIDs:         &newFileIDs,
 			State:              &state,
 			BeforeTaskID:       before,
 			Deleted:            &deleted,
@@ -4251,6 +4263,8 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Equal(t, "task", task.TaskID)
+	require.Equal(t, []string{"file-1", "file-2", "file-3", "file-4"}, task.FileIDs)
+	require.Equal(t, []string{"file-3", "file-4"}, task.NewFileIDs)
 }
 
 func TestUpdateWorkstreamTaskError(t *testing.T) {
@@ -4881,9 +4895,11 @@ func TestUpdateTask(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, reqBody.Title)
 			require.Equal(t, taskTitle, *reqBody.Title)
+			require.NotNil(t, reqBody.NewFileIDs)
+			require.Equal(t, []string{"file-3", "file-4"}, *reqBody.NewFileIDs)
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.Task{TenantID: "abc", TaskID: "task"}
+			resp := p42.Task{TenantID: "abc", TaskID: "task", FileIDs: []string{"file-1", "file-2", "file-3", "file-4"}, NewFileIDs: []string{"file-3", "file-4"}}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -4892,12 +4908,15 @@ func TestUpdateTask(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
+	newFileIDs := []string{"file-3", "file-4"}
 	task, err := client.UpdateTask(
 		context.Background(),
-		&p42.UpdateTaskRequest{TenantID: "abc", TaskID: "task", Version: 1, Title: util.Pointer(taskTitle)},
+		&p42.UpdateTaskRequest{TenantID: "abc", TaskID: "task", Version: 1, Title: util.Pointer(taskTitle), NewFileIDs: &newFileIDs},
 	)
 	require.NoError(t, err)
 	require.Equal(t, "task", task.TaskID)
+	require.Equal(t, []string{"file-1", "file-2", "file-3", "file-4"}, task.FileIDs)
+	require.Equal(t, []string{"file-3", "file-4"}, task.NewFileIDs)
 }
 
 func TestUpdateTaskWithRepoStatus(t *testing.T) {
@@ -5020,6 +5039,7 @@ func TestCreateTurn(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, "prompt", reqBody.Prompt)
 			require.Equal(t, util.Pointer("ws"), reqBody.WorkstreamID)
+			require.Equal(t, []string{"file-3", "file-4"}, reqBody.AdditionalFileIDs)
 
 			w.WriteHeader(http.StatusCreated)
 			resp := p42.Turn{TenantID: "abc", TaskID: "task1", TurnIndex: 1}
@@ -5033,7 +5053,7 @@ func TestCreateTurn(t *testing.T) {
 	client := p42.NewClient(srv.URL)
 	turn, err := client.CreateTurn(
 		context.Background(),
-		&p42.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, Prompt: "prompt", TaskVersion: 1, WorkstreamID: util.Pointer("ws")},
+		&p42.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, Prompt: "prompt", TaskVersion: 1, WorkstreamID: util.Pointer("ws"), AdditionalFileIDs: []string{"file-3", "file-4"}},
 	)
 	require.NoError(t, err)
 	require.Equal(t, 1, turn.TurnIndex)
