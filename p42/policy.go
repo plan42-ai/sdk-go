@@ -189,6 +189,7 @@ const (
 	ActionDeleteFile                   Action = "DeleteFile"
 	ActionUpdateFile                   Action = "UpdateFile"
 	ActionGetFile                      Action = "GetFile"
+	ActionGetDefaultBranches           Action = "GetDefaultBranches"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -530,6 +531,7 @@ func init() {
 			ActionDeleteFile,                   // (0x0000_0000_8000_0000, 0)
 			ActionUpdateFile,                   // (0x0000_0001_0000_0000, 0)
 			ActionGetFile,                      // (0x0000_0002_0000_0000, 0)
+			ActionGetDefaultBranches,           // (0x0000_0004_0000_0000, 0)
 
 		},
 		ActionBitVector{
