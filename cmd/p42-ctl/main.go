@@ -307,6 +307,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.File.List.Run(options.Ctx, &options.SharedOptions)
 	case "file get":
 		return options.File.Get.Run(options.Ctx, &options.SharedOptions)
+	case "file download":
+		return options.File.Download.Run(options.Ctx, &options.SharedOptions)
 	case "file upload", "file upload <files>":
 		return options.File.Upload.Run(options.Ctx, &options.SharedOptions)
 	default:

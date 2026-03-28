@@ -18,9 +18,10 @@ import (
 )
 
 type FileOptions struct {
-	List   ListFileOptions   `cmd:"" help:"List files owned by a tenant."`
-	Get    GetFileOptions    `cmd:"" help:"Fetch metadata for a tenant-owned file."`
-	Upload UploadFileOptions `cmd:"" help:"Upload one or more files for a tenant."`
+	List     ListFileOptions     `cmd:"" help:"List files owned by a tenant."`
+	Get      GetFileOptions      `cmd:"" help:"Fetch metadata for a tenant-owned file."`
+	Download DownloadFileOptions `cmd:"" help:"Download a tenant-owned file."`
+	Upload   UploadFileOptions   `cmd:"" help:"Upload one or more files for a tenant."`
 }
 
 type ListFileOptions struct {
@@ -80,6 +81,148 @@ func (o *GetFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 
 	return printJSON(file)
+}
+
+type DownloadFileOptions struct {
+	TenantID string  `help:"The id of the tenant that owns the file to download." name:"tenant-id" short:"i" required:""`
+	FileID   string  `help:"The id of the file to download." name:"file-id" short:"f" required:""`
+	Output   *string `help:"The output file path. Use '-' to write to stdout. Defaults to the file name." name:"output" short:"o"`
+}
+
+var downloadHTTPClient = http.DefaultClient
+
+func (o *DownloadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
+	var flags p42.FeatureFlags
+	if err := loadFeatureFlags(s, &flags); err != nil {
+		return err
+	}
+
+	getReq := &p42.GetFileRequest{
+		TenantID: o.TenantID,
+		FileID:   o.FileID,
+	}
+	getReq.FeatureFlags = flags
+	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
+
+	file, err := s.Client.GetFile(ctx, getReq)
+	if err != nil {
+		return err
+	}
+
+	downloadReq := &p42.GetDownloadURLRequest{
+		TenantID: o.TenantID,
+		FileID:   o.FileID,
+	}
+	downloadReq.FeatureFlags = flags
+	processDelegatedAuth(s, &downloadReq.DelegatedAuthInfo)
+
+	downloadURL, err := s.Client.GetDownloadURL(ctx, downloadReq)
+	if err != nil {
+		return err
+	}
+
+	writeToStdout := o.Output != nil && *o.Output == "-"
+	outputPath, err := resolveDownloadOutputPath(file.Name, o.Output)
+	if err != nil {
+		return err
+	}
+
+	if writeToStdout {
+		if err := downloadFromPresignedURL(ctx, downloadHTTPClient, downloadURL.DownloadURL, os.Stdout); err != nil {
+			return err
+		}
+	} else {
+		if err := downloadToPath(ctx, downloadHTTPClient, downloadURL.DownloadURL, outputPath); err != nil {
+			return err
+		}
+	}
+
+	if !writeToStdout {
+		_, err = fmt.Fprintf(os.Stderr, "downloaded file %s to %s\n", file.FileID, outputPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func resolveDownloadOutputPath(fileName string, output *string) (string, error) {
+	if output != nil {
+		return *output, nil
+	}
+
+	if fileName == "" {
+		return "", fmt.Errorf("file name is empty")
+	}
+
+	baseName := filepath.Base(fileName)
+	if baseName == "." || baseName == string(filepath.Separator) || baseName != fileName {
+		return "", fmt.Errorf("invalid default output file name %q", fileName)
+	}
+
+	return fileName, nil
+}
+
+func downloadToPath(ctx context.Context, client *http.Client, downloadURL string, outputPath string) error {
+	dir := filepath.Dir(outputPath)
+	tmpFile, err := os.CreateTemp(dir, ".p42-download-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmpFile.Name()
+	cleanupTmp := true
+	defer func() {
+		_ = tmpFile.Close()
+		if cleanupTmp {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+
+	if err := downloadFromPresignedURL(ctx, client, downloadURL, tmpFile); err != nil {
+		return err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpPath, outputPath); err != nil {
+		return err
+	}
+	cleanupTmp = false
+	return nil
+}
+
+func downloadFromPresignedURL(ctx context.Context, client *http.Client, downloadURL string, writer io.Writer) error {
+	if client == nil {
+		client = http.DefaultClient
+	}
+	if writer == nil {
+		return fmt.Errorf("writer is nil")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		if readErr != nil {
+			return fmt.Errorf("s3 download failed with status %d (failed to read response body: %w)", resp.StatusCode, readErr)
+		}
+		return fmt.Errorf("s3 download failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	_, err = io.Copy(writer, resp.Body)
+	return err
 }
 
 type UploadFileOptions struct {

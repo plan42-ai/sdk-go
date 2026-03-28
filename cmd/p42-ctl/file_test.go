@@ -15,10 +15,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	fileMetadataPath    = "/v1/tenants/tenant/files/file-123"
+	fileDownloadURLPath = "/v1/tenants/tenant/files/file-123/download-url"
+)
+
 func TestGetFileOptionsRun(t *testing.T) {
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
-		require.Equal(t, "/v1/tenants/tenant/files/file-123", r.URL.Path)
+		require.Equal(t, fileMetadataPath, r.URL.Path)
 
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"test.txt","Size":5,"Version":2}`))
@@ -44,6 +49,235 @@ func TestGetFileOptionsRun(t *testing.T) {
 	require.Contains(t, output, `"Name": "test.txt"`)
 	require.Contains(t, output, `"Size": 5`)
 	require.Contains(t, output, `"Version": 2`)
+}
+
+func TestDownloadFileOptionsRunWritesToSpecifiedPath(t *testing.T) {
+	t.Parallel()
+
+	downloadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		_, _ = w.Write([]byte("hello world"))
+	}))
+	defer downloadServer.Close()
+
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case fileMetadataPath:
+			require.Equal(t, http.MethodGet, r.Method)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"test.txt","Size":11,"Version":2}`))
+		case fileDownloadURLPath:
+			require.Equal(t, http.MethodGet, r.Method)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"test.txt","DownloadURL":"` + downloadServer.URL + `"}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer apiServer.Close()
+
+	tmpDir := t.TempDir()
+	outputPath := filepath.Join(tmpDir, "custom.txt")
+
+	originalClient := downloadHTTPClient
+	downloadHTTPClient = downloadServer.Client()
+	t.Cleanup(func() { downloadHTTPClient = originalClient })
+
+	originalStderr := os.Stderr
+	stderrReader, stderrWriter, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stderr = stderrWriter
+	t.Cleanup(func() { os.Stderr = originalStderr })
+
+	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123", Output: &outputPath}
+	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
+	require.NoError(t, stderrWriter.Close())
+	stderrBytes, readErr := io.ReadAll(stderrReader)
+	require.NoError(t, readErr)
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(outputPath)
+	require.NoError(t, err)
+	require.Equal(t, "hello world", string(data))
+	require.Equal(t, "downloaded file file-123 to "+outputPath+"\n", string(stderrBytes))
+}
+
+func TestDownloadFileOptionsRunUsesDefaultFileName(t *testing.T) {
+	downloadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		_, _ = w.Write([]byte("default name"))
+	}))
+	defer downloadServer.Close()
+
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case fileMetadataPath:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"downloaded.txt","Size":12,"Version":2}`))
+		case fileDownloadURLPath:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"downloaded.txt","DownloadURL":"` + downloadServer.URL + `"}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer apiServer.Close()
+
+	originalClient := downloadHTTPClient
+	downloadHTTPClient = downloadServer.Client()
+	t.Cleanup(func() { downloadHTTPClient = originalClient })
+
+	originalStderr := os.Stderr
+	stderrReader, stderrWriter, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stderr = stderrWriter
+	t.Cleanup(func() { os.Stderr = originalStderr })
+
+	workingDir := t.TempDir()
+	originalWD, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(workingDir))
+	t.Cleanup(func() { _ = os.Chdir(originalWD) })
+
+	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123"}
+	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
+	require.NoError(t, stderrWriter.Close())
+	stderrBytes, readErr := io.ReadAll(stderrReader)
+	require.NoError(t, readErr)
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(workingDir, "downloaded.txt"))
+	require.NoError(t, err)
+	require.Equal(t, "default name", string(data))
+	require.Equal(t, "downloaded file file-123 to downloaded.txt\n", string(stderrBytes))
+}
+
+func TestDownloadFileOptionsRunWritesToStdout(t *testing.T) {
+	downloadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		_, _ = w.Write([]byte("streamed"))
+	}))
+	defer downloadServer.Close()
+
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case fileMetadataPath:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"ignored.txt","Size":8,"Version":2}`))
+		case fileDownloadURLPath:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"ignored.txt","DownloadURL":"` + downloadServer.URL + `"}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer apiServer.Close()
+
+	originalClient := downloadHTTPClient
+	downloadHTTPClient = downloadServer.Client()
+	t.Cleanup(func() { downloadHTTPClient = originalClient })
+
+	originalStdout := os.Stdout
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = stdoutWriter
+	t.Cleanup(func() { os.Stdout = originalStdout })
+
+	originalStderr := os.Stderr
+	stderrReader, stderrWriter, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stderr = stderrWriter
+	t.Cleanup(func() { os.Stderr = originalStderr })
+
+	stdoutFlag := "-"
+	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123", Output: &stdoutFlag}
+	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
+	require.NoError(t, stdoutWriter.Close())
+	require.NoError(t, stderrWriter.Close())
+	stdoutBytes, readErr := io.ReadAll(stdoutReader)
+	require.NoError(t, readErr)
+	stderrBytes, readErr := io.ReadAll(stderrReader)
+	require.NoError(t, readErr)
+
+	require.NoError(t, err)
+	require.Equal(t, "streamed", string(stdoutBytes))
+	require.Empty(t, string(stderrBytes))
+}
+
+func TestDownloadFileOptionsRunTreatsMetadataDashAsFileName(t *testing.T) {
+	downloadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodGet, r.Method)
+		_, _ = w.Write([]byte("dash file"))
+	}))
+	defer downloadServer.Close()
+
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case fileMetadataPath:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"-","Size":9,"Version":2}`))
+		case fileDownloadURLPath:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"-","DownloadURL":"` + downloadServer.URL + `"}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer apiServer.Close()
+
+	originalClient := downloadHTTPClient
+	downloadHTTPClient = downloadServer.Client()
+	t.Cleanup(func() { downloadHTTPClient = originalClient })
+
+	originalStdout := os.Stdout
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stdout = stdoutWriter
+	t.Cleanup(func() { os.Stdout = originalStdout })
+
+	originalStderr := os.Stderr
+	stderrReader, stderrWriter, err := os.Pipe()
+	require.NoError(t, err)
+	os.Stderr = stderrWriter
+	t.Cleanup(func() { os.Stderr = originalStderr })
+
+	outputPath := filepath.Join(t.TempDir(), "-")
+	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123", Output: &outputPath}
+
+	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
+	require.NoError(t, stdoutWriter.Close())
+	require.NoError(t, stderrWriter.Close())
+	stdoutBytes, readErr := io.ReadAll(stdoutReader)
+	require.NoError(t, readErr)
+	stderrBytes, readErr := io.ReadAll(stderrReader)
+	require.NoError(t, readErr)
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(outputPath)
+	require.NoError(t, err)
+	require.Equal(t, "dash file", string(data))
+	require.Empty(t, string(stdoutBytes))
+	require.Equal(t, "downloaded file file-123 to "+outputPath+"\n", string(stderrBytes))
+}
+
+func TestDownloadFileOptionsRunRejectsPathTraversalDefaultName(t *testing.T) {
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case fileMetadataPath:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"../secret.txt","Size":9,"Version":2}`))
+		case fileDownloadURLPath:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"../secret.txt","DownloadURL":"http://example.com/download"}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer apiServer.Close()
+
+	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123"}
+	err := opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
+	require.EqualError(t, err, `invalid default output file name "../secret.txt"`)
 }
 
 func TestListFileOptionsRun(t *testing.T) {
@@ -191,6 +425,39 @@ func TestUploadToPresignedURLReturnsErrorForFailureStatus(t *testing.T) {
 
 	err := uploadToPresignedURL(context.Background(), http.DefaultClient, uploadServer.URL, http.NoBody, 0)
 	require.EqualError(t, err, "s3 upload failed with status 412: already exists")
+}
+
+func TestDownloadFromPresignedURLReturnsErrorForFailureStatus(t *testing.T) {
+	t.Parallel()
+
+	downloadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("denied"))
+	}))
+	defer downloadServer.Close()
+
+	err := downloadFromPresignedURL(context.Background(), downloadServer.Client(), downloadServer.URL, io.Discard)
+	require.EqualError(t, err, "s3 download failed with status 403: denied")
+}
+
+func TestDownloadToPathPreservesExistingFileOnFailure(t *testing.T) {
+	t.Parallel()
+
+	downloadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("denied"))
+	}))
+	defer downloadServer.Close()
+
+	outputPath := filepath.Join(t.TempDir(), "existing.txt")
+	require.NoError(t, os.WriteFile(outputPath, []byte("keep me"), 0o600))
+
+	err := downloadToPath(context.Background(), downloadServer.Client(), downloadServer.URL, outputPath)
+	require.EqualError(t, err, "s3 download failed with status 403: denied")
+
+	data, readErr := os.ReadFile(outputPath)
+	require.NoError(t, readErr)
+	require.Equal(t, "keep me", string(data))
 }
 
 func TestUploadFileOptionsRunRejectsFeatureFlagsFromStdinWhenUploadingFromStdin(t *testing.T) {
