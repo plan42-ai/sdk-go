@@ -4029,7 +4029,7 @@ func TestCreateTask(t *testing.T) {
 			require.Equal(t, []string{"file-1", "file-2"}, reqBody.FileIDs)
 
 			w.WriteHeader(http.StatusCreated)
-			resp := p42.Task{TenantID: "abc", TaskID: "task"}
+			resp := p42.Task{TenantID: "abc", TaskID: "task", FileIDs: []string{"file-1", "file-2"}, NewFileIDs: &[]string{"file-1", "file-2"}}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -4053,6 +4053,9 @@ func TestCreateTask(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Equal(t, "task", task.TaskID)
+	require.Equal(t, []string{"file-1", "file-2"}, task.FileIDs)
+	require.NotNil(t, task.NewFileIDs)
+	require.Equal(t, []string{"file-1", "file-2"}, *task.NewFileIDs)
 }
 
 func TestCreateWorkstreamTask(t *testing.T) {
@@ -4087,7 +4090,7 @@ func TestCreateWorkstreamTask(t *testing.T) {
 			require.Equal(t, "main", repo.TargetBranch)
 
 			w.WriteHeader(http.StatusCreated)
-			resp := p42.Task{TenantID: "abc", TaskID: "task"}
+			resp := p42.Task{TenantID: "abc", TaskID: "task", FileIDs: []string{"file-1", "file-2"}, NewFileIDs: &[]string{"file-1", "file-2"}}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -4122,6 +4125,9 @@ func TestCreateWorkstreamTask(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Equal(t, "task", task.TaskID)
+	require.Equal(t, []string{"file-1", "file-2"}, task.FileIDs)
+	require.NotNil(t, task.NewFileIDs)
+	require.Equal(t, []string{"file-1", "file-2"}, *task.NewFileIDs)
 }
 
 func TestCreateWorkstreamTaskError(t *testing.T) {
@@ -4246,7 +4252,7 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 			require.Equal(t, []string{"file-3"}, *reqBody.RemoveFileIDs)
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.Task{TenantID: "abc", TaskID: "task"}
+			resp := p42.Task{TenantID: "abc", TaskID: "task", FileIDs: []string{"file-1", "file-2"}, NewFileIDs: &[]string{"file-1", "file-2"}}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -4295,6 +4301,9 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Equal(t, "task", task.TaskID)
+	require.Equal(t, []string{"file-1", "file-2"}, task.FileIDs)
+	require.NotNil(t, task.NewFileIDs)
+	require.Equal(t, []string{"file-1", "file-2"}, *task.NewFileIDs)
 }
 
 func TestUpdateWorkstreamTaskError(t *testing.T) {
