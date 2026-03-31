@@ -112,11 +112,13 @@ func (c *Client) CreateFile(ctx context.Context, req *CreateFileRequest) (*Creat
 
 // DownloadURL contains a presigned URL for downloading a file.
 type DownloadURL struct {
-	TenantID    string    `json:"TenantID"`
-	FileID      string    `json:"FileID"`
-	Name        string    `json:"Name"`
-	CreatedAt   time.Time `json:"CreatedAt"`
-	DownloadURL string    `json:"DownloadURL"`
+	TenantID             string    `json:"TenantID"`
+	FileID               string    `json:"FileID"`
+	Name                 string    `json:"Name"`
+	CreatedAt            time.Time `json:"CreatedAt"`
+	DownloadURL          string    `json:"DownloadURL"`
+	DownloadURLExpiresAt time.Time `json:"DownloadURLExpiresAt"`
+	ContentType          string    `json:"ContentType"`
 }
 
 // GetDownloadURLRequest is the request payload for GetDownloadURL.
