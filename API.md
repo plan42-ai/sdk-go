@@ -5782,17 +5782,20 @@ Content-Type: application/json; charset=utf-8
   "Name": "string",
   "CreatedAt": "string"
   "DownloadURL": "string",
-  
+  "DownloadURLExpiresAt": "string",
+  "ContentType" : "string",  
 }
 ```
 
-| Field       | Type   | Description                                                                                               |
-|-------------|--------|-----------------------------------------------------------------------------------------------------------|
-| TenantID    | string | The ID of the tenant that owns the file.                                                                  |
-| FileID      | string | The unique ID of the file.                                                                                |
-| Name        | string | The name of the file.                                                                                     |
-| CreatedAt   | string | The timestamp when the file object was created.                                                           |
-| DownloadURL | string | A presigned S3 URL that can be used to download the file content. The URL is valid for 1 hour and 5 mins. |
+| Field                | Type   | Description                                                                                               |
+|----------------------|--------|-----------------------------------------------------------------------------------------------------------|
+| TenantID             | string | The ID of the tenant that owns the file.                                                                  |
+| FileID               | string | The unique ID of the file.                                                                                |
+| Name                 | string | The name of the file.                                                                                     |
+| CreatedAt            | string | The timestamp when the file object was created.                                                           |
+| DownloadURL          | string | A presigned S3 URL that can be used to download the file content. The URL is valid for 1 hour and 5 mins. |
+| DownloadURLExpiresAt | string | The timestamp when the download URL expires.                                                              |
+| ContentType          | string | The file's content type.                                                                                  |
 
 # 104. ListFiles 
 
