@@ -3672,7 +3672,7 @@ the order of tasks use the UpdateWorkstreamTask API and set one of the BeforeTas
 ## 61.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks?maxResults={maxResults}&token={token}&afterTaskId={afterTaskId}&includeDeleted={includeDeleted}&taskNumber={taskNumber} HTTP/1.1
+GET /v1/tenants/{tenant_id}/workstreams/{workstream_id}/tasks?maxResults={maxResults}&token={token}&afterTaskId={afterTaskId}&beforeTaskId={beforeTaskId}&includeDeleted={includeDeleted}&taskNumber={taskNumber} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -3684,6 +3684,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | tenant_id                                | path     | string  | The ID of the tenant that owns the workstream.                                                                                                                          |
 | workstream_id                            | path     | string  | The ID of the workstream to list tasks for.                                                                                                                             |
 | afterTaskId                              | query    | *string | Optional. When set, returns tasks ordered after the provided task id.                                                                                                   |
+| beforeTaskId                             | query    | *string | Optional. When set, returns tasks ordered before the provided task id, in reverse rank order. Cannot be combined with afterTaskId.                                       |
 | maxResults                               | query    | *int    | Optional. The maximum number of tasks to return. Default is 10. Must be >=1 and <= 500.                                                                                 |
 | token                                    | query    | *string | Optional. A token to retrieve the next page of results. If not provided, the first page of results is returned.                                                         |
 | includeDeleted                           | query    | *bool   | Optional. Set to true to include deleted tasks in the results.                                                                                                          |
