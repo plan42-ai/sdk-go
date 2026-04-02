@@ -30,5 +30,5 @@ func (o *GenerateUITokenOptions) Run(ctx context.Context, s *SharedOptions) erro
 	if err != nil {
 		return err
 	}
-	return printJSON(resp)
+	return printJSON(s.Stdout, resp)
 }

@@ -32,7 +32,7 @@ func (o *ListPoliciesOptions) Run(ctx context.Context, s *SharedOptions) error {
 			return err
 		}
 		for _, pol := range resp.Policies {
-			if err := printJSON(pol); err != nil {
+			if err := printJSON(s.Stdout, pol); err != nil {
 				return err
 			}
 		}

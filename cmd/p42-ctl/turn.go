@@ -70,7 +70,7 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(turn)
+	return printJSON(s.Stdout, turn)
 }
 
 func (o *CreateTurnOptions) getTask(ctx context.Context, s *SharedOptions, featureFlags p42.FeatureFlags) (*p42.Task, error) {
@@ -117,7 +117,7 @@ func (o *ListTurnsOptions) Run(ctx context.Context, s *SharedOptions) error {
 			return err
 		}
 		for _, tr := range resp.Items {
-			if err := printJSON(tr); err != nil {
+			if err := printJSON(s.Stdout, tr); err != nil {
 				return err
 			}
 		}
@@ -174,7 +174,7 @@ func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 type GetTurnOptions struct {
@@ -203,7 +203,7 @@ func (o *GetTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(turn)
+	return printJSON(s.Stdout, turn)
 }
 
 type GetLastTurnOptions struct {
@@ -230,7 +230,7 @@ func (o *GetLastTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(turn)
+	return printJSON(s.Stdout, turn)
 }
 
 type ListActiveTurnsOptions struct {
@@ -285,7 +285,7 @@ func (o *ListActiveTurnsOptions) Run(ctx context.Context, s *SharedOptions) erro
 		}
 
 		for _, turn := range resp.Items {
-			err = printJSON(turn)
+			err = printJSON(s.Stdout, turn)
 			if err != nil {
 				return err
 			}

@@ -49,7 +49,7 @@ func (o *AddFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error
 	if err != nil {
 		return err
 	}
-	return printJSON(flag)
+	return printJSON(s.Stdout, flag)
 }
 
 type ListFeatureFlagsOptions struct {
@@ -77,7 +77,7 @@ func (o *ListFeatureFlagsOptions) Run(ctx context.Context, s *SharedOptions) err
 		}
 
 		for _, flag := range resp.FeatureFlags {
-			if err := printJSON(flag); err != nil {
+			if err := printJSON(s.Stdout, flag); err != nil {
 				return err
 			}
 		}
@@ -114,7 +114,7 @@ func (o *GetFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) error
 	if err != nil {
 		return err
 	}
-	return printJSON(flag)
+	return printJSON(s.Stdout, flag)
 }
 
 type DeleteFeatureFlagOptions struct {
@@ -171,7 +171,7 @@ func (o *UpdateFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) er
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 type GetTenantFeatureFlagsOptions struct {
@@ -189,7 +189,7 @@ func (o *GetTenantFeatureFlagsOptions) Run(ctx context.Context, s *SharedOptions
 	if err != nil {
 		return err
 	}
-	return printJSON(resp)
+	return printJSON(s.Stdout, resp)
 }
 
 type OverrideFeatureFlagOptions struct {
@@ -226,7 +226,7 @@ func (o *OverrideFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) 
 		if err != nil {
 			return err
 		}
-		return printJSON(flag)
+		return printJSON(s.Stdout, flag)
 	}
 
 	updateReq := &p42.UpdateFeatureFlagOverrideRequest{
@@ -246,7 +246,7 @@ func (o *OverrideFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) 
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 type GetFeatureFlagOverrideOptions struct {
@@ -270,7 +270,7 @@ func (o *GetFeatureFlagOverrideOptions) Run(ctx context.Context, s *SharedOption
 	if err != nil {
 		return err
 	}
-	return printJSON(flag)
+	return printJSON(s.Stdout, flag)
 }
 
 type DeleteFeatureFlagOverrideOptions struct {
@@ -326,7 +326,7 @@ func (o *ListFeatureFlagOverridesOptions) Run(ctx context.Context, s *SharedOpti
 			return err
 		}
 		for _, override := range resp.FeatureFlagOverrides {
-			if err := printJSON(override); err != nil {
+			if err := printJSON(s.Stdout, override); err != nil {
 				return err
 			}
 		}

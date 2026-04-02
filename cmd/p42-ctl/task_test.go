@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -38,7 +39,7 @@ func TestSearchTasksOptionsRun(t *testing.T) {
 	defer srv.Close()
 
 	opts := SearchTasksOptions{PullRequestID: 12345}
-	shared := SharedOptions{Client: p42.NewClient(srv.URL)}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.NoError(t, opts.Run(context.Background(), &shared))
 }
@@ -66,7 +67,7 @@ func TestSearchTasksOptionsRunWithTaskID(t *testing.T) {
 	defer srv.Close()
 
 	opts := SearchTasksOptions{TaskID: taskID}
-	shared := SharedOptions{Client: p42.NewClient(srv.URL)}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.NoError(t, opts.Run(context.Background(), &shared))
 }
@@ -102,7 +103,7 @@ func TestSearchTasksOptionsRunWithBody(t *testing.T) {
 		PullRequestID: 42,
 		JSON:          tmpFile.Name(),
 	}
-	shared := SharedOptions{Client: p42.NewClient(srv.URL)}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.NoError(t, opts.Run(context.Background(), &shared))
 }
@@ -111,7 +112,7 @@ func TestSearchTasksOptionsRunWithoutCriteria(t *testing.T) {
 	t.Parallel()
 
 	opts := SearchTasksOptions{}
-	shared := SharedOptions{Client: p42.NewClient("http://example.com")}
+	shared := SharedOptions{Client: p42.NewClient("http://example.com"), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.Error(t, opts.Run(context.Background(), &shared))
 }
@@ -149,7 +150,7 @@ func TestMoveTaskOptionsRun(t *testing.T) {
 		SourceWorkstreamID:      "source",
 		DestinationWorkstreamID: "dest",
 	}
-	shared := SharedOptions{Client: p42.NewClient(srv.URL)}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.NoError(t, opts.Run(context.Background(), &shared))
 }
@@ -171,7 +172,7 @@ func TestGetTaskGithubCredsOptionsRun(t *testing.T) {
 	defer srv.Close()
 
 	opts := GetTaskGithubCredsOptions{TenantID: tenantID, TaskID: taskID}
-	shared := SharedOptions{Client: p42.NewClient(srv.URL), ShowSecrets: true}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL), ShowSecrets: true, Stdout: io.Discard, Stderr: io.Discard}
 
 	require.NoError(t, opts.Run(context.Background(), &shared))
 }
@@ -180,7 +181,7 @@ func TestGetTaskGithubCredsOptionsRunRequiresShowSecrets(t *testing.T) {
 	t.Parallel()
 
 	opts := GetTaskGithubCredsOptions{TenantID: "tenant", TaskID: "task"}
-	shared := SharedOptions{Client: p42.NewClient("http://example.com")}
+	shared := SharedOptions{Client: p42.NewClient("http://example.com"), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.EqualError(t, opts.Run(context.Background(), &shared), "you must specify `-s` when calling get-github-creds")
 }

@@ -43,7 +43,7 @@ func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
 	)
 	defer ls.Close()
 
-	enc := json.NewEncoder(os.Stdout)
+	enc := json.NewEncoder(s.Stdout)
 	enc.SetIndent("", "  ")
 	for log := range ls.Logs() {
 		if err := enc.Encode(log); err != nil {

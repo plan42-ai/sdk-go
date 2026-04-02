@@ -48,7 +48,7 @@ func (o *CreateUserOptions) Run(ctx context.Context, shared *SharedOptions) erro
 	if err != nil {
 		return err
 	}
-	return printJSON(t)
+	return printJSON(shared.Stdout, t)
 }
 
 type GetCurrentUserOptions struct{}
@@ -65,7 +65,7 @@ func (o *GetCurrentUserOptions) Run(ctx context.Context, s *SharedOptions) error
 	if err != nil {
 		return err
 	}
-	return printJSON(t)
+	return printJSON(s.Stdout, t)
 }
 
 type GetTenantOptions struct {
@@ -86,7 +86,7 @@ func (o *GetTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(t)
+	return printJSON(s.Stdout, t)
 }
 
 type GetTenantEncryptionKeyOptions struct {
@@ -108,7 +108,7 @@ func (o *GetTenantEncryptionKeyOptions) Run(ctx context.Context, s *SharedOption
 	if err != nil {
 		return err
 	}
-	return printJSON(key)
+	return printJSON(s.Stdout, key)
 }
 
 type GetLatestTenantEncryptionKeyOptions struct {
@@ -128,7 +128,7 @@ func (o *GetLatestTenantEncryptionKeyOptions) Run(ctx context.Context, s *Shared
 	if err != nil {
 		return err
 	}
-	return printJSON(key)
+	return printJSON(s.Stdout, key)
 }
 
 type ListTenantEncryptionKeysOptions struct {
@@ -156,7 +156,7 @@ func (o *ListTenantEncryptionKeysOptions) Run(ctx context.Context, s *SharedOpti
 		}
 
 		for _, key := range resp.Items {
-			if err := printJSON(key); err != nil {
+			if err := printJSON(s.Stdout, key); err != nil {
 				return err
 			}
 		}
@@ -189,7 +189,7 @@ func (o *ListTenantsOptions) Run(ctx context.Context, s *SharedOptions) error {
 			return err
 		}
 		for _, tenant := range resp.Items {
-			if err := printJSON(tenant); err != nil {
+			if err := printJSON(s.Stdout, tenant); err != nil {
 				return err
 			}
 		}
@@ -234,7 +234,7 @@ func (o *UpdateTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 type RotateTenantEncryptionKeyOptions struct {
@@ -256,5 +256,5 @@ func (o *RotateTenantEncryptionKeyOptions) Run(ctx context.Context, s *SharedOpt
 	if err != nil {
 		return err
 	}
-	return printJSON(resp)
+	return printJSON(s.Stdout, resp)
 }

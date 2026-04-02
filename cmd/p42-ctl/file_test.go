@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,6 +23,8 @@ const (
 )
 
 func TestGetFileOptionsRun(t *testing.T) {
+	t.Parallel()
+
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
 		require.Equal(t, fileMetadataPath, r.URL.Path)
@@ -30,20 +34,11 @@ func TestGetFileOptionsRun(t *testing.T) {
 	}))
 	defer apiServer.Close()
 
-	originalStdout := os.Stdout
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = stdoutWriter
-	t.Cleanup(func() { os.Stdout = originalStdout })
-
+	var stdout bytes.Buffer
 	opts := GetFileOptions{TenantID: "tenant", FileID: "file-123"}
-	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
-	require.NoError(t, stdoutWriter.Close())
-	stdoutBytes, readErr := io.ReadAll(stdoutReader)
-	require.NoError(t, readErr)
-
+	err := opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL), Stdout: &stdout, Stderr: io.Discard})
 	require.NoError(t, err)
-	output := string(stdoutBytes)
+	output := stdout.String()
 	require.Contains(t, output, `"TenantID": "tenant"`)
 	require.Contains(t, output, `"FileID": "file-123"`)
 	require.Contains(t, output, `"Name": "test.txt"`)
@@ -79,27 +74,20 @@ func TestDownloadFileOptionsRunWritesToSpecifiedPath(t *testing.T) {
 	tmpDir := t.TempDir()
 	outputPath := filepath.Join(tmpDir, "custom.txt")
 
-	originalClient := downloadHTTPClient
-	downloadHTTPClient = downloadServer.Client()
-	t.Cleanup(func() { downloadHTTPClient = originalClient })
-
-	originalStderr := os.Stderr
-	stderrReader, stderrWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stderr = stderrWriter
-	t.Cleanup(func() { os.Stderr = originalStderr })
-
+	var stderr bytes.Buffer
 	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123", Output: &outputPath}
-	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
-	require.NoError(t, stderrWriter.Close())
-	stderrBytes, readErr := io.ReadAll(stderrReader)
-	require.NoError(t, readErr)
+	err := opts.Run(context.Background(), &SharedOptions{
+		Client:     p42.NewClient(apiServer.URL),
+		Stdout:     io.Discard,
+		Stderr:     &stderr,
+		HTTPClient: downloadServer.Client(),
+	})
 	require.NoError(t, err)
 
 	data, err := os.ReadFile(outputPath)
 	require.NoError(t, err)
 	require.Equal(t, "hello world", string(data))
-	require.Equal(t, "downloaded file file-123 to "+outputPath+"\n", string(stderrBytes))
+	require.Equal(t, "downloaded file file-123 to "+outputPath+"\n", stderr.String())
 }
 
 func TestDownloadFileOptionsRunUsesDefaultFileName(t *testing.T) {
@@ -123,36 +111,31 @@ func TestDownloadFileOptionsRunUsesDefaultFileName(t *testing.T) {
 	}))
 	defer apiServer.Close()
 
-	originalClient := downloadHTTPClient
-	downloadHTTPClient = downloadServer.Client()
-	t.Cleanup(func() { downloadHTTPClient = originalClient })
-
-	originalStderr := os.Stderr
-	stderrReader, stderrWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stderr = stderrWriter
-	t.Cleanup(func() { os.Stderr = originalStderr })
-
 	workingDir := t.TempDir()
 	originalWD, err := os.Getwd()
 	require.NoError(t, err)
 	require.NoError(t, os.Chdir(workingDir))
 	t.Cleanup(func() { _ = os.Chdir(originalWD) })
 
+	var stderr bytes.Buffer
 	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123"}
-	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
-	require.NoError(t, stderrWriter.Close())
-	stderrBytes, readErr := io.ReadAll(stderrReader)
-	require.NoError(t, readErr)
+	err = opts.Run(context.Background(), &SharedOptions{
+		Client:     p42.NewClient(apiServer.URL),
+		Stdout:     io.Discard,
+		Stderr:     &stderr,
+		HTTPClient: downloadServer.Client(),
+	})
 	require.NoError(t, err)
 
 	data, err := os.ReadFile(filepath.Join(workingDir, "downloaded.txt"))
 	require.NoError(t, err)
 	require.Equal(t, "default name", string(data))
-	require.Equal(t, "downloaded file file-123 to downloaded.txt\n", string(stderrBytes))
+	require.Equal(t, "downloaded file file-123 to downloaded.txt\n", stderr.String())
 }
 
 func TestDownloadFileOptionsRunWritesToStdout(t *testing.T) {
+	t.Parallel()
+
 	downloadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
 		_, _ = w.Write([]byte("streamed"))
@@ -173,38 +156,23 @@ func TestDownloadFileOptionsRunWritesToStdout(t *testing.T) {
 	}))
 	defer apiServer.Close()
 
-	originalClient := downloadHTTPClient
-	downloadHTTPClient = downloadServer.Client()
-	t.Cleanup(func() { downloadHTTPClient = originalClient })
-
-	originalStdout := os.Stdout
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = stdoutWriter
-	t.Cleanup(func() { os.Stdout = originalStdout })
-
-	originalStderr := os.Stderr
-	stderrReader, stderrWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stderr = stderrWriter
-	t.Cleanup(func() { os.Stderr = originalStderr })
-
+	var stdout, stderr bytes.Buffer
 	stdoutFlag := "-"
 	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123", Output: &stdoutFlag}
-	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
-	require.NoError(t, stdoutWriter.Close())
-	require.NoError(t, stderrWriter.Close())
-	stdoutBytes, readErr := io.ReadAll(stdoutReader)
-	require.NoError(t, readErr)
-	stderrBytes, readErr := io.ReadAll(stderrReader)
-	require.NoError(t, readErr)
-
+	err := opts.Run(context.Background(), &SharedOptions{
+		Client:     p42.NewClient(apiServer.URL),
+		Stdout:     &stdout,
+		Stderr:     &stderr,
+		HTTPClient: downloadServer.Client(),
+	})
 	require.NoError(t, err)
-	require.Equal(t, "streamed", string(stdoutBytes))
-	require.Empty(t, string(stderrBytes))
+	require.Equal(t, "streamed", stdout.String())
+	require.Empty(t, stderr.String())
 }
 
 func TestDownloadFileOptionsRunTreatsMetadataDashAsFileName(t *testing.T) {
+	t.Parallel()
+
 	downloadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodGet, r.Method)
 		_, _ = w.Write([]byte("dash file"))
@@ -225,42 +193,28 @@ func TestDownloadFileOptionsRunTreatsMetadataDashAsFileName(t *testing.T) {
 	}))
 	defer apiServer.Close()
 
-	originalClient := downloadHTTPClient
-	downloadHTTPClient = downloadServer.Client()
-	t.Cleanup(func() { downloadHTTPClient = originalClient })
-
-	originalStdout := os.Stdout
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = stdoutWriter
-	t.Cleanup(func() { os.Stdout = originalStdout })
-
-	originalStderr := os.Stderr
-	stderrReader, stderrWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stderr = stderrWriter
-	t.Cleanup(func() { os.Stderr = originalStderr })
-
+	var stdout, stderr bytes.Buffer
 	outputPath := filepath.Join(t.TempDir(), "-")
 	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123", Output: &outputPath}
 
-	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
-	require.NoError(t, stdoutWriter.Close())
-	require.NoError(t, stderrWriter.Close())
-	stdoutBytes, readErr := io.ReadAll(stdoutReader)
-	require.NoError(t, readErr)
-	stderrBytes, readErr := io.ReadAll(stderrReader)
-	require.NoError(t, readErr)
+	err := opts.Run(context.Background(), &SharedOptions{
+		Client:     p42.NewClient(apiServer.URL),
+		Stdout:     &stdout,
+		Stderr:     &stderr,
+		HTTPClient: downloadServer.Client(),
+	})
 	require.NoError(t, err)
 
 	data, err := os.ReadFile(outputPath)
 	require.NoError(t, err)
 	require.Equal(t, "dash file", string(data))
-	require.Empty(t, string(stdoutBytes))
-	require.Equal(t, "downloaded file file-123 to "+outputPath+"\n", string(stderrBytes))
+	require.Empty(t, stdout.String())
+	require.Equal(t, "downloaded file file-123 to "+outputPath+"\n", stderr.String())
 }
 
 func TestDownloadFileOptionsRunRejectsPathTraversalDefaultName(t *testing.T) {
+	t.Parallel()
+
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case fileMetadataPath:
@@ -276,7 +230,12 @@ func TestDownloadFileOptionsRunRejectsPathTraversalDefaultName(t *testing.T) {
 	defer apiServer.Close()
 
 	opts := DownloadFileOptions{TenantID: "tenant", FileID: "file-123"}
-	err := opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
+	err := opts.Run(context.Background(), &SharedOptions{
+		Client:     p42.NewClient(apiServer.URL),
+		Stdout:     io.Discard,
+		Stderr:     io.Discard,
+		HTTPClient: http.DefaultClient,
+	})
 	require.EqualError(t, err, `invalid default output file name "../secret.txt"`)
 }
 
@@ -299,20 +258,11 @@ func TestListFileOptionsRun(t *testing.T) {
 	}))
 	defer apiServer.Close()
 
-	originalStdout := os.Stdout
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = stdoutWriter
-	t.Cleanup(func() { os.Stdout = originalStdout })
-
+	var stdout bytes.Buffer
 	opts := ListFileOptions{TenantID: "tenant"}
-	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
-	require.NoError(t, stdoutWriter.Close())
-	stdoutBytes, readErr := io.ReadAll(stdoutReader)
-	require.NoError(t, readErr)
-
+	err := opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL), Stdout: &stdout, Stderr: io.Discard})
 	require.NoError(t, err)
-	output := string(stdoutBytes)
+	output := stdout.String()
 	require.Contains(t, output, `"FileID": "file-1"`)
 	require.Contains(t, output, `"Name": "first.txt"`)
 	require.Contains(t, output, `"FileID": "file-2"`)
@@ -332,7 +282,12 @@ func TestUploadFileOptionsRunRejectsNameWithMultipleFiles(t *testing.T) {
 
 	name := "custom"
 	opts := UploadFileOptions{TenantID: "tenant", Name: &name, Files: []string{"a", "b"}}
-	err := opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient("http://example.com")})
+	err := opts.Run(context.Background(), &SharedOptions{
+		Client:     p42.NewClient("http://example.com"),
+		Stdout:     io.Discard,
+		Stderr:     io.Discard,
+		HTTPClient: http.DefaultClient,
+	})
 	require.EqualError(t, err, "--name cannot be used when uploading multiple files")
 }
 
@@ -357,6 +312,8 @@ func TestCollectUploadCandidatesUsesStdinDefaultName(t *testing.T) {
 }
 
 func TestUploadFileOptionsRunUploadsFile(t *testing.T) {
+	t.Parallel()
+
 	var uploadedBody []byte
 	var uploadHeaders http.Header
 	uploadServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -373,7 +330,9 @@ func TestUploadFileOptionsRunUploadsFile(t *testing.T) {
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, http.MethodPut, r.Method)
-		require.Equal(t, "/v1/tenants/tenant/files/file-123", r.URL.Path)
+		require.True(t, strings.HasPrefix(r.URL.Path, "/v1/tenants/tenant/files/"), "unexpected path: %s", r.URL.Path)
+		fileID := strings.TrimPrefix(r.URL.Path, "/v1/tenants/tenant/files/")
+		require.NotEmpty(t, fileID)
 
 		var req map[string]any
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
@@ -382,7 +341,7 @@ func TestUploadFileOptionsRunUploadsFile(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"file-123","Name":"test.txt","Size":5,"UploadURL":"` + uploadServer.URL + `/upload?sig=abc","CreatedAt":"` + now + `"}`))
+		_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"` + fileID + `","Name":"test.txt","Size":5,"UploadURL":"` + uploadServer.URL + `/upload?sig=abc","CreatedAt":"` + now + `"}`))
 	}))
 	defer apiServer.Close()
 
@@ -390,28 +349,20 @@ func TestUploadFileOptionsRunUploadsFile(t *testing.T) {
 	filePath := filepath.Join(tmpDir, "test.txt")
 	require.NoError(t, os.WriteFile(filePath, []byte("hello"), 0o600))
 
-	originalNewFileID := newFileID
-	newFileID = func() string { return "file-123" }
-	t.Cleanup(func() { newFileID = originalNewFileID })
-
-	originalStderr := os.Stderr
-	stderrReader, stderrWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stderr = stderrWriter
-	t.Cleanup(func() { os.Stderr = originalStderr })
-
+	var stdout, stderr bytes.Buffer
 	opts := UploadFileOptions{TenantID: "tenant", Files: []string{filePath}}
-	err = opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient(apiServer.URL)})
-	require.NoError(t, stderrWriter.Close())
-	stderrBytes, readErr := io.ReadAll(stderrReader)
-	require.NoError(t, readErr)
-
+	err := opts.Run(context.Background(), &SharedOptions{
+		Client:     p42.NewClient(apiServer.URL),
+		Stdout:     &stdout,
+		Stderr:     &stderr,
+		HTTPClient: http.DefaultClient,
+	})
 	require.NoError(t, err)
 	require.Equal(t, []byte("hello"), uploadedBody)
 	require.Equal(t, "*", uploadHeaders.Get("If-None-Match"))
 	require.Equal(t, "5", uploadHeaders.Get("Content-Length"))
-	require.Contains(t, string(stderrBytes), "creating file object for test.txt")
-	require.Contains(t, string(stderrBytes), "uploading test.txt to s3")
+	require.Contains(t, stderr.String(), "creating file object for test.txt")
+	require.Contains(t, stderr.String(), "uploading test.txt to s3")
 }
 
 func TestUploadToPresignedURLReturnsErrorForFailureStatus(t *testing.T) {
@@ -465,23 +416,22 @@ func TestUploadFileOptionsRunRejectsFeatureFlagsFromStdinWhenUploadingFromStdin(
 
 	featureFlags := "-"
 	opts := UploadFileOptions{TenantID: "tenant"}
-	err := opts.Run(context.Background(), &SharedOptions{Client: p42.NewClient("http://example.com"), FeatureFlags: &featureFlags})
+	err := opts.Run(context.Background(), &SharedOptions{
+		Client:       p42.NewClient("http://example.com"),
+		FeatureFlags: &featureFlags,
+		Stdout:       io.Discard,
+		Stderr:       io.Discard,
+		HTTPClient:   http.DefaultClient,
+	})
 	require.EqualError(t, err, "the --feature-flags option cannot be '-' when uploading from stdin")
 }
 
 func TestPrintUploadResults(t *testing.T) {
-	originalStdout := os.Stdout
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	require.NoError(t, err)
-	os.Stdout = stdoutWriter
-	t.Cleanup(func() { os.Stdout = originalStdout })
+	t.Parallel()
 
-	printUploadResults([]uploadResult{{name: "foo.txt", id: "id-1", size: 12}, {name: "longer.txt", id: "id-2", size: 2048}})
-	require.NoError(t, stdoutWriter.Close())
-
-	stdoutBytes, err := io.ReadAll(stdoutReader)
-	require.NoError(t, err)
-	output := string(stdoutBytes)
+	var stdout bytes.Buffer
+	printUploadResults(&stdout, []uploadResult{{name: "foo.txt", id: "id-1", size: 12}, {name: "longer.txt", id: "id-2", size: 2048}})
+	output := stdout.String()
 	require.Contains(t, output, "foo.txt")
 	require.Contains(t, output, "id-1")
 	require.Contains(t, output, "12B")
