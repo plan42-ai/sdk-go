@@ -638,6 +638,7 @@ type ListWorkstreamTasksRequest struct {
 	TenantID       string
 	WorkstreamID   string
 	AfterTaskID    *string
+	BeforeTaskID   *string
 	TaskNumber     *int
 	MaxResults     *int
 	Token          *string
@@ -653,6 +654,8 @@ func (r *ListWorkstreamTasksRequest) GetField(name string) (any, bool) {
 		return r.WorkstreamID, true
 	case "AfterTaskID":
 		return EvalNullable(r.AfterTaskID)
+	case "BeforeTaskID":
+		return EvalNullable(r.BeforeTaskID)
 	case "TaskNumber":
 		return EvalNullable(r.TaskNumber)
 	case "MaxResults":
@@ -693,6 +696,9 @@ func (c *Client) ListWorkstreamTasks(ctx context.Context, req *ListWorkstreamTas
 	}
 	if req.AfterTaskID != nil {
 		q.Set("afterTaskId", *req.AfterTaskID)
+	}
+	if req.BeforeTaskID != nil {
+		q.Set("beforeTaskId", *req.BeforeTaskID)
 	}
 	if req.TaskNumber != nil {
 		q.Set("taskNumber", strconv.Itoa(*req.TaskNumber))
