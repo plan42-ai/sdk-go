@@ -43,7 +43,7 @@ func (o *CreateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 		return err
 	}
 	maskSecrets(env, s)
-	return printJSON(env)
+	return printJSON(s.Stdout, env)
 }
 
 type GetEnvironmentOptions struct {
@@ -70,7 +70,7 @@ func (o *GetEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) error
 		return err
 	}
 	maskSecrets(env, s)
-	return printJSON(env)
+	return printJSON(s.Stdout, env)
 }
 
 type UpdateEnvironmentOptions struct {
@@ -113,7 +113,7 @@ func (o *UpdateEnvironmentOptions) Run(ctx context.Context, s *SharedOptions) er
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 type DeleteEnvironmentOptions struct {
@@ -164,7 +164,7 @@ func (o *ListEnvironmentsOptions) Run(ctx context.Context, s *SharedOptions) err
 		}
 		for _, env := range resp.Items {
 			maskSecrets(&env, s)
-			if err := printJSON(env); err != nil {
+			if err := printJSON(s.Stdout, env); err != nil {
 				return err
 			}
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,7 +31,7 @@ func TestGetTenantEncryptionKeyOptionsRun(t *testing.T) {
 	defer srv.Close()
 
 	opts := GetTenantEncryptionKeyOptions{TenantID: tenantID, Version: version}
-	shared := SharedOptions{Client: p42.NewClient(srv.URL)}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.NoError(t, opts.Run(context.Background(), &shared))
 }
@@ -75,7 +76,7 @@ func TestListTenantEncryptionKeysOptionsRun(t *testing.T) {
 	defer srv.Close()
 
 	opts := ListTenantEncryptionKeysOptions{TenantID: tenantID}
-	shared := SharedOptions{Client: p42.NewClient(srv.URL)}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.NoError(t, opts.Run(context.Background(), &shared))
 	require.Equal(t, 2, callCount)

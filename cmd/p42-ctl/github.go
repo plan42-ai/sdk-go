@@ -49,7 +49,7 @@ func (o *AddGithubConnectionOptions) Run(ctx context.Context, s *SharedOptions) 
 	if err != nil {
 		return err
 	}
-	return printJSON(connection)
+	return printJSON(s.Stdout, connection)
 }
 
 type GetGithubConnectionOptions struct {
@@ -74,7 +74,7 @@ func (o *GetGithubConnectionOptions) Run(ctx context.Context, s *SharedOptions) 
 	if err != nil {
 		return err
 	}
-	return printJSON(connection)
+	return printJSON(s.Stdout, connection)
 }
 
 type ListGithubConnectionsOptions struct {
@@ -102,7 +102,7 @@ func (o *ListGithubConnectionsOptions) Run(ctx context.Context, s *SharedOptions
 		}
 
 		for _, connection := range resp.Items {
-			err = printJSON(connection)
+			err = printJSON(s.Stdout, connection)
 			if err != nil {
 				return err
 			}
@@ -160,7 +160,7 @@ func (o *UpdateGithubConnectionOptions) Run(ctx context.Context, s *SharedOption
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 type DeleteGithubConnectionOptions struct {
@@ -220,7 +220,7 @@ func (o *AddGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(org)
+	return printJSON(s.Stdout, org)
 }
 
 type ListGithubOrgsOptions struct {
@@ -267,7 +267,7 @@ func (o *ListGithubOrgsOptions) Run(ctx context.Context, s *SharedOptions) error
 			return err
 		}
 		for _, org := range resp.Orgs {
-			if err := printJSON(org); err != nil {
+			if err := printJSON(s.Stdout, org); err != nil {
 				return err
 			}
 		}
@@ -371,7 +371,7 @@ func (o *GetGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(org)
+	return printJSON(s.Stdout, org)
 }
 
 type UpdateGithubOrgOptions struct {
@@ -405,7 +405,7 @@ func (o *UpdateGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 type DeleteGithubOrgOptions struct {

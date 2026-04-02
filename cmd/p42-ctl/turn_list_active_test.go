@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -48,7 +49,7 @@ func TestListActiveTurnsOptionsRun(t *testing.T) {
 		From:      util.Pointer(fromTime.Format(time.RFC3339)),
 		To:        toTime.Format(time.RFC3339),
 	}
-	shared := SharedOptions{Client: p42.NewClient(srv.URL)}
+	shared := SharedOptions{Client: p42.NewClient(srv.URL), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.NoError(t, opts.Run(context.Background(), &shared))
 	require.Equal(t, 2, callCount)

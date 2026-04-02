@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -21,15 +22,18 @@ const (
 )
 
 type SharedOptions struct {
-	Endpoint          string      `help:"Set to override the api endpoint." optional:""`
-	Insecure          bool        `help:"Don't validate the api cert." optional:""`
-	Dev               bool        `help:"Point at the dev api endpoint (api.dev.plan42.ai) by default." optional:""`
-	Local             bool        `help:"Short for --endpoint localhost:7443 --insecure"`
-	DelegatedAuthType *string     `help:"The delegated auth type to use." optional:""`
-	DelegatedToken    *string     `help:"The delegated JWT token to use." optional:""`
-	FeatureFlags      *string     `help:"The JSON file containing feature flag overrides." name:"feature-flags" short:"F" optional:""`
-	ShowSecrets       bool        `help:"Don't mask secrets in command output." short:"s"`
-	Client            *p42.Client `kong:"-"`
+	Endpoint          string       `help:"Set to override the api endpoint." optional:""`
+	Insecure          bool         `help:"Don't validate the api cert." optional:""`
+	Dev               bool         `help:"Point at the dev api endpoint (api.dev.plan42.ai) by default." optional:""`
+	Local             bool         `help:"Short for --endpoint localhost:7443 --insecure"`
+	DelegatedAuthType *string      `help:"The delegated auth type to use." optional:""`
+	DelegatedToken    *string      `help:"The delegated JWT token to use." optional:""`
+	FeatureFlags      *string      `help:"The JSON file containing feature flag overrides." name:"feature-flags" short:"F" optional:""`
+	ShowSecrets       bool         `help:"Don't mask secrets in command output." short:"s"`
+	Client            *p42.Client  `kong:"-"`
+	Stdout            io.Writer    `kong:"-"`
+	Stderr            io.Writer    `kong:"-"`
+	HTTPClient        *http.Client `kong:"-"`
 }
 
 func processDelegatedAuth(shared *SharedOptions, info *p42.DelegatedAuthInfo) {
@@ -39,8 +43,8 @@ func processDelegatedAuth(shared *SharedOptions, info *p42.DelegatedAuthInfo) {
 	info.JWT = shared.DelegatedToken
 }
 
-func printJSON(resp any) error {
-	enc := json.NewEncoder(os.Stdout)
+func printJSON(w io.Writer, resp any) error {
+	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(resp)
 }
@@ -133,7 +137,7 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 		var conflictError *p42.ConflictError
 		if errors.As(err, &conflictError) && conflictError.Current != nil {
-			_ = printJSON(conflictError.Current)
+			_ = printJSON(os.Stdout, conflictError.Current)
 		}
 		os.Exit(2)
 	}
@@ -317,6 +321,16 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 }
 
 func postProcessOptions(o *Options) error {
+	if o.Stdout == nil {
+		o.Stdout = os.Stdout
+	}
+	if o.Stderr == nil {
+		o.Stderr = os.Stderr
+	}
+	if o.HTTPClient == nil {
+		o.HTTPClient = http.DefaultClient
+	}
+
 	if o.Dev && o.Local {
 		return errors.New("cannot use both --dev and --local options together")
 	}

@@ -62,7 +62,7 @@ func (o *MoveTaskOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 
-	return printJSON(resp)
+	return printJSON(s.Stdout, resp)
 }
 
 type CreateTaskOptions struct {
@@ -100,7 +100,7 @@ func (o *CreateTaskOptions) runNonWorkstream(ctx context.Context, s *SharedOptio
 	if err != nil {
 		return err
 	}
-	return printJSON(task)
+	return printJSON(s.Stdout, task)
 }
 
 func (o *CreateTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions) error {
@@ -126,7 +126,7 @@ func (o *CreateTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions)
 	if err != nil {
 		return err
 	}
-	return printJSON(task)
+	return printJSON(s.Stdout, task)
 }
 
 type UpdateTaskOptions struct {
@@ -176,7 +176,7 @@ func (o *UpdateTaskOptions) runNonWorkstream(ctx context.Context, s *SharedOptio
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 // nolint: dupl
@@ -218,7 +218,7 @@ func (o *UpdateTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions)
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 type DeleteTaskOptions struct {
@@ -321,7 +321,7 @@ func (o *ListTasksOptions) run(ctx context.Context, s *SharedOptions) error {
 		}
 		for _, task := range resp.Items {
 			remaining--
-			err = printJSON(task)
+			err = printJSON(s.Stdout, task)
 			if err != nil {
 				return err
 			}
@@ -371,7 +371,7 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 		}
 		for _, task := range resp.Items {
 			remaining--
-			err = printJSON(task)
+			err = printJSON(s.Stdout, task)
 			if err != nil {
 				return err
 			}
@@ -427,7 +427,7 @@ func (o *SearchTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(resp)
+	return printJSON(s.Stdout, resp)
 }
 
 type GetTaskOptions struct {
@@ -460,7 +460,7 @@ func (o *GetTaskOptions) runStandalone(ctx context.Context, s *SharedOptions) er
 	if err != nil {
 		return err
 	}
-	return printJSON(task)
+	return printJSON(s.Stdout, task)
 }
 
 func (o *GetTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions) error {
@@ -480,7 +480,7 @@ func (o *GetTaskOptions) runWorkstream(ctx context.Context, s *SharedOptions) er
 	if err != nil {
 		return err
 	}
-	return printJSON(task)
+	return printJSON(s.Stdout, task)
 }
 
 type GetTaskGithubCredsOptions struct {
@@ -507,5 +507,5 @@ func (o *GetTaskGithubCredsOptions) Run(ctx context.Context, s *SharedOptions) e
 	if err != nil {
 		return err
 	}
-	return printJSON(creds)
+	return printJSON(s.Stdout, creds)
 }

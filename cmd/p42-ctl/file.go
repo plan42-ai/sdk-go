@@ -45,7 +45,7 @@ func (o *ListFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 		}
 
 		for _, file := range resp.Items {
-			if err := printJSON(file); err != nil {
+			if err := printJSON(s.Stdout, file); err != nil {
 				return err
 			}
 		}
@@ -80,7 +80,7 @@ func (o *GetFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 
-	return printJSON(file)
+	return printJSON(s.Stdout, file)
 }
 
 type DownloadFileOptions struct {
@@ -88,8 +88,6 @@ type DownloadFileOptions struct {
 	FileID   string  `help:"The id of the file to download." name:"file-id" short:"f" required:""`
 	Output   *string `help:"The output file path. Use '-' to write to stdout. Defaults to the file name." name:"output" short:"o"`
 }
-
-var downloadHTTPClient = http.DefaultClient
 
 func (o *DownloadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var flags p42.FeatureFlags
@@ -128,17 +126,17 @@ func (o *DownloadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 
 	if writeToStdout {
-		if err := downloadFromPresignedURL(ctx, downloadHTTPClient, downloadURL.DownloadURL, os.Stdout); err != nil {
+		if err := downloadFromPresignedURL(ctx, s.HTTPClient, downloadURL.DownloadURL, s.Stdout); err != nil {
 			return err
 		}
 	} else {
-		if err := downloadToPath(ctx, downloadHTTPClient, downloadURL.DownloadURL, outputPath); err != nil {
+		if err := downloadToPath(ctx, s.HTTPClient, downloadURL.DownloadURL, outputPath); err != nil {
 			return err
 		}
 	}
 
 	if !writeToStdout {
-		_, err = fmt.Fprintf(os.Stderr, "downloaded file %s to %s\n", file.FileID, outputPath)
+		_, err = fmt.Fprintf(s.Stderr, "downloaded file %s to %s\n", file.FileID, outputPath)
 		if err != nil {
 			return err
 		}
@@ -244,8 +242,6 @@ type uploadResult struct {
 	size int64
 }
 
-var newFileID = uuid.NewString
-
 func (o *UploadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if o.Name != nil && len(o.Files) > 1 {
 		return fmt.Errorf("--name cannot be used when uploading multiple files")
@@ -268,8 +264,8 @@ func (o *UploadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 	var failed bool
 
 	for _, candidate := range candidates {
-		fileID := newFileID()
-		_, _ = fmt.Fprintf(os.Stderr, "creating file object for %s (%s)\n", candidate.name, formatFileSize(candidate.size))
+		fileID := uuid.NewString()
+		_, _ = fmt.Fprintf(s.Stderr, "creating file object for %s (%s)\n", candidate.name, formatFileSize(candidate.size))
 
 		createReq := &p42.CreateFileRequest{
 			TenantID: o.TenantID,
@@ -283,7 +279,7 @@ func (o *UploadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 		reader, err := openUploadCandidate(candidate)
 		if err != nil {
 			failed = true
-			_, _ = fmt.Fprintf(os.Stderr, "failed to open %s: %v\n", candidate.name, err)
+			_, _ = fmt.Fprintf(s.Stderr, "failed to open %s: %v\n", candidate.name, err)
 			continue
 		}
 		// NOTE: This can close "reader" twice. Once inside uploadToPresignedUrl (which calls "Do" on the http request),
@@ -295,21 +291,21 @@ func (o *UploadFileOptions) Run(ctx context.Context, s *SharedOptions) error {
 		created, err := s.Client.CreateFile(ctx, createReq)
 		if err != nil {
 			failed = true
-			_, _ = fmt.Fprintf(os.Stderr, "failed to create file object for %s: %v\n", candidate.name, err)
+			_, _ = fmt.Fprintf(s.Stderr, "failed to create file object for %s: %v\n", candidate.name, err)
 			continue
 		}
 
-		_, _ = fmt.Fprintf(os.Stderr, "uploading %s to s3\n", candidate.name)
-		if err := uploadToPresignedURL(ctx, http.DefaultClient, created.UploadURL, reader, candidate.size); err != nil {
+		_, _ = fmt.Fprintf(s.Stderr, "uploading %s to s3\n", candidate.name)
+		if err := uploadToPresignedURL(ctx, s.HTTPClient, created.UploadURL, reader, candidate.size); err != nil {
 			failed = true
-			_, _ = fmt.Fprintf(os.Stderr, "failed to upload %s: %v\n", candidate.name, normalizeUploadError(err))
+			_, _ = fmt.Fprintf(s.Stderr, "failed to upload %s: %v\n", candidate.name, normalizeUploadError(err))
 			continue
 		}
 
 		results = append(results, uploadResult{name: created.Name, id: created.FileID, size: candidate.size})
 	}
 
-	printUploadResults(results)
+	printUploadResults(s.Stdout, results)
 	if failed {
 		return fmt.Errorf("one or more file uploads failed")
 	}
@@ -420,7 +416,7 @@ func uploadToPresignedURL(ctx context.Context, client *http.Client, uploadURL st
 	return nil
 }
 
-func printUploadResults(results []uploadResult) {
+func printUploadResults(w io.Writer, results []uploadResult) {
 	if len(results) == 0 {
 		return
 	}
@@ -437,7 +433,7 @@ func printUploadResults(results []uploadResult) {
 	}
 
 	for _, result := range results {
-		_, _ = fmt.Fprintf(os.Stdout, "%-*s  %-*s  %s\n", nameWidth, result.name, idWidth, result.id, formatFileSize(result.size))
+		_, _ = fmt.Fprintf(w, "%-*s  %-*s  %s\n", nameWidth, result.name, idWidth, result.id, formatFileSize(result.size))
 	}
 }
 

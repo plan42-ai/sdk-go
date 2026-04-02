@@ -55,7 +55,7 @@ func (o *CreateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 		return err
 	}
 
-	return printJSON(ws)
+	return printJSON(s.Stdout, ws)
 }
 
 // MoveShortNameOptions contains the flags for the `workstream move-short-name` command.
@@ -123,7 +123,7 @@ func (o *MoveShortNameOptions) Run(ctx context.Context, s *SharedOptions) error 
 		return err
 	}
 
-	return printJSON(moveResp)
+	return printJSON(s.Stdout, moveResp)
 }
 
 // DeleteWorkstreamShortNameOptions contains the flags for the `workstream delete-short-name` command.
@@ -203,7 +203,7 @@ func (o *ListWorkstreamShortNamesOptions) Run(ctx context.Context, s *SharedOpti
 
 		// Print each short name on its own line.
 		for _, sn := range resp.Items {
-			_ = printJSON(sn)
+			_ = printJSON(s.Stdout, sn)
 		}
 
 		if resp.NextToken == nil {
@@ -267,7 +267,7 @@ func (o *UpdateWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) err
 		return err
 	}
 
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 // ListWorkstreamsOptions contains the flags for the `workstream list` command.
@@ -301,7 +301,7 @@ func (o *ListWorkstreamsOptions) Run(ctx context.Context, s *SharedOptions) erro
 		}
 
 		for _, ws := range resp.Items {
-			if err := printJSON(ws); err != nil {
+			if err := printJSON(s.Stdout, ws); err != nil {
 				return err
 			}
 		}
@@ -341,7 +341,7 @@ func (o *GetWorkstreamOptions) Run(ctx context.Context, s *SharedOptions) error 
 		return err
 	}
 
-	return printJSON(ws)
+	return printJSON(s.Stdout, ws)
 }
 
 // DeleteWorkstreamOptions contains the flags for the `workstream delete` command.

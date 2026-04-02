@@ -58,7 +58,7 @@ func (o *CreateRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(runner)
+	return printJSON(s.Stdout, runner)
 }
 
 type ListRunnerOptions struct {
@@ -88,7 +88,7 @@ func (o *ListRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 		}
 
 		for _, runner := range resp.Items {
-			if err := printJSON(runner); err != nil {
+			if err := printJSON(s.Stdout, runner); err != nil {
 				return err
 			}
 		}
@@ -150,7 +150,7 @@ func (o *ListRunnerQueuesOptions) Run(ctx context.Context, s *SharedOptions) err
 		}
 
 		for _, queue := range resp.Items {
-			if err := printJSON(queue); err != nil {
+			if err := printJSON(s.Stdout, queue); err != nil {
 				return err
 			}
 		}
@@ -189,7 +189,7 @@ func (o *GetRunnerQueueOptions) Run(ctx context.Context, s *SharedOptions) error
 		return err
 	}
 
-	return printJSON(queue)
+	return printJSON(s.Stdout, queue)
 }
 
 type PingRunnerQueueOptions struct {
@@ -228,9 +228,9 @@ func (o *PingRunnerQueueOptions) Run(ctx context.Context, s *SharedOptions) erro
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return nil
 			}
-			_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			_, _ = fmt.Fprintf(s.Stderr, "error: %v\n", err)
 		} else {
-			fmt.Printf("latency: %s\n", time.Since(start))
+			_, _ = fmt.Fprintf(s.Stdout, "latency: %s\n", time.Since(start))
 		}
 
 		select {
@@ -296,7 +296,7 @@ func (o *GetRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(runner)
+	return printJSON(s.Stdout, runner)
 }
 
 // DeleteRunnerOptions contains the flags for the `runner delete` command.
@@ -376,7 +376,7 @@ func (o *UpdateRunnerOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
-	return printJSON(updated)
+	return printJSON(s.Stdout, updated)
 }
 
 type GenerateRunnerTokenOptions struct {
@@ -408,7 +408,7 @@ func (o *GenerateRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) 
 		return err
 	}
 
-	return printJSON(resp)
+	return printJSON(s.Stdout, resp)
 }
 
 type ListRunnerTokensOptions struct {
@@ -441,7 +441,7 @@ func (o *ListRunnerTokensOptions) Run(ctx context.Context, s *SharedOptions) err
 		}
 
 		for _, token := range resp.Items {
-			if err := printJSON(token); err != nil {
+			if err := printJSON(s.Stdout, token); err != nil {
 				return err
 			}
 		}
@@ -486,7 +486,7 @@ func (o *GetRunnerTokenOptions) Run(ctx context.Context, s *SharedOptions) error
 		return err
 	}
 
-	return printJSON(token)
+	return printJSON(s.Stdout, token)
 }
 
 type RevokeRunnerTokenOptions struct {
