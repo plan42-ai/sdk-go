@@ -201,6 +201,10 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Github.DeleteOrg.Run(options.Ctx, &options.SharedOptions)
 	case "github search-repos":
 		return options.Github.SearchRepos.Run(options.Ctx, &options.SharedOptions)
+	case "github list-branches":
+		return options.Github.ListBranches.Run(options.Ctx, &options.SharedOptions)
+	case "github default-branches":
+		return options.Github.DefaultBranches.Run(options.Ctx, &options.SharedOptions)
 	case "environment create":
 		return options.Environment.Create.Run(options.Ctx, &options.SharedOptions)
 	case "environment get":

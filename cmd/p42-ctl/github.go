@@ -21,6 +21,8 @@ type GithubOptions struct {
 	UpdateOrg        UpdateGithubOrgOptions        `cmd:"" help:"Update a GitHub organization."`
 	DeleteOrg        DeleteGithubOrgOptions        `cmd:"" help:"Delete a GitHub organization."`
 	SearchRepos      SearchGithubReposOptions      `cmd:"" help:"Search repositories within a GitHub organization."`
+	ListBranches     ListGithubBranchesOptions     `cmd:"" help:"List branches for a repository."`
+	DefaultBranches  GetDefaultBranchesOptions     `cmd:"" help:"Get the default branch for one or more repositories."`
 }
 
 type AddGithubConnectionOptions struct {
@@ -427,4 +429,65 @@ func (o *DeleteGithubOrgOptions) Run(ctx context.Context, s *SharedOptions) erro
 
 	req := &p42.DeleteGithubOrgRequest{OrgID: o.InternalOrgID, Version: org.Version}
 	return s.Client.DeleteGithubOrg(ctx, req)
+}
+
+type ListGithubBranchesOptions struct {
+	TenantID     string  `help:"The id of the tenant that owns the github connection." name:"tenant-id" short:"i" required:""`
+	ConnectionID string  `help:"The id of the github connection." name:"connection-id" short:"c" required:""`
+	Org          string  `help:"The github organization that owns the repository." name:"org" required:""`
+	Repo         string  `help:"The repository name." name:"repo" required:""`
+	Search       *string `help:"Filter branches by name." name:"search" short:"s" optional:""`
+}
+
+func (o *ListGithubBranchesOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.ListRepoBranchesRequest{
+		TenantID:     o.TenantID,
+		ConnectionID: o.ConnectionID,
+		OrgName:      o.Org,
+		RepoName:     o.Repo,
+		Search:       o.Search,
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+	for {
+		resp, err := s.Client.ListRepoBranches(ctx, req)
+		if err != nil {
+			return err
+		}
+		for _, branch := range resp.Items {
+			fmt.Println(branch)
+		}
+		if resp.NextToken == nil {
+			break
+		}
+		req.Token = resp.NextToken
+	}
+	return nil
+}
+
+type GetDefaultBranchesOptions struct {
+	TenantID     string   `help:"The id of the tenant that owns the github connection." name:"tenant-id" short:"i" required:""`
+	ConnectionID string   `help:"The id of the github connection." name:"connection-id" short:"c" required:""`
+	Repos        []string `help:"Repositories in org/repo format (max 50)." name:"repo" short:"r" required:""`
+}
+
+func (o *GetDefaultBranchesOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.GetDefaultBranchesRequest{
+		TenantID:     o.TenantID,
+		ConnectionID: o.ConnectionID,
+		Repos:        o.Repos,
+	}
+	err := loadFeatureFlags(s, &req.FeatureFlags)
+	if err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+	resp, err := s.Client.GetDefaultBranches(ctx, req)
+	if err != nil {
+		return err
+	}
+	return printJSON(s.Stdout, resp)
 }
