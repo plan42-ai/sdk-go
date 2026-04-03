@@ -436,7 +436,7 @@ type ListGithubBranchesOptions struct {
 	ConnectionID string  `help:"The id of the github connection." name:"connection-id" short:"c" required:""`
 	Org          string  `help:"The github organization that owns the repository." name:"org" required:""`
 	Repo         string  `help:"The repository name." name:"repo" required:""`
-	Search       *string `help:"Filter branches by name." name:"search" short:"s" optional:""`
+	Search       *string `help:"Filter branches by name." name:"search" short:"q" optional:""`
 }
 
 func (o *ListGithubBranchesOptions) Run(ctx context.Context, s *SharedOptions) error {
