@@ -132,7 +132,7 @@ func TestGetDefaultBranchesOptionsRunError(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(
 		http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte(`{"Message":"internal error","ErrorType":"InternalServerError"}`))
 			},
