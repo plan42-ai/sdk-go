@@ -458,7 +458,7 @@ func (o *ListGithubBranchesOptions) Run(ctx context.Context, s *SharedOptions) e
 			return err
 		}
 		for _, branch := range resp.Items {
-			fmt.Println(branch)
+			fmt.Fprintln(s.Stdout, branch)
 		}
 		if resp.NextToken == nil {
 			break
