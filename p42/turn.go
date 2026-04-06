@@ -327,7 +327,7 @@ type UpdateTurnRequest struct {
 	OutputMessage      *string                `json:"OutputMessage,omitempty"`
 	ErrorMessage       *string                `json:"ErrorMessage,omitempty"`
 	CompletedAt        *time.Time             `json:"CompletedAt,omitempty"`
-	TaskNewFileIDs     *[]string              `json:"TaskNewFileIDs,omitempty"`
+	UploadedFileIDs    []string               `json:"UploadedFileIDs,omitempty"`
 }
 
 // IsEmptyUpdate reports whether the request contains any turn mutations.
@@ -341,7 +341,7 @@ func (r *UpdateTurnRequest) IsEmptyUpdate() bool {
 		r.OutputMessage == nil &&
 		r.ErrorMessage == nil &&
 		r.CompletedAt == nil &&
-		r.TaskNewFileIDs == nil
+		len(r.UploadedFileIDs) == 0
 }
 
 // GetVersion returns the optimistic concurrency control version for the request.
@@ -378,8 +378,8 @@ func (r *UpdateTurnRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.ErrorMessage)
 	case "CompletedAt":
 		return EvalNullable(r.CompletedAt)
-	case "TaskNewFileIDs":
-		return EvalNullable(r.TaskNewFileIDs)
+	case "UploadedFileIDs":
+		return r.UploadedFileIDs, true
 	default:
 		return nil, false
 	}
