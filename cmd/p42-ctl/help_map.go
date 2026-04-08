@@ -8,7 +8,8 @@ var helpMap = map[string]string{
     "Private": bool,
     "RunnerID" : "*string",
     "GithubUserLogin" : "*string",
-    "GithubUserID" : *int
+    "GithubUserID" : *int,
+    "Name": "*string"
 }
 `,
 	"github update-connection": `
@@ -21,8 +22,10 @@ var helpMap = map[string]string{
     "GithubUserID" : *int,
     "OAuthToken": "*string",
     "RefreshToken": "*string",
+    "TokenExpiry": "*string",
     "State"  : "*string",
-    "StateExpiry" : "*string"
+    "StateExpiry" : "*string",
+    "Name" : "*string"
 }
 `,
 	"github update-org": `
@@ -101,25 +104,48 @@ var helpMap = map[string]string{
 `,
 	"task create": `
 
---- Input JSON Schema ---
+--- Input JSON Schema (without --workstream-id) ---
 {
     "Title": "string",
-    "EnvironmentID": "*string",
-    "Prompt": "*string",
-    "Parallel": "bool",
+    "EnvironmentID": "string",
+    "Prompt": "string",
     "Model": "*ModelType",
-    "AssignedToTenantID": "*string",
-    "AssignedToAI": "bool",
-    "RepoInfo": *{
+    "RepoInfo": {
         "org/repo": {
             "PRLink": "*string",
             "PRID": "*string",
             "PRNumber": *int,
+            "PRStatus": "*string",
+            "PRStatusUpdatedAt": "*string",
             "FeatureBranch": "string",
             "TargetBranch": "string"
         }
     },
-    "State": "*TaskState"
+    "FileIDs": []
+}
+
+--- Input JSON Schema (with --workstream-id) ---
+{
+    "Title": "string",
+    "EnvironmentID": "*string",
+    "Prompt": "*string",
+    "Parallel": bool,
+    "Model": "*ModelType",
+    "AssignedToTenantID": "*string",
+    "AssignedToAI": bool,
+    "RepoInfo": {
+        "org/repo": {
+            "PRLink": "*string",
+            "PRID": "*string",
+            "PRNumber": *int,
+            "PRStatus": "*string",
+            "PRStatusUpdatedAt": "*string",
+            "FeatureBranch": "string",
+            "TargetBranch": "string"
+        }
+    },
+    "State": "*TaskState",
+    "FileIDs": []
 }
 
 --- ModelType Enum Values ---
@@ -151,7 +177,28 @@ var helpMap = map[string]string{
 
 `,
 	"task update": `
---- Input JSON Schema ---
+--- Input JSON Schema (without --workstream-id) ---
+
+{
+    "Title": "*string",
+    "Prompt": "*string",
+    "Model": "*ModelType",
+    "RepoInfo": {
+        "org/repo": {
+            "PRLink": "*string",
+            "PRID": "*string",
+            "PRNumber": *int,
+            "PRStatus": "*string",
+            "PRStatusUpdatedAt": "*string",
+            "FeatureBranch": "string",
+            "TargetBranch": "string"
+         }
+    },
+    "Deleted": "*bool",
+    "NewFileIDs": *[]string
+}
+
+--- Input JSON Schema (with --workstream-id) ---
 
 {
     "Title": "*string",
@@ -161,11 +208,13 @@ var helpMap = map[string]string{
     "Model": "*ModelType",
     "AssignedToTenantID": "*string",
     "AssignedToAI": "*bool",
-    "RepoInfo": *{
+    "RepoInfo": {
         "org/repo": {
             "PRLink": "*string",
             "PRID": "*string",
             "PRNumber": *int,
+            "PRStatus": "*string",
+            "PRStatusUpdatedAt": "*string",
             "FeatureBranch": "string",
             "TargetBranch": "string"
          }
@@ -173,7 +222,9 @@ var helpMap = map[string]string{
     "State": "*TaskState",
     "BeforeTaskID": "*string",
     "AfterTaskID": "*string",
-    "Deleted": "*bool"
+    "Deleted": "*bool",
+    "NewFileIDs": []string,
+    "RemoveFileIDs": []string
 }
 
 --- ModelType Enum Values ---
@@ -202,7 +253,25 @@ var helpMap = map[string]string{
 
 {
     "Prompt": "string",
-    "WorkstreamID": "*string"
+    "WorkstreamID": "*string",
+    "AdditionalFileIDs": []
+}
+`,
+	"turn update": `
+--- Input JSON Schema ---
+
+{
+    "PreviousResponseID": "*string",
+    "CommitInfo": {
+        "org/repo": {
+            "BaselineCommitHash": "*string",
+            "LastCommitHash": "*string"
+        }
+    },
+    "WorkstreamID": "*string",
+    "Status": "*string",
+    "OutputMessage": "*string",
+    "ErrorMessage": "*string"
 }
 `,
 	"logs upload": `
@@ -210,6 +279,7 @@ var helpMap = map[string]string{
 
 {
     "Index": int,
+    "WorkstreamID": "*string",
     "Logs": [
         {
             "Timestamp": "string",
