@@ -847,6 +847,11 @@ type UpdateWorkstreamTaskRequest struct {
 	Deleted            *bool                 `json:"Deleted,omitempty"`
 	NewFileIDs         *[]string             `json:"NewFileIDs,omitempty"`
 	RemoveFileIDs      *[]string             `json:"RemoveFileIDs,omitempty"`
+	// AutoPause, when true, causes the workstream to be paused if the
+	// task is assigned to AI and the workstream is currently running.
+	// This should be set by UI-driven operations (e.g. drag-and-drop
+	// lane changes) but not by programmatic callers (agent, webhooks).
+	AutoPause          *bool                 `json:"AutoPause,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -891,6 +896,8 @@ func (r *UpdateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.NewFileIDs)
 	case "RemoveFileIDs":
 		return EvalNullable(r.RemoveFileIDs)
+	case "AutoPause":
+		return EvalNullable(r.AutoPause)
 	default:
 		return nil, false
 	}
