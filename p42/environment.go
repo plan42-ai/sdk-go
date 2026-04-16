@@ -48,6 +48,20 @@ func (e *Environment) IsDeleted() bool {
 	return e.Deleted
 }
 
+// RedactSecrets clears secret environment variable values in place while
+// preserving the variable entries and their IsSecret metadata.
+func (e *Environment) RedactSecrets() {
+	if e == nil {
+		return
+	}
+
+	for i := range e.EnvVars {
+		if e.EnvVars[i].IsSecret {
+			e.EnvVars[i].Value = ""
+		}
+	}
+}
+
 func (e Environment) MarshalJSON() ([]byte, error) {
 	type environmentAlias Environment
 
