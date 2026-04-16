@@ -392,10 +392,10 @@ type AddWorkstreamShortNameRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID          string `json:"-"`
-	WorkstreamID      string `json:"-"`
-	Name              string `json:"-"`
-	WorkstreamVersion int    `json:"-"`
+	TenantID          string `json:"TenantID,omitempty"`
+	WorkstreamID      string `json:"WorkstreamID,omitempty"`
+	Name              string `json:"Name,omitempty"`
+	WorkstreamVersion int    `json:"WorkstreamVersion,omitempty"`
 }
 
 // WorkstreamShortName represents a short name for a workstream.
@@ -502,10 +502,10 @@ type DeleteWorkstreamShortNameRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID     string `json:"-"`
-	WorkstreamID string `json:"-"`
-	Name         string `json:"-"`
-	Version      int    `json:"-"`
+	TenantID     string `json:"TenantID,omitempty"`
+	WorkstreamID string `json:"WorkstreamID,omitempty"`
+	Name         string `json:"Name,omitempty"`
+	Version      int    `json:"Version,omitempty"`
 }
 
 // MoveShortNameRequest is the request payload for MoveShortName.
