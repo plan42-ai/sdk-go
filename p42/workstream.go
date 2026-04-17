@@ -42,9 +42,9 @@ type GetWorkstreamRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID       string `json:"-"`
-	WorkstreamID   string `json:"-"`
-	IncludeDeleted *bool  `json:"-"`
+	TenantID       string `json:"TenantID,omitempty"`
+	WorkstreamID   string `json:"WorkstreamID,omitempty"`
+	IncludeDeleted *bool  `json:"IncludeDeleted,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -121,9 +121,9 @@ type UpdateWorkstreamRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID     string `json:"-"`
-	WorkstreamID string `json:"-"`
-	Version      int    `json:"-"`
+	TenantID     string `json:"TenantID,omitempty"`
+	WorkstreamID string `json:"WorkstreamID,omitempty"`
+	Version      int    `json:"Version,omitempty"`
 
 	Name             *string `json:"Name,omitempty"`
 	Description      *string `json:"Description,omitempty"`
@@ -317,9 +317,9 @@ type DeleteWorkstreamRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID     string `json:"-"`
-	WorkstreamID string `json:"-"`
-	Version      int    `json:"-"`
+	TenantID     string `json:"TenantID,omitempty"`
+	WorkstreamID string `json:"WorkstreamID,omitempty"`
+	Version      int    `json:"Version,omitempty"`
 }
 
 func (r *DeleteWorkstreamRequest) GetVersion() int {
