@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/plan42-ai/concurrency"
@@ -27,9 +28,30 @@ type LogStream struct {
 	featureFlags   map[string]bool
 	delegatedAuth  DelegatedAuthInfo
 	logs           chan TurnLog
+	mu             sync.RWMutex
 	lastID         int
 	retry          time.Duration
 	backoff        *util.Backoff
+	endOfAvailable bool
+}
+
+// LogStreamReadOptions bounds a read from a LogStream.
+type LogStreamReadOptions struct {
+	// MaxEvents stops the read after this many log events have been collected.
+	// Zero means no event-count limit.
+	MaxEvents int
+	// Timeout stops the read when the timeout expires.
+	// Zero means no timeout.
+	Timeout time.Duration
+}
+
+// LogStreamReadResult describes the outcome of a bounded LogStream read.
+type LogStreamReadResult struct {
+	Logs           []TurnLog
+	LastEventID    int
+	EndOfAvailable bool
+	TimedOut       bool
+	MaxEventsHit   bool
 }
 
 type LogStreamOption func(s *LogStream)
@@ -94,6 +116,74 @@ func NewLogStream(
 // Logs returns a channel that emits TurnLog entries as they are received.
 func (l *LogStream) Logs() <-chan TurnLog { return l.logs }
 
+// LastEventID returns the most recent SSE event ID observed by the stream.
+func (l *LogStream) LastEventID() int {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.lastID
+}
+
+// EndOfAvailable reports whether the server indicated that no more logs are currently available.
+func (l *LogStream) EndOfAvailable() bool {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.endOfAvailable
+}
+
+// Read collects a bounded batch of logs from the stream.
+//
+// It stops when one of the following happens:
+// - MaxEvents log entries have been read,
+// - Timeout expires,
+// - the stream reaches the end of currently available logs,
+// - the stream is closed.
+func (l *LogStream) Read(ctx context.Context, opts LogStreamReadOptions) (*LogStreamReadResult, error) {
+	if opts.MaxEvents < 0 {
+		return nil, errors.New("max events must be non-negative")
+	}
+
+	readCtx := ctx
+	var cancel context.CancelFunc
+	if opts.Timeout > 0 {
+		readCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
+		defer cancel()
+	}
+
+	result := &LogStreamReadResult{}
+	for {
+		if opts.MaxEvents > 0 && len(result.Logs) >= opts.MaxEvents {
+			result.MaxEventsHit = true
+			result.LastEventID = l.LastEventID()
+			result.EndOfAvailable = l.EndOfAvailable()
+			return result, nil
+		}
+
+		if l.EndOfAvailable() {
+			result.LastEventID = l.LastEventID()
+			result.EndOfAvailable = true
+			return result, nil
+		}
+
+		select {
+		case <-readCtx.Done():
+			result.LastEventID = l.LastEventID()
+			result.EndOfAvailable = l.EndOfAvailable()
+			if errors.Is(readCtx.Err(), context.DeadlineExceeded) {
+				result.TimedOut = true
+				return result, nil
+			}
+			return result, readCtx.Err()
+		case logEntry, ok := <-l.logs:
+			if !ok {
+				result.LastEventID = l.LastEventID()
+				result.EndOfAvailable = l.EndOfAvailable()
+				return result, nil
+			}
+			result.Logs = append(result.Logs, logEntry)
+		}
+	}
+}
+
 // Close cancels the stream and waits for shutdown.
 func (l *LogStream) Close() error { return l.cg.Close() }
 
@@ -120,6 +210,7 @@ func (l *LogStream) run() {
 		}
 		if errors.Is(err, io.EOF) {
 			// no more logs
+			l.setEndOfAvailable(true)
 			return
 		}
 		if l.cg.Context().Err() != nil {
@@ -153,8 +244,10 @@ func (l *LogStream) connectAndStream(ctx context.Context) error {
 		return err
 	}
 	if body == nil {
+		l.setEndOfAvailable(true)
 		return io.EOF
 	}
+	l.setEndOfAvailable(false)
 	defer body.Close()
 
 	return l.consume(ctx, body)
@@ -262,11 +355,23 @@ func (l *LogStream) processCompleteEvent(ctx context.Context, event *sseEvent) e
 	}
 
 	if event.id != nil {
-		l.lastID = *event.id
+		l.setLastID(*event.id)
 	}
 	if event.retry != nil {
 		l.retry = time.Duration(*event.retry) * time.Millisecond
 	}
 
 	return nil
+}
+
+func (l *LogStream) setLastID(lastID int) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.lastID = lastID
+}
+
+func (l *LogStream) setEndOfAvailable(value bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.endOfAvailable = value
 }

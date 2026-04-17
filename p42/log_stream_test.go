@@ -1,10 +1,10 @@
 package p42_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -189,7 +189,7 @@ func TestLogStreamWithLastID_UpdatesLastID(t *testing.T) {
 		t.Errorf("unexpected logs: %#v", logs)
 	}
 	// Check that lastID is updated after receiving event with id: 100
-	if lsLastID := getLogStreamLastID(ls); lsLastID != 100 {
+	if lsLastID := ls.LastEventID(); lsLastID != 100 {
 		t.Errorf("expected lastID to be updated to 100, got %d", lsLastID)
 	}
 }
@@ -222,16 +222,150 @@ func TestLogStreamWorkstreamID(t *testing.T) {
 	}
 }
 
-// getLogStreamLastID is a helper to access the unexported lastID field for testing.
-func getLogStreamLastID(ls interface{}) int {
-	v := reflect.ValueOf(ls)
-	// If pointer, get the element
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
+func TestLogStreamReadBoundedBatch(t *testing.T) {
+	t.Parallel()
+
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		switch calls {
+		case 1:
+			w.Header().Set("Content-Type", "text/event-stream")
+			fmt.Fprintf(w, "id: 1\nevent: log\ndata: {\"Timestamp\":\"2025-01-01T00:00:00Z\",\"Message\":\"one\"}\n\n")
+			fmt.Fprintf(w, "id: 2\nevent: log\ndata: {\"Timestamp\":\"2025-01-01T00:00:01Z\",\"Message\":\"two\"}\n\n")
+			fmt.Fprintf(w, "id: 3\nevent: log\ndata: {\"Timestamp\":\"2025-01-01T00:00:02Z\",\"Message\":\"three\"}\n\n")
+		case 2:
+			if got := r.Header.Get("Last-Event-ID"); got != "3" {
+				t.Fatalf("expected resume header 3, got %s", got)
+			}
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("unexpected extra call")
+		}
+	}))
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	ls := p42.NewLogStream(client, "ten", "task", 0, 10)
+	defer ls.Close()
+
+	result, err := ls.Read(context.Background(), p42.LogStreamReadOptions{MaxEvents: 2, Timeout: time.Second})
+	if err != nil {
+		t.Fatalf("read error: %v", err)
 	}
-	field := v.FieldByName("lastID")
-	if field.IsValid() && field.CanInt() {
-		return int(field.Int())
+	if len(result.Logs) != 2 {
+		t.Fatalf("expected 2 logs, got %d", len(result.Logs))
 	}
-	return -1
+	if !result.MaxEventsHit {
+		t.Fatalf("expected MaxEventsHit to be true")
+	}
+	if result.LastEventID < 2 {
+		t.Fatalf("expected LastEventID to have advanced past delivered logs, got %d", result.LastEventID)
+	}
+
+	result, err = ls.Read(context.Background(), p42.LogStreamReadOptions{Timeout: time.Second})
+	if err != nil {
+		t.Fatalf("resume read error: %v", err)
+	}
+	if len(result.Logs) > 1 {
+		t.Fatalf("expected at most one resumed log, got %#v", result.Logs)
+	}
+	if len(result.Logs) == 1 && result.Logs[0].Message != "three" {
+		t.Fatalf("unexpected resumed logs: %#v", result.Logs)
+	}
+	if !result.EndOfAvailable {
+		t.Fatalf("expected end of available logs after resume")
+	}
+}
+
+func TestLogStreamReadTimeoutStop(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		<-r.Context().Done()
+	}))
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	ls := p42.NewLogStream(client, "ten", "task", 0, 1)
+	defer ls.Close()
+
+	result, err := ls.Read(context.Background(), p42.LogStreamReadOptions{Timeout: 100 * time.Millisecond})
+	if err != nil {
+		t.Fatalf("read error: %v", err)
+	}
+	if !result.TimedOut {
+		t.Fatalf("expected timeout result")
+	}
+	if len(result.Logs) != 0 {
+		t.Fatalf("expected no logs, got %d", len(result.Logs))
+	}
+}
+
+func TestLogStreamLastEventIDExposure(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprintf(w, "id: 55\nevent: log\ndata: {\"Timestamp\":\"2025-01-01T00:00:00Z\",\"Message\":\"checkpoint\"}\n\n")
+	}))
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	ls := p42.NewLogStream(client, "ten", "task", 0, 1)
+	defer ls.Close()
+
+	result, err := ls.Read(context.Background(), p42.LogStreamReadOptions{MaxEvents: 1, Timeout: time.Second})
+	if err != nil {
+		t.Fatalf("read error: %v", err)
+	}
+	if result.LastEventID != 55 {
+		t.Fatalf("expected result last event ID 55, got %d", result.LastEventID)
+	}
+	if got := ls.LastEventID(); got != 55 {
+		t.Fatalf("expected stream last event ID 55, got %d", got)
+	}
+}
+
+func TestLogStreamEndOfAvailableLogDetection(t *testing.T) {
+	t.Parallel()
+
+	var calls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls++
+		if calls == 1 {
+			w.Header().Set("Content-Type", "text/event-stream")
+			fmt.Fprintf(w, "id: 1\nevent: log\ndata: {\"Timestamp\":\"2025-01-01T00:00:00Z\",\"Message\":\"only\"}\n\n")
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	ls := p42.NewLogStream(client, "ten", "task", 0, 10)
+	defer ls.Close()
+
+	first, err := ls.Read(context.Background(), p42.LogStreamReadOptions{MaxEvents: 1, Timeout: time.Second})
+	if err != nil {
+		t.Fatalf("first read error: %v", err)
+	}
+	if first.EndOfAvailable {
+		t.Fatalf("did not expect end-of-available after bounded first read")
+	}
+
+	second, err := ls.Read(context.Background(), p42.LogStreamReadOptions{Timeout: time.Second})
+	if err != nil {
+		t.Fatalf("second read error: %v", err)
+	}
+	if !second.EndOfAvailable {
+		t.Fatalf("expected end-of-available on second read")
+	}
+	if !ls.EndOfAvailable() {
+		t.Fatalf("expected stream to report end-of-available")
+	}
 }
