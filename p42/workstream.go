@@ -121,9 +121,9 @@ type UpdateWorkstreamRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID     string `json:"-"`
-	WorkstreamID string `json:"-"`
-	Version      int    `json:"-"`
+	TenantID     string `json:"TenantID,omitempty"`
+	WorkstreamID string `json:"WorkstreamID,omitempty"`
+	Version      int    `json:"Version,omitempty"`
 
 	Name             *string `json:"Name,omitempty"`
 	Description      *string `json:"Description,omitempty"`
