@@ -851,7 +851,7 @@ type UpdateWorkstreamTaskRequest struct {
 	// task is assigned to AI and the workstream is currently running.
 	// This should be set by UI-driven operations (e.g. drag-and-drop
 	// lane changes) but not by programmatic callers (agent, webhooks).
-	AutoPause          *bool                 `json:"AutoPause,omitempty"`
+	AutoPause *bool `json:"AutoPause,omitempty"`
 }
 
 // GetField retrieves the value of a field by name.
