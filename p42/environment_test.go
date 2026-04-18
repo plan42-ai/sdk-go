@@ -41,3 +41,30 @@ func TestEnvironmentUnmarshalDefaults(t *testing.T) {
 		t.Fatalf("expected GithubConnectionID to default, got %v", env.GithubConnectionID)
 	}
 }
+
+func TestEnvironmentRedactSecrets(t *testing.T) {
+	env := &Environment{
+		EnvVars: []EnvVar{
+			{Name: "VISIBLE", Value: "public", IsSecret: false},
+			{Name: "SECRET", Value: "top-secret", IsSecret: true},
+			{Name: "EMPTY_SECRET", Value: "", IsSecret: true},
+		},
+	}
+
+	env.RedactSecrets()
+
+	if got := env.EnvVars[0]; got.Value != "public" || got.IsSecret {
+		t.Fatalf("expected non-secret env var to be preserved, got %+v", got)
+	}
+	if got := env.EnvVars[1]; got.Value != "" || !got.IsSecret || got.Name != "SECRET" {
+		t.Fatalf("expected secret env var to be redacted in place, got %+v", got)
+	}
+	if got := env.EnvVars[2]; got.Value != "" || !got.IsSecret || got.Name != "EMPTY_SECRET" {
+		t.Fatalf("expected empty secret env var metadata to be preserved, got %+v", got)
+	}
+}
+
+func TestEnvironmentRedactSecretsNilReceiver(_ *testing.T) {
+	var env *Environment
+	env.RedactSecrets()
+}
