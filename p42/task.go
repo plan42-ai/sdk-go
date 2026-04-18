@@ -842,7 +842,6 @@ type UpdateWorkstreamTaskRequest struct {
 	AssignedToAI       *bool                 `json:"AssignedToAI,omitempty"`
 	RepoInfo           *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
 	State              *TaskState            `json:"State,omitempty"`
-	AutoPause          *bool                 `json:"AutoPause,omitempty"`
 	BeforeTaskID       *string               `json:"BeforeTaskId,omitempty"`
 	AfterTaskID        *string               `json:"AfterTaskId,omitempty"`
 	Deleted            *bool                 `json:"Deleted,omitempty"`
@@ -899,8 +898,6 @@ func (r *UpdateWorkstreamTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.NewFileIDs)
 	case "RemoveFileIDs":
 		return EvalNullable(r.RemoveFileIDs)
-	case "AutoPause":
-		return EvalNullable(r.AutoPause)
 	default:
 		return nil, false
 	}
