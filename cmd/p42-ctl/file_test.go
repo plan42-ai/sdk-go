@@ -341,6 +341,9 @@ func TestUploadFileOptionsRunUploadsFile(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
+		// #nosec: G705: XSS via taint analysis
+		// This is a unit test, the input is controlled. This patter is not ok in production code, but it's ok here in the
+		// test.
 		_, _ = w.Write([]byte(`{"TenantID":"tenant","FileID":"` + fileID + `","Name":"test.txt","Size":5,"UploadURL":"` + uploadServer.URL + `/upload?sig=abc","CreatedAt":"` + now + `"}`))
 	}))
 	defer apiServer.Close()
