@@ -198,7 +198,7 @@ func TestLogStreamReadBatchStopsAtMaxEvents(t *testing.T) {
 	t.Parallel()
 
 	var calls int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		if calls == 1 {
 			if hdr := r.Header.Get("Last-Event-ID"); hdr != "" {
@@ -262,7 +262,7 @@ func TestLogStreamReadBatchStopsAtMaxEvents(t *testing.T) {
 func TestLogStreamReadBatchStopsAtTimeout(t *testing.T) {
 	t.Parallel()
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
