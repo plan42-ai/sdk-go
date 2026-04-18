@@ -26,10 +26,23 @@ type LogStream struct {
 	workstreamID   *string
 	featureFlags   map[string]bool
 	delegatedAuth  DelegatedAuthInfo
-	logs           chan TurnLog
+	logs           chan LogStreamEntry
 	lastID         int
 	retry          time.Duration
 	backoff        *util.Backoff
+}
+
+// LogStreamEntry is a single log event emitted by LogStream.
+type LogStreamEntry struct {
+	EventID int
+	Log     TurnLog
+}
+
+// LogStreamBatch describes the result of a bounded log read.
+type LogStreamBatch struct {
+	Logs        []TurnLog
+	LastEventID int
+	ReachedEnd  bool
 }
 
 type LogStreamOption func(s *LogStream)
@@ -78,7 +91,7 @@ func NewLogStream(
 		tenantID:  tenantID,
 		taskID:    taskID,
 		turnIndex: turnIndex,
-		logs:      make(chan TurnLog, buffer),
+		logs:      make(chan LogStreamEntry, buffer),
 		backoff:   util.NewBackoff(100*time.Millisecond, 2*time.Second),
 	}
 
@@ -91,8 +104,61 @@ func NewLogStream(
 	return ls
 }
 
-// Logs returns a channel that emits TurnLog entries as they are received.
-func (l *LogStream) Logs() <-chan TurnLog { return l.logs }
+// Logs returns a channel that emits log events as they are received.
+func (l *LogStream) Logs() <-chan LogStreamEntry { return l.logs }
+
+// LastEventID returns the latest SSE event id observed by the stream.
+func (l *LogStream) LastEventID() int { return l.lastID }
+
+// ReadBatch reads logs until maxEvents have been collected, the timeout expires, or the
+// currently available log stream is exhausted. The returned LastEventID can be supplied
+// back via WithLastID to resume from the same position on a later call.
+func (l *LogStream) ReadBatch(ctx context.Context, maxEvents int, timeout time.Duration) (*LogStreamBatch, error) {
+	if maxEvents <= 0 {
+		return nil, errors.New("max events must be greater than zero")
+	}
+
+	batchCtx := ctx
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		batchCtx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
+	logs := make([]TurnLog, 0, maxEvents)
+	lastEventID := l.lastID
+	for len(logs) < maxEvents {
+		select {
+		case <-batchCtx.Done():
+			if errors.Is(batchCtx.Err(), context.DeadlineExceeded) {
+				return &LogStreamBatch{
+					Logs:        logs,
+					LastEventID: lastEventID,
+					ReachedEnd:  false,
+				}, nil
+			}
+			return nil, batchCtx.Err()
+		case entry, ok := <-l.logs:
+			if !ok {
+				l.lastID = lastEventID
+				return &LogStreamBatch{
+					Logs:        logs,
+					LastEventID: lastEventID,
+					ReachedEnd:  true,
+				}, nil
+			}
+			logs = append(logs, entry.Log)
+			lastEventID = entry.EventID
+		}
+	}
+	l.lastID = lastEventID
+
+	return &LogStreamBatch{
+		Logs:        logs,
+		LastEventID: lastEventID,
+		ReachedEnd:  false,
+	}, nil
+}
 
 // Close cancels the stream and waits for shutdown.
 func (l *LogStream) Close() error { return l.cg.Close() }
@@ -255,8 +321,10 @@ func (l *LogStream) processCompleteEvent(ctx context.Context, event *sseEvent) e
 		return nil
 	}
 
+	entry := LogStreamEntry{EventID: *event.id, Log: logEntry}
+
 	select {
-	case l.logs <- logEntry:
+	case l.logs <- entry:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
