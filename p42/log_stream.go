@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"sync"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ type LogStream struct {
 	featureFlags   map[string]bool
 	delegatedAuth  DelegatedAuthInfo
 	logs           chan LogStreamEntry
+	mu             sync.RWMutex
 	lastID         int
 	retry          time.Duration
 	backoff        *util.Backoff
@@ -108,7 +110,11 @@ func NewLogStream(
 func (l *LogStream) Logs() <-chan LogStreamEntry { return l.logs }
 
 // LastEventID returns the latest SSE event id observed by the stream.
-func (l *LogStream) LastEventID() int { return l.lastID }
+func (l *LogStream) LastEventID() int {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.lastID
+}
 
 // ReadBatch reads logs until maxEvents have been collected, the timeout expires, or the
 // currently available log stream is exhausted. The returned LastEventID can be supplied
@@ -126,7 +132,10 @@ func (l *LogStream) ReadBatch(ctx context.Context, maxEvents int, timeout time.D
 	}
 
 	logs := make([]TurnLog, 0, maxEvents)
-	lastEventID := l.lastID
+	lastEventID := l.LastEventID()
+	if timeout == 0 {
+		return l.readAvailable(logs, lastEventID), nil
+	}
 	for len(logs) < maxEvents {
 		select {
 		case <-batchCtx.Done():
@@ -138,26 +147,47 @@ func (l *LogStream) ReadBatch(ctx context.Context, maxEvents int, timeout time.D
 				}, nil
 			}
 			return nil, batchCtx.Err()
-		case entry, ok := <-l.logs:
-			if !ok {
-				l.lastID = lastEventID
-				return &LogStreamBatch{
-					Logs:        logs,
-					LastEventID: lastEventID,
+			case entry, ok := <-l.logs:
+				if !ok {
+					l.setLastEventID(lastEventID)
+					return &LogStreamBatch{
+						Logs:        logs,
+						LastEventID: lastEventID,
 					ReachedEnd:  true,
 				}, nil
 			}
-			logs = append(logs, entry.Log)
-			lastEventID = entry.EventID
+				logs = append(logs, entry.Log)
+				lastEventID = entry.EventID
+			}
 		}
-	}
-	l.lastID = lastEventID
+	l.setLastEventID(lastEventID)
 
 	return &LogStreamBatch{
 		Logs:        logs,
 		LastEventID: lastEventID,
 		ReachedEnd:  false,
 	}, nil
+}
+
+func (l *LogStream) readAvailable(logs []TurnLog, lastEventID int) *LogStreamBatch {
+	for {
+		select {
+		case entry, ok := <-l.logs:
+			if !ok {
+				l.setLastEventID(lastEventID)
+				return &LogStreamBatch{Logs: logs, LastEventID: lastEventID, ReachedEnd: true}
+			}
+			logs = append(logs, entry.Log)
+			lastEventID = entry.EventID
+			if len(logs) == cap(logs) {
+				l.setLastEventID(lastEventID)
+				return &LogStreamBatch{Logs: logs, LastEventID: lastEventID, ReachedEnd: false}
+			}
+		default:
+			l.setLastEventID(lastEventID)
+			return &LogStreamBatch{Logs: logs, LastEventID: lastEventID, ReachedEnd: false}
+		}
+	}
 }
 
 // Close cancels the stream and waits for shutdown.
@@ -175,7 +205,10 @@ func (l *LogStream) run() {
 	defer close(l.logs)
 
 	for {
-		if err := l.backoff.WaitAtLeast(l.cg.Context(), l.retry); err != nil {
+		l.mu.RLock()
+		retry := l.retry
+		l.mu.RUnlock()
+		if err := l.backoff.WaitAtLeast(l.cg.Context(), retry); err != nil {
 			return
 		}
 
@@ -208,8 +241,9 @@ func (l *LogStream) connectAndStream(ctx context.Context) error {
 		IncludeDeleted:    util.Pointer(l.includeDeleted),
 		WorkstreamID:      l.workstreamID,
 	}
-	if l.lastID != 0 {
-		req.LastEventID = &l.lastID
+	lastID := l.LastEventID()
+	if lastID != 0 {
+		req.LastEventID = &lastID
 	}
 
 	req.FeatureFlags = FeatureFlags{FeatureFlags: l.featureFlags}
@@ -330,11 +364,23 @@ func (l *LogStream) processCompleteEvent(ctx context.Context, event *sseEvent) e
 	}
 
 	if event.id != nil {
-		l.lastID = *event.id
+		l.setLastEventID(*event.id)
 	}
 	if event.retry != nil {
-		l.retry = time.Duration(*event.retry) * time.Millisecond
+		l.setRetry(time.Duration(*event.retry) * time.Millisecond)
 	}
 
 	return nil
+}
+
+func (l *LogStream) setLastEventID(lastID int) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.lastID = lastID
+}
+
+func (l *LogStream) setRetry(retry time.Duration) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.retry = retry
 }
