@@ -1,5 +1,9 @@
 package main
 
+// #nosec:  G101: Potential hardcoded credentials
+//
+//	No hard coded creds here. Just json fields with names like "token", "oauth", etc, that match
+//	the linter's regex.
 var helpMap = map[string]string{
 	"github add-connection": `
 --- Input JSON Schema ---

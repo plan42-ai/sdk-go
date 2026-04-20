@@ -782,6 +782,9 @@ func (c *Client) UpdateGithubConnection(ctx context.Context, req *UpdateGithubCo
 		return nil, fmt.Errorf("connection id is required")
 	}
 
+	// #nosec: G117: Marshaled struct field "OAuthToken" (JSON key "OAuthToken") matches secret pattern
+	//    This is the client method for an api that can be used to update oauth tokens for github connections.
+	//    It's supposed to marshal a secret.
 	bodyBytes, err := json.Marshal(req)
 	if err != nil {
 		return nil, err

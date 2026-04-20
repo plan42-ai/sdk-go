@@ -45,8 +45,8 @@ func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
 
 	enc := json.NewEncoder(s.Stdout)
 	enc.SetIndent("", "  ")
-	for log := range ls.Logs() {
-		if err := enc.Encode(log); err != nil {
+	for entry := range ls.Logs() {
+		if err := enc.Encode(entry.Log); err != nil {
 			return err
 		}
 	}

@@ -611,6 +611,8 @@ func TestGenerateWebUIToken(t *testing.T) {
 			require.Equal(t, "/v1/tenants/abc/ui-tokens/tok", r.URL.Path)
 
 			w.WriteHeader(http.StatusCreated)
+			// #nosec:  G117: Marshaled struct field "JWT" (JSON key "JWT") matches secret pattern
+			//      This is a test mock, of an API that returns a JWT Token. It's supposed to return a secret.
 			_ = json.NewEncoder(w).Encode(p42.GenerateWebUITokenResponse{JWT: "jwt"})
 		},
 	)
@@ -717,6 +719,8 @@ func TestGenerateWebUITokenPathEscaping(t *testing.T) {
 			require.Equal(t, escapedTokenID, parts[5], "TokenID not properly escaped in URL path")
 
 			w.WriteHeader(http.StatusCreated)
+			// #nosec:  G117: Marshaled struct field "JWT" (JSON key "JWT") matches secret pattern
+			//      This is a test mock, of an API that returns a JWT Token. It's supposed to return a secret.
 			_ = json.NewEncoder(w).Encode(p42.GenerateWebUITokenResponse{JWT: "jwt"})
 		},
 	)
@@ -6339,6 +6343,8 @@ func TestCreateGithubConnection(t *testing.T) {
 				UpdatedAt:       now,
 				Version:         1,
 			}
+			// #nosec: G117: Marshaled struct field "OAuthToken" (JSON key "OAuthToken") matches secret pattern
+			//    This is a test mock for an API that returns an OAuthToken. It's supposed to be returning a secret.
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -6450,6 +6456,8 @@ func TestCreateGithubConnectionPathEscaping(t *testing.T) {
 				UpdatedAt:    now,
 				Version:      1,
 			}
+			// #nosec: G117: Marshaled struct field "OAuthToken" (JSON key "OAuthToken") matches secret pattern
+			//    This is a test mock for an API that returns an OAuthToken. It's supposed to be returning a secret.
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -6726,6 +6734,8 @@ func TestGetGithubConnection(t *testing.T) {
 				UpdatedAt:       now,
 				Version:         2,
 			}
+			// #nosec: G117: Marshaled struct field "OAuthToken" (JSON key "OAuthToken") matches secret pattern
+			//    This is a test mock for an API that returns an OAuthToken. It's supposed to be returning a secret.
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -6800,6 +6810,8 @@ func TestGetGithubConnectionPathEscaping(t *testing.T) {
 				UpdatedAt:    now,
 				Version:      1,
 			}
+			// #nosec: G117: Marshaled struct field "OAuthToken" (JSON key "OAuthToken") matches secret pattern
+			//    This is a test mock for an API that returns an OAuthToken. It's supposed to be returning a secret.
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -7102,6 +7114,8 @@ func TestUpdateGithubConnection(t *testing.T) {
 
 			w.WriteHeader(http.StatusOK)
 			resp := p42.GithubConnection{TenantID: "abc", ConnectionID: "conn", TokenExpiry: &tokenExpiry}
+			// #nosec: G117: Marshaled struct field "OAuthToken" (JSON key "OAuthToken") matches secret pattern
+			//    This is a test mock for an API that returns an OAuthToken. It's supposed to be returning a secret.
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -7197,6 +7211,8 @@ func TestUpdateGithubConnectionPathEscaping(t *testing.T) {
 				TenantID:     tenantIDThatNeedsEscaping,
 				ConnectionID: githubConnectionIDThatNeedsEscaping,
 			}
+			// #nosec: G117: Marshaled struct field "OAuthToken" (JSON key "OAuthToken") matches secret pattern
+			//    This is a test mock for an API that returns an OAuthToken. It's supposed to be returning a secret.
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
