@@ -206,8 +206,9 @@ type GetTaskGithubCredsRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID string `json:"-"`
-	TaskID   string `json:"-"`
+	TenantID     string  `json:"-"`
+	TaskID       string  `json:"-"`
+	WorkstreamID *string `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -218,6 +219,8 @@ func (r *GetTaskGithubCredsRequest) GetField(name string) (any, bool) {
 		return r.TenantID, true
 	case "TaskID":
 		return r.TaskID, true
+	case "WorkstreamID":
+		return EvalNullable(r.WorkstreamID)
 	default:
 		return nil, false
 	}
@@ -237,6 +240,11 @@ func (c *Client) GetTaskGithubCreds(ctx context.Context, req *GetTaskGithubCreds
 	}
 
 	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "tasks", url.PathEscape(req.TaskID), "github-creds")
+	q := u.Query()
+	if req.WorkstreamID != nil {
+		q.Set("workstreamID", *req.WorkstreamID)
+	}
+	u.RawQuery = q.Encode()
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
