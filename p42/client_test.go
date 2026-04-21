@@ -4757,6 +4757,35 @@ func TestGetTaskGithubCreds(t *testing.T) {
 	require.Equal(t, "token", resp.GithubToken)
 }
 
+func TestGetTaskGithubCredsWorkstreamID(t *testing.T) {
+	t.Parallel()
+
+	workstreamID := "ws"
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/abc/tasks/task/github-creds", r.URL.Path)
+			require.Equal(t, "ws", r.URL.Query().Get("workstreamID"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.TaskGithubCreds{GithubToken: "token"}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	resp, err := client.GetTaskGithubCreds(
+		context.Background(),
+		&p42.GetTaskGithubCredsRequest{TenantID: "abc", TaskID: "task", WorkstreamID: &workstreamID},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, "token", resp.GithubToken)
+}
+
 func TestGetTaskGithubCredsError(t *testing.T) {
 	t.Parallel()
 

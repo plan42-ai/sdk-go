@@ -5191,14 +5191,14 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-## 94. GetTaskGithubCreds
+# 94. GetTaskGithubCreds
 
 GetTaskGithubCreds retrieves the GitHub credentials associated with a task.
 
 ## 94.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/github-creds HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/github-creds?workstreamID={workstreamID} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -5209,6 +5209,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 |------------------------------------------|----------|---------|---------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant that owns the task.                            |
 | task_id                                  | path     | string  | The ID of the task to fetch GitHub credentials for.                 |
+| workstreamID                             | query    | *string | Optional. The workstream that owns the task when resolving a workstream task. |
 | Authorization                            | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
