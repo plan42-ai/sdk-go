@@ -87,9 +87,6 @@ func (c *Client) CreateTurn(ctx context.Context, req *CreateTurnRequest) (*Turn,
 	if req.TaskID == "" {
 		return nil, fmt.Errorf("task id is required")
 	}
-	if req.TurnIndex <= 1 {
-		return nil, fmt.Errorf("turn index is required")
-	}
 	bodyBytes, err := json.Marshal(req)
 	if err != nil {
 		return nil, err

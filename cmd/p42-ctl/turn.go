@@ -56,12 +56,18 @@ func (o *CreateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
 	last, err := s.Client.GetLastTurn(ctx, getReq)
 	if err != nil {
-		return err
+		if !is404(err) || o.WorkstreamID == nil {
+			return err
+		}
 	}
 
 	req.TenantID = o.TenantID
 	req.TaskID = o.TaskID
-	req.TurnIndex = last.TurnIndex + 1
+	if last == nil {
+		req.TurnIndex = 1
+	} else {
+		req.TurnIndex = last.TurnIndex + 1
+	}
 	req.TaskVersion = task.Version
 	req.FeatureFlags = getReq.FeatureFlags
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
