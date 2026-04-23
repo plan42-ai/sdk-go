@@ -19,6 +19,7 @@ type InvokeAgentRequest struct {
 	Task                      *p42.Task
 	Turn                      *p42.Turn
 	Environment               *p42.Environment
+	Tenant                    *TenantInfo
 	GithubToken               *string
 	GithubURL                 *string
 	PrivateGithubConnectionID *string
@@ -43,6 +44,7 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 		Task                      *p42.Task
 		Turn                      *p42.Turn
 		Environment               *p42.Environment
+		Tenant                    *TenantInfo
 		GithubToken               *string
 		GithubURL                 *string
 		PrivateGithubConnectionID *string
@@ -54,6 +56,7 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 	tmp.Task = r.Task
 	tmp.Turn = r.Turn
 	tmp.Environment = r.Environment
+	tmp.Tenant = r.Tenant
 	tmp.GithubToken = r.GithubToken
 	tmp.GithubURL = r.GithubURL
 	tmp.PrivateGithubConnectionID = r.PrivateGithubConnectionID
@@ -61,6 +64,13 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 	tmp.FeedBack = r.FeedBack
 
 	return json.Marshal(tmp)
+}
+
+// TenantInfo exposes tenant-level configuration to the agent.
+type TenantInfo struct {
+	TenantID                  string  `json:"TenantID"`
+	DefaultGithubConnectionID *string `json:"DefaultGithubConnectionID,omitempty"`
+	DefaultRunnerID           *string `json:"DefaultRunnerID,omitempty"`
 }
 
 type PRFeedback struct {
