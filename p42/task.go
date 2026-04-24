@@ -84,6 +84,58 @@ type Task struct {
 	Version            int                  `json:"Version"`
 }
 
+// Schedulable reports whether the task can be scheduled by the workstream scheduler.
+func (t *Task) Schedulable() bool {
+	if t == nil || t.WorkstreamID == nil {
+		return false
+	}
+	if t.Deleted || !t.AssignedToAI || t.LastTurnIndex != nil {
+		return false
+	}
+	return t.State == TaskStatePending
+}
+
+// Blocking reports whether the task prevents later tasks in the workstream from running.
+func (t *Task) Blocking() bool {
+	if t == nil || t.WorkstreamID == nil || t.Deleted {
+		return false
+	}
+	if !t.AssignedToAI {
+		return t.State != TaskStateCompleted
+	}
+	switch t.State {
+	case TaskStatePending, TaskStateExecuting:
+		return true
+	case TaskStateAwaitingCodeReview:
+		return !t.hasPRs()
+	default:
+		return false
+	}
+}
+
+// Anchor reports whether the task has outstanding code reviews anchoring the workstream order.
+func (t *Task) Anchor() bool {
+	if t == nil || t.WorkstreamID == nil || t.Deleted {
+		return false
+	}
+	if t.State != TaskStateAwaitingCodeReview {
+		return false
+	}
+	return t.hasPRs()
+}
+
+func (t *Task) hasPRs() bool {
+	if t == nil || len(t.RepoInfo) == 0 {
+		return false
+	}
+	for _, repo := range t.RepoInfo {
+		if repo != nil && repo.PRLink != nil {
+			return true
+		}
+	}
+	return false
+}
+
 // ObjectType returns the object type for ConflictError handling.
 func (Task) ObjectType() ObjectType { return ObjectTypeTask }
 
