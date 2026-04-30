@@ -10,7 +10,7 @@ import (
 
 type TenantOptions struct {
 	CreateUser             CreateUserOptions                   `cmd:"" help:"Create a new user tenant."`
-	CurrentUser            GetCurrentUserOptions               `cmd:"" help:"Find a user given their auth provider token."`
+	CurrentUser            GetCurrentUserOptions               `cmd:"" name:"current-user" help:"Get the current user."`
 	Get                    GetTenantOptions                    `cmd:"" help:"Get a tenant by ID."`
 	List                   ListTenantsOptions                  `cmd:"" help:"List all tenants."`
 	Update                 UpdateTenantOptions                 `cmd:"" help:"Update a tenant by ID."`
