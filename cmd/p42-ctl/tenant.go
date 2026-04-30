@@ -197,31 +197,22 @@ func (o *ListTenantsOptions) Run(ctx context.Context, s *SharedOptions) error {
 }
 
 type UpdateTenantOptions struct {
-	TenantID string `help:"The ID of the tenant to update." name:"tenant-id" short:"i" required:""`
-	JSON     string `help:"The JSON file containing the tenant updates. Use '-' to read from stdin." name:"json" short:"j" default:"-"`
+	TenantID                  string  `help:"The ID of the tenant to update." name:"tenant-id" short:"i" required:""`
+	Version                   int     `help:"The current version of the tenant." short:"v" required:""`
+	DefaultRunnerID           *string `help:"The default runner ID for the tenant." name:"default-runner-id" optional:""`
+	DefaultGithubConnectionID *string `help:"The default GitHub connection ID for the tenant." name:"default-github-connection-id" optional:""`
 }
 
 func (o *UpdateTenantOptions) Run(ctx context.Context, s *SharedOptions) error {
-	if err := validateJSONFeatureFlags(o.JSON, s.FeatureFlags); err != nil {
-		return err
-	}
-	var req p42.UpdateTenantRequest
-	if err := readJsonFile(o.JSON, &req); err != nil {
-		return err
+	req := p42.UpdateTenantRequest{
+		TenantID:                  o.TenantID,
+		Version:                   o.Version,
+		DefaultRunnerID:           o.DefaultRunnerID,
+		DefaultGithubConnectionID: o.DefaultGithubConnectionID,
 	}
 	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
 		return err
 	}
-	req.TenantID = o.TenantID
-	getReq := &p42.GetTenantRequest{TenantID: o.TenantID}
-	getReq.FeatureFlags = req.FeatureFlags
-	processDelegatedAuth(s, &getReq.DelegatedAuthInfo)
-
-	tenant, err := s.Client.GetTenant(ctx, getReq)
-	if err != nil {
-		return err
-	}
-	req.Version = tenant.Version
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	updated, err := s.Client.UpdateTenant(ctx, &req)

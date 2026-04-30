@@ -98,14 +98,7 @@ var helpMap = map[string]string{
     "GithubConnectionID" : "*string"
 }
 `,
-	"tenant update": `
---- Input JSON Schema ---
-
-{
-    "DefaultRunnerID": "*string",
-    "DefaultGithubConnectionID": "*string"
-}
-`,
+	"tenant update": "",
 	"task create": `
 
 --- Input JSON Schema (without --workstream-id) ---
