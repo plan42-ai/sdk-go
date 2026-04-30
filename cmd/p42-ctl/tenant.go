@@ -170,7 +170,10 @@ func (o *ListTenantEncryptionKeysOptions) Run(ctx context.Context, s *SharedOpti
 	return nil
 }
 
-type ListTenantsOptions struct{}
+type ListTenantsOptions struct {
+	MaxResults *int    `help:"The maximum number of tenants to return." name:"max-results" optional:""`
+	Token      *string `help:"The pagination token to continue listing tenants." name:"token" optional:""`
+}
 
 func (o *ListTenantsOptions) Run(ctx context.Context, s *SharedOptions) error {
 	if s.DelegatedAuthType != nil || s.DelegatedToken != nil {
@@ -180,26 +183,17 @@ func (o *ListTenantsOptions) Run(ctx context.Context, s *SharedOptions) error {
 		return err
 	}
 
-	var token *string
-	for {
-		req := &p42.ListTenantsRequest{Token: token}
-
-		resp, err := s.Client.ListTenants(ctx, req)
-		if err != nil {
-			return err
-		}
-		for _, tenant := range resp.Items {
-			if err := printJSON(s.Stdout, tenant); err != nil {
-				return err
-			}
-		}
-		if resp.NextToken == nil {
-			break
-		}
-		token = resp.NextToken
+	req := &p42.ListTenantsRequest{
+		MaxResults: o.MaxResults,
+		Token:      o.Token,
 	}
 
-	return nil
+	resp, err := s.Client.ListTenants(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return printJSON(s.Stdout, resp)
 }
 
 type UpdateTenantOptions struct {
