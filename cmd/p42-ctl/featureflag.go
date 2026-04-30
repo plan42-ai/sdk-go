@@ -175,7 +175,7 @@ func (o *UpdateFeatureFlagOptions) Run(ctx context.Context, s *SharedOptions) er
 }
 
 type GetTenantFeatureFlagsOptions struct {
-	TenantID string `help:"The id of the tenant to get the flags for." name:"tenant-id" short:"i" required:""`
+	TenantID string `help:"The id of the tenant to get the flags for." name:"tenant-id" short:"t" required:""`
 }
 
 func (o *GetTenantFeatureFlagsOptions) Run(ctx context.Context, s *SharedOptions) error {
