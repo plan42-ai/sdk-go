@@ -4806,7 +4806,7 @@ The SearchTasks API searches for tasks within a tenant. Tasks can be searched by
 ## 81.1 Request
 
 ```http request
-POST /v1/tasks/search?pullRequestId={pullRequestId}&taskId={taskId} HTTP/1.1
+POST /v1/tasks/search?pullRequestId={pullRequestId}&taskId={taskId}&tenantID={tenantID} HTTP/1.1
 Accept: application/json
 Content-Type: application/json; charset=utf-8
 Authorization: <authorization>
@@ -4816,13 +4816,14 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 {}
 ```
 
-| Parameter                                | Location | Type    | Description                                                                                                           |
-|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------------|
-| pullRequestId                            | query    | *int    | The GitHub pull request ID to search for. At least one of `pullRequestId` or `taskId` is required.                   |
-| taskId                                   | query    | *uuid   | The task ID to search for. At least one of `pullRequestId` or `taskId` is required.                                  |
-| Authorization                            | header   | string  | The authorization header for the request.                                                                             |
-| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                |
-| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                   |
+| Parameter                                | Location | Type    | Description                                                                                            |
+|------------------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------|
+| pullRequestId                            | query    | *int    | The GitHub pull request ID to search for. At least one of `pullRequestId` or `taskId` is required.     |
+| taskId                                   | query    | *uuid   | The task ID to search for. At least one of `pullRequestId` or `taskId` is required.                    |
+| tenantID                                 | query    | *string | The tenant ID to search within. If not provided, searches across all tenants the caller has access to. |
+| Authorization                            | header   | string  | The authorization header for the request.                                                              |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                 |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                    |
 
 The request body must be valid JSON. At present the body should be an empty object ( `{}` ). Future iterations of this API may define additional fields in the body.
 
@@ -4846,6 +4847,12 @@ Content-Type: application/json; charset=utf-8
 | NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
 
 Requests that do not match any tasks return `Tasks: []` with `NextToken` unset. If the supplied `pullRequestId` or `taskId` are invalid or the caller lacks access to the tenant, standard error responses are returned. When searching only by `taskId`, multiple entries for the same task may be returned if the task is associated with more than one pull request.
+
+## 82.3 AuthZ Requirements
+
+To call SearchTasks, the caller must have either the SearchTasks or SearchTenantTasks permission.
+The SearchTasks permission allows searching for tasks across all tenants, While the SearchTenantTasks permission allows
+searching for tasks within a specific tenant. The SearchTasks permission implies the SearchTenantTasks permission.
 
 # 82. GetRunnerToken
 
@@ -5980,7 +5987,7 @@ Content-Type: application/json; charset=utf-8
 
 See [FileMetadata](#1043-file) for more info on the response.
 
-## 107. UpdateFile
+# 107. UpdateFile
 
 The UpdateFile API is an admin api that allows updating file metadata. It's used by internal services to update
 metadata about a file as various scans complete.
