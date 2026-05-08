@@ -390,6 +390,7 @@ func (o *ListTasksOptions) runWorkstreamTasks(ctx context.Context, s *SharedOpti
 type SearchTasksOptions struct {
 	PullRequestID int64  `help:"The GitHub pull request ID to search for." name:"pull-request-id" short:"p" optional:""`
 	TaskID        string `help:"The task ID to search for." name:"task-id" short:"t" optional:""`
+	TenantID      string `help:"The tenant ID to search within." name:"tenant-id" short:"i" optional:""`
 	JSON          string `help:"Optional path to the JSON request body. Use '-' to read from stdin." short:"j" optional:""`
 }
 
@@ -401,6 +402,9 @@ func (o *SearchTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
 	}
 	if o.TaskID != "" {
 		req.TaskID = util.Pointer(o.TaskID)
+	}
+	if o.TenantID != "" {
+		req.TenantID = util.Pointer(o.TenantID)
 	}
 
 	if req.PullRequestID == nil && req.TaskID == nil {
