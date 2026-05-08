@@ -165,6 +165,7 @@ func (o *UpdateTurnOptions) Run(ctx context.Context, s *SharedOptions) error {
 		TaskID:         o.TaskID,
 		TurnIndex:      o.TurnIndex,
 		IncludeDeleted: util.Pointer(true),
+		WorkstreamID:   o.WorkstreamID,
 	}
 	getReq.WorkstreamID = req.WorkstreamID
 	getReq.FeatureFlags = req.FeatureFlags
