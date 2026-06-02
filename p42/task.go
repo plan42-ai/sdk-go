@@ -179,6 +179,7 @@ type SearchTasksRequest struct {
 
 	PullRequestID *int64         `json:"-"`
 	TaskID        *string        `json:"-"`
+	TenantID      *string        `json:"-"`
 	Body          map[string]any `json:"-"`
 }
 
@@ -195,6 +196,11 @@ func (r *SearchTasksRequest) GetField(name string) (any, bool) {
 			return nil, false
 		}
 		return *r.TaskID, true
+	case "TenantID":
+		if r.TenantID == nil {
+			return nil, false
+		}
+		return *r.TenantID, true
 	default:
 		return nil, false
 	}
@@ -344,6 +350,11 @@ func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*Lis
 			return nil, fmt.Errorf("task id must be a valid uuid")
 		}
 	}
+	if req.TenantID != nil {
+		if _, err := uuid.Parse(*req.TenantID); err != nil {
+			return nil, fmt.Errorf("tenant id must be a valid uuid")
+		}
+	}
 
 	u := c.BaseURL.JoinPath("v1", "tasks", "search")
 	q := u.Query()
@@ -352,6 +363,9 @@ func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*Lis
 	}
 	if req.TaskID != nil {
 		q.Set("taskId", *req.TaskID)
+	}
+	if req.TenantID != nil {
+		q.Set("tenantID", *req.TenantID)
 	}
 	u.RawQuery = q.Encode()
 

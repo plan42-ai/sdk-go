@@ -190,6 +190,7 @@ const (
 	ActionUpdateFile                   Action = "UpdateFile"
 	ActionGetFile                      Action = "GetFile"
 	ActionGetDefaultBranches           Action = "GetDefaultBranches"
+	ActionSearchTenantTasks            Action = "SearchTenantTasks"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -532,6 +533,7 @@ func init() {
 			ActionUpdateFile,                   // (0x0000_0001_0000_0000, 0)
 			ActionGetFile,                      // (0x0000_0002_0000_0000, 0)
 			ActionGetDefaultBranches,           // (0x0000_0004_0000_0000, 0)
+			ActionSearchTenantTasks,            // (0x0000_0008_0000_0000, 0)
 
 		},
 		ActionBitVector{
