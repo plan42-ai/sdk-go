@@ -107,20 +107,21 @@ func ensureNoFeatureFlags(s *SharedOptions, cmd string) error {
 
 type Options struct {
 	SharedOptions
-	Tenant      TenantOptions      `cmd:""`
-	Policies    PolicyOptions      `cmd:""`
-	Github      GithubOptions      `cmd:"" help:"commands related to github"`
-	UIToken     UITokenOptions     `cmd:""`
-	Environment EnvironmentOptions `cmd:""`
-	Task        TaskOptions        `cmd:""`
-	Turn        TurnOptions        `cmd:""`
-	Logs        LogsOptions        `cmd:""`
-	FeatureFlag FeatureFlagOptions `cmd:""`
-	Workstream  WorkstreamOptions  `cmd:""`
-	Runner      RunnerOptions      `cmd:""`
-	File        FileOptions        `cmd:""`
-	GetTask     GetTaskCmdOptions  `cmd:"get-task" help:"Get a task by ID."`
-	Ctx         context.Context    `kong:"-"`
+	Tenant      TenantOptions        `cmd:""`
+	Policies    PolicyOptions        `cmd:""`
+	Github      GithubOptions        `cmd:"" help:"commands related to github"`
+	UIToken     UITokenOptions       `cmd:""`
+	Environment EnvironmentOptions   `cmd:""`
+	Task        TaskOptions          `cmd:""`
+	Turn        TurnOptions          `cmd:""`
+	Logs        LogsOptions          `cmd:""`
+	FeatureFlag FeatureFlagOptions   `cmd:""`
+	Workstream  WorkstreamOptions    `cmd:""`
+	Runner      RunnerOptions        `cmd:""`
+	File        FileOptions          `cmd:""`
+	GetTask     GetTaskCmdOptions    `cmd:"get-task" help:"Get a task by ID."`
+	UpdateTask  UpdateTaskCmdOptions `cmd:"update-task" help:"Update an existing task."`
+	Ctx         context.Context      `kong:"-"`
 }
 
 func main() {
@@ -322,6 +323,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.File.Upload.Run(options.Ctx, &options.SharedOptions)
 	case "get-task":
 		return options.GetTask.Run(options.Ctx, &options.SharedOptions)
+	case "update-task":
+		return options.UpdateTask.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
