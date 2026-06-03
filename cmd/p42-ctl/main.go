@@ -119,6 +119,7 @@ type Options struct {
 	Workstream  WorkstreamOptions  `cmd:""`
 	Runner      RunnerOptions      `cmd:""`
 	File        FileOptions        `cmd:""`
+	GetTask     GetTaskCmdOptions  `cmd:"get-task" help:"Get a task by ID."`
 	Ctx         context.Context    `kong:"-"`
 }
 
@@ -319,6 +320,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.File.Download.Run(options.Ctx, &options.SharedOptions)
 	case "file upload", "file upload <files>":
 		return options.File.Upload.Run(options.Ctx, &options.SharedOptions)
+	case "get-task":
+		return options.GetTask.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}
