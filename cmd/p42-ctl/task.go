@@ -513,3 +513,29 @@ func (o *GetTaskGithubCredsOptions) Run(ctx context.Context, s *SharedOptions) e
 	}
 	return printJSON(s.Stdout, creds)
 }
+
+// DeleteTaskByVersionOptions contains the flags for the top-level `delete-task` command.
+type DeleteTaskByVersionOptions struct {
+	TenantID string `help:"The ID of the tenant that owns the task." name:"tenant-id" required:""`
+	TaskID   string `help:"The ID of the task to delete." name:"task-id" required:""`
+	Version  int    `help:"The current version of the task." name:"version" required:""`
+}
+
+func (o *DeleteTaskByVersionOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.DeleteTaskRequest{
+		TenantID: o.TenantID,
+		TaskID:   o.TaskID,
+		Version:  o.Version,
+	}
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	if err := s.Client.DeleteTask(ctx, req); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(s.Stdout, "Task deleted successfully.")
+	return nil
+}
