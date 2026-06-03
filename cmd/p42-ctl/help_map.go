@@ -161,8 +161,12 @@ var helpMap = map[string]string{
 * GPT-5.3 Codex
 * GPT 5.4
 * GPT 5.4 (1M)
+* Chat GPT 5.5
+* Chat GPT 5.5 (1M)
 * Claude 4.5 Opus
 * Claude 4.6 Opus
+* Claude 4.7 Opus
+* Claude 4.8 Opus
 
 --- TaskState Enum Values ---
 
@@ -240,8 +244,12 @@ var helpMap = map[string]string{
 * GPT-5.3 Codex
 * GPT 5.4
 * GPT 5.4 (1M)
+* Chat GPT 5.5
+* Chat GPT 5.5 (1M)
 * Claude 4.5 Opus
 * Claude 4.6 Opus
+* Claude 4.7 Opus
+* Claude 4.8 Opus
 
 --- TaskState Enum Values ---
 
