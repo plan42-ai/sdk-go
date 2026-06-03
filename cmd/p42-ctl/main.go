@@ -286,6 +286,8 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.Workstream.DeleteShortName.Run(options.Ctx, &options.SharedOptions)
 	case "workstream move-short-name":
 		return options.Workstream.MoveShortName.Run(options.Ctx, &options.SharedOptions)
+	case "workstream list-tasks":
+		return options.Workstream.ListTasks.Run(options.Ctx, &options.SharedOptions)
 	case "runner create":
 		return options.Runner.Create.Run(options.Ctx, &options.SharedOptions)
 	case "runner list":

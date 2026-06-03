@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/plan42-ai/sdk-go/internal/util"
@@ -20,6 +21,7 @@ type WorkstreamOptions struct {
 	ListShortNames  ListWorkstreamShortNamesOptions  `cmd:"" help:"List shortnames for a workstream or tenant."`
 	DeleteShortName DeleteWorkstreamShortNameOptions `cmd:"" help:"Permanently Delete a short name from a tenant."`
 	MoveShortName   MoveShortNameOptions             `cmd:"" help:"Move a short name from one workstream to another."`
+	ListTasks       ListWorkstreamTasksOptions       `cmd:"list-tasks" help:"List tasks in a workstream."`
 }
 
 // CreateWorkstreamOptions contains the flags for the `workstream create` command.
@@ -421,4 +423,62 @@ func (o *AddWorkstreamShortNameOptions) Run(ctx context.Context, s *SharedOption
 	processDelegatedAuth(s, &req.DelegatedAuthInfo)
 
 	return s.Client.AddWorkstreamShortName(ctx, &req)
+}
+
+// ListWorkstreamTasksOptions contains the flags for the `workstream list-tasks` command.
+type ListWorkstreamTasksOptions struct {
+	TenantID       string  `help:"The id of the tenant that owns the workstream." name:"tenant-id" short:"i" required:""`
+	WorkstreamID   string  `help:"The id of the workstream to list tasks for." name:"workstream-id" short:"w" required:""`
+	IncludeDeleted bool    `help:"When set, include deleted tasks in the results." short:"d" optional:""`
+	AfterTaskID    *string `help:"When set, start listing after this task ID." name:"after-task-id" optional:""`
+	BeforeTaskID   *string `help:"When set, list tasks before this task ID (results in reverse order)." name:"before-task-id" optional:""`
+	TaskNumber     *int    `help:"When set, filter by task number within the workstream." name:"task-number" optional:""`
+	MaxResults     *int    `help:"Maximum number of results to return." name:"max-results" short:"m" optional:""`
+}
+
+// Run executes the `workstream list-tasks` command.
+func (o *ListWorkstreamTasksOptions) Run(ctx context.Context, s *SharedOptions) error {
+	req := &p42.ListWorkstreamTasksRequest{
+		TenantID:       o.TenantID,
+		WorkstreamID:   o.WorkstreamID,
+		IncludeDeleted: util.Pointer(o.IncludeDeleted),
+		AfterTaskID:    o.AfterTaskID,
+		BeforeTaskID:   o.BeforeTaskID,
+		TaskNumber:     o.TaskNumber,
+		MaxResults:     util.Pointer(10),
+	}
+
+	if err := loadFeatureFlags(s, &req.FeatureFlags); err != nil {
+		return err
+	}
+	processDelegatedAuth(s, &req.DelegatedAuthInfo)
+
+	remaining := math.MaxInt
+	if o.MaxResults != nil {
+		remaining = *o.MaxResults
+	}
+
+	for remaining > 0 {
+		if remaining < *req.MaxResults {
+			req.MaxResults = util.Pointer(remaining)
+		}
+		resp, err := s.Client.ListWorkstreamTasks(ctx, req)
+		if err != nil {
+			return err
+		}
+		for _, task := range resp.Items {
+			remaining--
+			if err := printJSON(s.Stdout, task); err != nil {
+				return err
+			}
+			if remaining == 0 {
+				return nil
+			}
+		}
+		if resp.NextToken == nil {
+			break
+		}
+		req.Token = resp.NextToken
+	}
+	return nil
 }
