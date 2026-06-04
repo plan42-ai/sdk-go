@@ -15,7 +15,8 @@ func createEnumMaps[Enum ~string, BV Bitvector[BV]](values []Enum, bit BV) (map[
 	encodingMap := make(map[Enum]BV)
 	decodingMap := make(map[BV]Enum)
 
-	encodingMap[Enum("*")] = bit.Not()
+	var zero BV
+	encodingMap[Enum("*")] = zero.Not()
 
 	for i := range values {
 		encodingMap[values[i]] = bit

@@ -119,7 +119,6 @@ type Options struct {
 	Workstream  WorkstreamOptions  `cmd:""`
 	Runner      RunnerOptions      `cmd:""`
 	File        FileOptions        `cmd:""`
-	DeleteTask  DeleteTaskByVersionOptions `cmd:"" help:"Delete a task by ID and version."`
 	Ctx         context.Context    `kong:"-"`
 }
 
@@ -320,8 +319,6 @@ func dispatchCommand(kongctx *kong.Context, options *Options) error {
 		return options.File.Download.Run(options.Ctx, &options.SharedOptions)
 	case "file upload", "file upload <files>":
 		return options.File.Upload.Run(options.Ctx, &options.SharedOptions)
-	case "delete-task":
-		return options.DeleteTask.Run(options.Ctx, &options.SharedOptions)
 	default:
 		return errors.New("unknown command")
 	}

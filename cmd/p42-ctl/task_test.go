@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -185,26 +184,4 @@ func TestGetTaskGithubCredsOptionsRunRequiresShowSecrets(t *testing.T) {
 	shared := SharedOptions{Client: p42.NewClient("http://example.com"), Stdout: io.Discard, Stderr: io.Discard}
 
 	require.EqualError(t, opts.Run(context.Background(), &shared), "you must specify `-s` when calling get-github-creds")
-}
-
-func TestDeleteTaskByVersionOptionsRun(t *testing.T) {
-	t.Parallel()
-	srv := httptest.NewServer(
-		http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				require.Equal(t, http.MethodDelete, r.Method)
-				require.Equal(t, "/v1/tenants/tenant/tasks/task", r.URL.Path)
-				require.Equal(t, "5", r.Header.Get("If-Match"))
-				w.WriteHeader(http.StatusNoContent)
-			},
-		),
-	)
-	defer srv.Close()
-
-	var buf bytes.Buffer
-	opts := DeleteTaskByVersionOptions{TenantID: "tenant", TaskID: "task", Version: 5}
-	shared := SharedOptions{Client: p42.NewClient(srv.URL), Stdout: &buf, Stderr: io.Discard}
-
-	require.NoError(t, opts.Run(context.Background(), &shared))
-	require.Equal(t, "Task deleted successfully.\n", buf.String())
 }
