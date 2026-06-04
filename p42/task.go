@@ -350,11 +350,6 @@ func (c *Client) SearchTasks(ctx context.Context, req *SearchTasksRequest) (*Lis
 			return nil, fmt.Errorf("task id must be a valid uuid")
 		}
 	}
-	if req.TenantID != nil {
-		if _, err := uuid.Parse(*req.TenantID); err != nil {
-			return nil, fmt.Errorf("tenant id must be a valid uuid")
-		}
-	}
 
 	u := c.BaseURL.JoinPath("v1", "tasks", "search")
 	q := u.Query()
