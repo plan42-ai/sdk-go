@@ -5490,7 +5490,7 @@ This API is designed to be called by the agent after it receives a terminal prov
 The resource is identified by tenant, task, turn, and iteration index, so the API uses `PUT` semantics and is
 idempotent. Retrying the same request for the same resource replaces the previously stored usage snapshot.
 
-## 101.1 Request
+## 98.1 Request
 
 ```http request
 PUT /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turn_index}/iterations/{iteration_index}/provider-usage?workstreamID={workstreamID} HTTP/1.1
@@ -5544,7 +5544,7 @@ Notes:
 - OpenAI callers should currently set `IngestionInputTokens`, `CacheCreationInputTokens1M`, and `CacheCreationInputTokens1H` to `0`.
 - Anthropic callers should populate cache read and cache creation counters from the provider response when available.
 
-## 101.2 Response
+## 98.2 Response
 
 On success a 201 CREATED is returned with the following JSON body:
 
@@ -5606,7 +5606,7 @@ Content-Type: application/json; charset=utf-8
 The ListProviderUsageEvents API lists raw provider usage event records for a tenant. This API is intended for
 inspection, reconciliation, and drill-down into token usage at the task/turn/iteration level.
 
-## 102.1 Request
+## 99.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/provider-usage-events?maxResults={maxResults}&token={token}&workstreamID={workstreamID}&taskID={taskID}&provider={provider}&model={model}&startTime={startTime}&endTime={endTime} HTTP/1.1
@@ -5631,7 +5631,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 
-## 102.2 Response
+## 99.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -5681,7 +5681,7 @@ Each `ProviderUsageEvent` object contains the fields described in [WriteProvider
 The GetProviderUsageSummary API returns aggregated provider usage totals for a tenant over a requested time window.
 This API is intended for dashboards, reconciliation, and future billing workflows.
 
-## 103.1 Request
+## 100.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/provider-usage-summary?groupBy={groupBy}&workstreamID={workstreamID}&taskID={taskID}&provider={provider}&model={model}&startTime={startTime}&endTime={endTime} HTTP/1.1
@@ -5705,7 +5705,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                       |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                          |
 
-## 103.2 Response
+## 100.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -6142,7 +6142,7 @@ Content-Type: application/json; charset=utf-8
 
 | Field     | Type                 | Description                                 |
 |-----------|----------------------|---------------------------------------------|
-| Items     | [[]File](#1043-file) | List of file metadata objects.              |
+| Items     | [[]File](#1073-file) | List of file metadata objects.              |
 | NextToken | *string              | Token to retrieve the next page of results. | 
 
 ## 107.3 File
@@ -6267,7 +6267,7 @@ Content-Type: application/json; charset=utf-8
 	}
 ```
 
-See [FileMetadata](#1043-file) for more info on the response.
+See [FileMetadata](#1073-file) for more info on the response.
 
 # 107. UpdateFile
 
@@ -6328,4 +6328,4 @@ Content-Type: application/json; charset=utf-8
 }
 ```   
 
-See [FileMetadata](#1043-file) for more info on the response.
+See [FileMetadata](#1073-file) for more info on the response.
