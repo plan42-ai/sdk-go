@@ -55,11 +55,16 @@ const (
 )
 
 type ProviderUsageSummary struct {
-	Provider                      *string        `json:"Provider,omitempty"`
-	ProviderModelID               *string        `json:"ProviderModelID,omitempty"`
-	TaskID                        *string        `json:"TaskID,omitempty"`
-	WorkstreamID                  *string        `json:"WorkstreamID,omitempty"`
-	BucketStartTime               *time.Time     `json:"BucketStartTime,omitempty"`
+	Provider        *string    `json:"Provider,omitempty"`
+	ProviderModelID *string    `json:"ProviderModelID,omitempty"`
+	TaskID          *string    `json:"TaskID,omitempty"`
+	WorkstreamID    *string    `json:"WorkstreamID,omitempty"`
+	BucketStartTime *time.Time `json:"BucketStartTime,omitempty"`
+	// BucketGranularity is set when a time dimension (`hour`, `day`, or
+	// `month`) is in GroupBy. It tells the caller which time grain
+	// BucketStartTime represents — without it day vs. hour vs. month
+	// buckets are indistinguishable from a bare timestamp.
+	BucketGranularity             *string        `json:"BucketGranularity,omitempty"`
 	PromptTokens                  int            `json:"PromptTokens"`
 	CompletionTokens              int            `json:"CompletionTokens"`
 	TotalTokens                   int            `json:"TotalTokens"`
