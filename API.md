@@ -5528,11 +5528,11 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | ProviderModelID                | body     | string          | The provider-specific model identifier used for the iteration. Rejected with 400 if not in the service's model allowlist for the given provider. |
 | ResponseID                     | body     | *string         | Optional. The provider response identifier, when the provider supplies one.                                    |
 | PromptTokens                   | body     | int             | The number of input tokens billed at the standard (non-cached) input rate. Must exclude any tokens reported separately via `CachedReadInputTokens`, `CacheCreationInputTokensByTTL`, or `IngestionInputTokens`. For OpenAI agents this means subtracting the provider's `cached_tokens` from its `prompt_tokens` before populating this field, since OpenAI reports `cached_tokens` as a subset of `prompt_tokens`. Must be >= 0. |
-| CompletionTokens               | body     | int             | The number of completion/output tokens produced for the iteration. Must be >= 0.                               |
+| CompletionTokens               | body     | int             | The number of visible completion/output tokens billed at the standard output rate. Must exclude reasoning tokens (those are reported in `ReasoningTokens`). For OpenAI reasoning models, this means subtracting `completion_tokens_details.reasoning_tokens` from the provider's `completion_tokens` before populating this field, since OpenAI reports reasoning tokens as a subset of `completion_tokens`. Must be >= 0. |
 | TotalTokens                    | body     | int             | The deterministic sum of all normalized token counters in this record (`PromptTokens` + `CompletionTokens` + `CachedReadInputTokens` + sum of `CacheCreationInputTokensByTTL` values + `ReasoningTokens` + `IngestionInputTokens`). Must be >= 0. |
 | CachedReadInputTokens          | body     | int             | The number of input tokens served from cache reads. Must be >= 0.                                              |
 | CacheCreationInputTokensByTTL  | body     | map[string]int  | Map of cache-tier TTL (in seconds, as a string key) to tokens written into that tier. For Anthropic the typical keys today are `"60"` (1 minute) and `"3600"` (1 hour). New tiers can be reported without an API change. Values must be >= 0. May be empty or omitted. |
-| ReasoningTokens                | body     | int             | The number of reasoning tokens reported separately by the provider. Must be >= 0.                              |
+| ReasoningTokens                | body     | int             | The number of reasoning/thinking tokens priced separately from visible completion tokens. Must be the subtracted-out portion — see `CompletionTokens` above. Must be >= 0. |
 | IngestionInputTokens           | body     | int             | The number of provider-metered ingestion tokens distinct from ordinary prompt tokens. Must be >= 0.            |
 | RequestStartedAt               | body     | *string         | Optional. The timestamp when the provider request started, in ISO 8601 format.                                 |
 | ResponseCompletedAt            | body     | string          | The timestamp when the provider response completed, in ISO 8601 format. Required.                              |
@@ -5540,8 +5540,8 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 Notes:
 
 - `PromptTokens` is uncached/base input tokens only. Cache reads, cache writes, and provider-specific ingestion are reported in their own counters so each token class can be priced independently at billing time.
-- OpenAI callers must subtract the provider's `cached_tokens` from its reported `prompt_tokens` when populating `PromptTokens`, and report the difference in `CachedReadInputTokens`. OpenAI callers should currently leave `CacheCreationInputTokensByTTL` empty and set `IngestionInputTokens` to `0`.
-- Anthropic callers should populate cache read and cache creation counters from the provider response when available. Anthropic's reported input token count is already net of cache reads/creations, so `PromptTokens` maps directly from it without subtraction. Cache creations are reported in `CacheCreationInputTokensByTTL` keyed by the provider's TTL bucket in seconds.
+- OpenAI callers must subtract the provider's `cached_tokens` from its reported `prompt_tokens` when populating `PromptTokens`, and report the difference in `CachedReadInputTokens`. For reasoning models, OpenAI callers must also subtract `completion_tokens_details.reasoning_tokens` from `completion_tokens` when populating `CompletionTokens`, and report the difference in `ReasoningTokens`. OpenAI callers should currently leave `CacheCreationInputTokensByTTL` empty and set `IngestionInputTokens` to `0`.
+- Anthropic callers should populate cache read and cache creation counters from the provider response when available. Anthropic's reported input token count is already net of cache reads/creations, so `PromptTokens` maps directly from it without subtraction. Cache creations are reported in `CacheCreationInputTokensByTTL` keyed by the provider's TTL bucket in seconds. When extended thinking is enabled, populate `ReasoningTokens` from the thinking-token count and ensure `CompletionTokens` reflects only the visible output.
 
 Error responses:
 
@@ -5770,7 +5770,7 @@ The RotateTenantEncryptionKey API creates a new tenant encryption key version fo
 next version number in the URL path. The request fails with a 409 Conflict if the version is not exactly the latest
 version + 1. The API never returns key material in the response.
 
-## 98.1 Request
+## 101.1 Request
 
 ```http request
 PUT /v1/tenants/{tenant_id}/encryption-keys/{version} HTTP/1.1
@@ -5790,7 +5790,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 This request does not have a body.
 
-## 98.2 Response
+## 101.2 Response
 
 On success a 201 CREATED is returned with the following JSON body:
 
@@ -5818,7 +5818,7 @@ If the provided version does not match the next expected version, a 409 Conflict
 The GetTenantEncryptionKey API retrieves metadata for a specific tenant encryption key version. Key material is never
 returned in the response. The request returns 404 Not Found if the tenant does not have the requested version.
 
-## 99.1 Request
+## 102.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/encryption-keys/{version} HTTP/1.1
@@ -5838,7 +5838,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 This request does not have a body.
 
-## 99.2 Response
+## 102.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -5866,7 +5866,7 @@ If the specified version does not exist, a 404 Not Found is returned.
 The GetLatestTenantEncryptionKey API retrieves metadata for the most recent tenant encryption key version. The API
 returns a 404 Not Found response if the tenant does not have any encryption keys yet. Key material is never returned.
 
-## 100.1 Request
+## 103.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/encryption-keys/latest HTTP/1.1
@@ -5885,7 +5885,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 This request does not have a body.
 
-## 100.2 Response
+## 103.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
