@@ -5600,7 +5600,7 @@ Content-Type: application/json; charset=utf-8
 | ResponseCompletedAt            | string          | The timestamp when the provider response completed.                                             |
 | CreatedAt                      | string          | The timestamp when the usage record was created.                                                |
 | UpdatedAt                      | string          | The timestamp when the usage record was last updated.                                           |
-| Version                        | int             | The version of the usage record. Retries that overwrite the same iteration increment the value. |
+| Version                        | int             | The version of the usage record. Increments only when a subsequent write changes a persisted field; identical retries (true idempotent calls) leave `Version` unchanged so callers reconciling by version do not see phantom updates. |
 
 # 99. ListProviderUsageEvents
 
@@ -5694,7 +5694,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Parameter                                | Location | Type    | Description                                                                                                  |
 |------------------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant whose usage should be summarized.                                                       |
-| groupBy                                  | query    | *string | Optional. Comma-separated list of aggregation dimensions. Supported values: `hour`, `day`, `month`, `provider`, `model`, `task`, `workstream`. Time dimensions (`hour`/`day`/`month`) are mutually exclusive within a single request. Examples: `groupBy=day,model`, `groupBy=hour`, `groupBy=month,provider`. When `task` or `workstream` is included, the query reads raw usage events; otherwise the query reads the pre-aggregated hourly rollup table. |
+| groupBy                                  | query    | *string | Optional. Comma-separated list of aggregation dimensions. Supported values: `hour`, `day`, `month`, `provider`, `model`, `task`, `workstream`. Time dimensions (`hour`/`day`/`month`) are mutually exclusive within a single request. Examples: `groupBy=day,model`, `groupBy=hour`, `groupBy=month,provider`. Routing: the query reads raw usage events when `groupBy` includes `task` or `workstream` **or** when the request specifies `taskID` or `workstreamID` as a filter — those dimensions are not denormalized into the rollup table and the filter cannot otherwise be honored. All other requests read the pre-aggregated hourly rollup table. |
 | workstreamID                             | query    | *string | Optional. When provided, only usage events for the specified workstream are included.                        |
 | taskID                                   | query    | *string | Optional. When provided, only usage events for the specified task are included.                              |
 | provider                                 | query    | *string | Optional. When provided, only usage events for the specified provider are included.                          |
