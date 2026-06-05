@@ -5528,7 +5528,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Provider                       | body     | string  | The provider name that produced the usage record, for example `openai` or `anthropic`.                        |
 | ProviderModelID                | body     | string  | The provider-specific model identifier used for the iteration.                                                 |
 | ResponseID                     | body     | *string | Optional. The provider response identifier, when the provider supplies one.                                    |
-| PromptTokens                   | body     | int     | The number of prompt/input tokens processed for the iteration. Must be >= 0.                                   |
+| PromptTokens                   | body     | int     | The number of input tokens billed at the standard (non-cached) input rate. Must exclude any tokens reported separately via `CachedReadInputTokens`, `CacheCreationInputTokens1M`, `CacheCreationInputTokens1H`, or `IngestionInputTokens`. For OpenAI agents this means subtracting the provider's `cached_tokens` from its `prompt_tokens` before populating this field, since OpenAI reports `cached_tokens` as a subset of `prompt_tokens`. Must be >= 0. |
 | CompletionTokens               | body     | int     | The number of completion/output tokens produced for the iteration. Must be >= 0.                               |
 | TotalTokens                    | body     | int     | The provider-reported total token count for the iteration. Must be >= 0.                                       |
 | CachedReadInputTokens          | body     | int     | The number of input tokens served from cache reads. Must be >= 0.                                              |
@@ -5541,8 +5541,9 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 
 Notes:
 
-- OpenAI callers should currently set `IngestionInputTokens`, `CacheCreationInputTokens1M`, and `CacheCreationInputTokens1H` to `0`.
-- Anthropic callers should populate cache read and cache creation counters from the provider response when available.
+- `PromptTokens` is uncached/base input tokens only. Cache reads, cache writes, and provider-specific ingestion are reported in their own counters so each token class can be priced independently at billing time.
+- OpenAI callers must subtract the provider's `cached_tokens` from its reported `prompt_tokens` when populating `PromptTokens`, and report the difference in `CachedReadInputTokens`. OpenAI callers should currently set `CacheCreationInputTokens1M`, `CacheCreationInputTokens1H`, and `IngestionInputTokens` to `0`.
+- Anthropic callers should populate cache read and cache creation counters from the provider response when available. Anthropic's reported input token count is already net of cache reads/creations, so `PromptTokens` maps directly from it without subtraction.
 
 ## 98.2 Response
 
@@ -6159,7 +6160,7 @@ FileMetadata objects describe metadata for a file object.
 | IsMalicious               | *bool                                             | Whether the file was flagged as malicious by the malware. Will be null if the malware scan has not completed yet. |
 | MalwareScanCompletedAt    | *string                                           | The timestamp when the malware scan completed. Will be null if the scan has not completed yet.                    |
 | ModerationScanCompletedAt | *string                                           | The timestamp when the moderation scan completed.                                                                 |
-| ModerationScanInfo        | [*ModerationScanInfo](#1044-moderation-scan-info) | The response from the content moderation scan. Will be null if the scan has not completed yet.                    |
+| ModerationScanInfo        | [*ModerationScanInfo](#1074-moderation-scan-info) | The response from the content moderation scan. Will be null if the scan has not completed yet.                    |
 | UpdatedAt                 | * string                                          | The timestamp when the file object was last modified.                                                             |
 | ContentType               | *string                                           | The file's mime type.                                                                                             |
 | RejectionReason           | *string                                           | The reason the file was rejected. Will be null if the file has not been rejected.                                 |
@@ -6177,7 +6178,7 @@ See here for OpenAI moderation API docs: https://developers.openai.com/api/docs/
 |---------|----------------------------------------------------------|----------------------------------------------|
 | ID      | string                                                   | The Open AI moderation response ID.          |
 | Model   | string                                                   | The Open AI model used for scanning.         |
-| Results | [[]ModerationScanResults](#1045-moderation-scan-results) | The list of moderation results for the file. |
+| Results | [[]ModerationScanResults](#1075-moderation-scan-results) | The list of moderation results for the file. |
 
 ## 107.5 ModerationScanResults
 
@@ -6219,11 +6220,11 @@ On success a 204 No Content is returned with an empty body.
 HTTP/1.1 204 No Content
 ```
 
-# 106 GetFile
+# 109. GetFile
 
 The GetFile API returns metadata about a File object.
 
-## 106.1 Request
+## 109.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/files/{file_id} HTTP/1.1
@@ -6241,7 +6242,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
-## 106.2 Response
+## 109.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -6269,12 +6270,12 @@ Content-Type: application/json; charset=utf-8
 
 See [FileMetadata](#1073-file) for more info on the response.
 
-# 107. UpdateFile
+# 110. UpdateFile
 
 The UpdateFile API is an admin api that allows updating file metadata. It's used by internal services to update
 metadata about a file as various scans complete.
 
-## 107.1 Request
+## 110.1 Request
 
 ```http request
 PATCH /v1/tenants/{tenant_id}/files/{file_id} HTTP/1
@@ -6304,7 +6305,7 @@ If-Match: <version>
 | ContentType                    | body     | *string             | Optional. Sets the file's mime type. This is set by a lambda, using libmagic, after the file's malware scan has completed.                           |
 | RejectionReason                | body     | *string             | Optional. Sets the reason the file was rejected. This is set by a lambda when the detected mime type is not supported. Cannot be modified once set. |
 
-## 107.2 Response
+## 110.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
