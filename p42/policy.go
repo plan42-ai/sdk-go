@@ -538,6 +538,9 @@ func init() {
 			ActionGetFile,                      // (0x0000_0002_0000_0000, 0)
 			ActionGetDefaultBranches,           // (0x0000_0004_0000_0000, 0)
 			ActionSearchTenantTasks,            // (0x0000_0008_0000_0000, 0)
+			ActionWriteProviderUsage,           // (0x0000_0010_0000_0000, 0)
+			ActionListProviderUsageEvents,      // (0x0000_0020_0000_0000, 0)
+			ActionGetProviderUsageSummary,      // (0x0000_0040_0000_0000, 0)
 
 		},
 		ActionBitVector{
