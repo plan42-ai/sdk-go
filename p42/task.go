@@ -191,20 +191,11 @@ type SearchTasksRequest struct {
 func (r *SearchTasksRequest) GetField(name string) (any, bool) {
 	switch name {
 	case "PullRequestID":
-		if r.PullRequestID == nil {
-			return nil, false
-		}
-		return *r.PullRequestID, true
+		return EvalNullable(r.PullRequestID)
 	case "TaskID":
-		if r.TaskID == nil {
-			return nil, false
-		}
-		return *r.TaskID, true
+		return EvalNullable(r.TaskID)
 	case "TenantID":
-		if r.TenantID == nil {
-			return nil, false
-		}
-		return *r.TenantID, true
+		return EvalNullable(r.TenantID)
 	default:
 		return nil, false
 	}
