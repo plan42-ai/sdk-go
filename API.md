@@ -5482,7 +5482,289 @@ Content-Type: application/json; charset=utf-8
 | NextToken | *string                 | A token to retrieve the next page of results. If there are no more results, this will be null. |
 | Items     | [][Turn](#232-Response) | A list of turn metadata objects representing active turns.                                     |
 
-# 98. RotateTenantEncryptionKey
+# 98. WriteProviderUsage
+
+The WriteProviderUsage API records normalized provider token usage for a single completed model iteration.
+This API is designed to be called by the agent after it receives a terminal provider response for an iteration.
+
+The resource is identified by tenant, task, turn, and iteration index, so the API uses `PUT` semantics and is
+idempotent. Retrying the same request for the same resource replaces the previously stored usage snapshot.
+
+## 98.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turn_index}/iterations/{iteration_index}/provider-usage?workstreamID={workstreamID} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+  "Provider": "string",
+  "ProviderModelID": "string",
+  "ResponseID": "*string",
+  "PromptTokens": int,
+  "CompletionTokens": int,
+  "TotalTokens": int,
+  "CachedReadInputTokens": int,
+  "CacheCreationInputTokens1M": int,
+  "CacheCreationInputTokens1H": int,
+  "ReasoningTokens": int,
+  "IngestionInputTokens": int,
+  "RequestStartedAt": "*string",
+  "ResponseCompletedAt": "string"
+}
+```
+
+| Parameter                      | Location | Type    | Description                                                                                                    |
+|--------------------------------|----------|---------|----------------------------------------------------------------------------------------------------------------|
+| tenant_id                      | path     | string  | The ID of the tenant that owns the task execution.                                                             |
+| task_id                        | path     | string  | The ID of the task whose provider usage is being recorded.                                                     |
+| turn_index                     | path     | int     | The turn index for the execution.                                                                              |
+| iteration_index                | path     | int     | The iteration index within the turn.                                                                           |
+| workstreamID                   | query    | *string | Optional. The workstream ID for workstream tasks. If omitted, the task is treated as a non-workstream task.   |
+| Authorization                  | header   | string  | The authorization header for the request.                                                                      |
+| X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                            |
+| Provider                       | body     | string  | The provider name that produced the usage record, for example `openai` or `anthropic`.                        |
+| ProviderModelID                | body     | string  | The provider-specific model identifier used for the iteration.                                                 |
+| ResponseID                     | body     | *string | Optional. The provider response identifier, when the provider supplies one.                                    |
+| PromptTokens                   | body     | int     | The number of prompt/input tokens processed for the iteration. Must be >= 0.                                   |
+| CompletionTokens               | body     | int     | The number of completion/output tokens produced for the iteration. Must be >= 0.                               |
+| TotalTokens                    | body     | int     | The provider-reported total token count for the iteration. Must be >= 0.                                       |
+| CachedReadInputTokens          | body     | int     | The number of input tokens served from cache reads. Must be >= 0.                                              |
+| CacheCreationInputTokens1M     | body     | int     | The number of input tokens written to a 1 minute cache tier. Must be >= 0.                                     |
+| CacheCreationInputTokens1H     | body     | int     | The number of input tokens written to a 1 hour cache tier. Must be >= 0.                                       |
+| ReasoningTokens                | body     | int     | The number of reasoning tokens reported separately by the provider. Must be >= 0.                              |
+| IngestionInputTokens           | body     | int     | The number of provider-metered ingestion tokens distinct from ordinary prompt tokens. Must be >= 0.            |
+| RequestStartedAt               | body     | *string | Optional. The timestamp when the provider request started, in ISO 8601 format.                                 |
+| ResponseCompletedAt            | body     | string  | The timestamp when the provider response completed, in ISO 8601 format. Required.                              |
+
+Notes:
+
+- OpenAI callers should currently set `IngestionInputTokens`, `CacheCreationInputTokens1M`, and `CacheCreationInputTokens1H` to `0`.
+- Anthropic callers should populate cache read and cache creation counters from the provider response when available.
+
+## 98.2 Response
+
+On success a 201 CREATED is returned with the following JSON body:
+
+```http response
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "WorkstreamID": "*string",
+  "TaskID": "string",
+  "TurnIndex": int,
+  "IterationIndex": int,
+  "Provider": "string",
+  "ProviderModelID": "string",
+  "ResponseID": "*string",
+  "PromptTokens": int,
+  "CompletionTokens": int,
+  "TotalTokens": int,
+  "CachedReadInputTokens": int,
+  "CacheCreationInputTokens1M": int,
+  "CacheCreationInputTokens1H": int,
+  "ReasoningTokens": int,
+  "IngestionInputTokens": int,
+  "RequestStartedAt": "*string",
+  "ResponseCompletedAt": "string",
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "Version": int
+}
+```
+
+| Field                       | Type    | Description                                                                                     |
+|-----------------------------|---------|-------------------------------------------------------------------------------------------------|
+| TenantID                    | string  | The ID of the tenant that owns the usage record.                                                |
+| WorkstreamID                | *string | The workstream ID for the task, if the task belongs to a workstream.                            |
+| TaskID                      | string  | The task ID that owns the usage record.                                                         |
+| TurnIndex                   | int     | The turn index for the usage record.                                                            |
+| IterationIndex              | int     | The iteration index for the usage record.                                                       |
+| Provider                    | string  | The provider that produced the usage.                                                           |
+| ProviderModelID             | string  | The provider-specific model ID used for the iteration.                                          |
+| ResponseID                  | *string | The provider response ID, if one was supplied.                                                  |
+| PromptTokens                | int     | The recorded prompt/input token count.                                                          |
+| CompletionTokens            | int     | The recorded completion/output token count.                                                     |
+| TotalTokens                 | int     | The recorded total token count.                                                                 |
+| CachedReadInputTokens       | int     | The recorded cached read input token count.                                                     |
+| CacheCreationInputTokens1M  | int     | The recorded 1 minute cache creation input token count.                                         |
+| CacheCreationInputTokens1H  | int     | The recorded 1 hour cache creation input token count.                                           |
+| ReasoningTokens             | int     | The recorded reasoning token count.                                                             |
+| IngestionInputTokens        | int     | The recorded ingestion token count.                                                             |
+| RequestStartedAt            | *string | The timestamp when the provider request started, if supplied.                                   |
+| ResponseCompletedAt         | string  | The timestamp when the provider response completed.                                             |
+| CreatedAt                   | string  | The timestamp when the usage record was created.                                                |
+| UpdatedAt                   | string  | The timestamp when the usage record was last updated.                                           |
+| Version                     | int     | The version of the usage record. Retries that overwrite the same iteration increment the value. |
+
+# 99. ListProviderUsageEvents
+
+The ListProviderUsageEvents API lists raw provider usage event records for a tenant. This API is intended for
+inspection, reconciliation, and drill-down into token usage at the task/turn/iteration level.
+
+## 99.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/provider-usage-events?maxResults={maxResults}&token={token}&workstreamID={workstreamID}&taskID={taskID}&provider={provider}&model={model}&startTime={startTime}&endTime={endTime} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                     |
+|------------------------------------------|----------|---------|-----------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant whose provider usage events should be listed.                                              |
+| maxResults                               | query    | *int    | Optional. The maximum number of usage events to return. Default is 10. Must be between 1 and 500.              |
+| token                                    | query    | *string | Optional. A token to retrieve the next page of results.                                                         |
+| workstreamID                             | query    | *string | Optional. When provided, only usage events for the specified workstream are returned.                           |
+| taskID                                   | query    | *string | Optional. When provided, only usage events for the specified task are returned.                                 |
+| provider                                 | query    | *string | Optional. When provided, only usage events for the specified provider are returned.                             |
+| model                                    | query    | *string | Optional. When provided, only usage events for the specified provider model ID are returned.                    |
+| startTime                                | query    | *string | Optional. Inclusive lower bound on `ResponseCompletedAt`, in ISO 8601 format.                                  |
+| endTime                                  | query    | *string | Optional. Exclusive upper bound on `ResponseCompletedAt`, in ISO 8601 format.                                  |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                       |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
+
+## 99.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "NextToken": "*string",
+  "Items": [
+    {
+      "TenantID": "string",
+      "WorkstreamID": "*string",
+      "TaskID": "string",
+      "TurnIndex": int,
+      "IterationIndex": int,
+      "Provider": "string",
+      "ProviderModelID": "string",
+      "ResponseID": "*string",
+      "PromptTokens": int,
+      "CompletionTokens": int,
+      "TotalTokens": int,
+      "CachedReadInputTokens": int,
+      "CacheCreationInputTokens1M": int,
+      "CacheCreationInputTokens1H": int,
+      "ReasoningTokens": int,
+      "IngestionInputTokens": int,
+      "RequestStartedAt": "*string",
+      "ResponseCompletedAt": "string",
+      "CreatedAt": "string",
+      "UpdatedAt": "string",
+      "Version": int
+    }
+  ]
+}
+```
+
+| Field     | Type                   | Description                                                                                    |
+|-----------|------------------------|------------------------------------------------------------------------------------------------|
+| NextToken | *string                | A token to retrieve the next page of results. If there are no more results, this will be null. |
+| Items     | []ProviderUsageEvent   | A list of provider usage event records for the tenant.                                         |
+
+Each `ProviderUsageEvent` object contains the fields described in [WriteProviderUsage](#98-writeproviderusage).
+
+# 100. GetProviderUsageSummary
+
+The GetProviderUsageSummary API returns aggregated provider usage totals for a tenant over a requested time window.
+This API is intended for dashboards, reconciliation, and future billing workflows.
+
+## 100.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/provider-usage-summary?groupBy={groupBy}&workstreamID={workstreamID}&taskID={taskID}&provider={provider}&model={model}&startTime={startTime}&endTime={endTime} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                  |
+|------------------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The ID of the tenant whose usage should be summarized.                                                       |
+| groupBy                                  | query    | *string | Optional. Aggregation grouping. Supported values are `provider`, `model`, `task`, `workstream`, and `day`. |
+| workstreamID                             | query    | *string | Optional. When provided, only usage events for the specified workstream are included.                        |
+| taskID                                   | query    | *string | Optional. When provided, only usage events for the specified task are included.                              |
+| provider                                 | query    | *string | Optional. When provided, only usage events for the specified provider are included.                          |
+| model                                    | query    | *string | Optional. When provided, only usage events for the specified provider model ID are included.                 |
+| startTime                                | query    | *string | Optional. Inclusive lower bound on `ResponseCompletedAt`, in ISO 8601 format.                               |
+| endTime                                  | query    | *string | Optional. Exclusive upper bound on `ResponseCompletedAt`, in ISO 8601 format.                               |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                    |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                       |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                          |
+
+## 100.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "StartTime": "*string",
+  "EndTime": "*string",
+  "GroupBy": "*string",
+  "Items": [
+    {
+      "Provider": "*string",
+      "ProviderModelID": "*string",
+      "TaskID": "*string",
+      "WorkstreamID": "*string",
+      "BucketStartTime": "*string",
+      "EventCount": int,
+      "PromptTokens": int,
+      "CompletionTokens": int,
+      "TotalTokens": int,
+      "CachedReadInputTokens": int,
+      "CacheCreationInputTokens1M": int,
+      "CacheCreationInputTokens1H": int,
+      "ReasoningTokens": int,
+      "IngestionInputTokens": int
+    }
+  ]
+}
+```
+
+| Field                         | Type                    | Description                                                                 |
+|-------------------------------|-------------------------|-----------------------------------------------------------------------------|
+| TenantID                      | string                  | The tenant the summary applies to.                                          |
+| StartTime                     | *string                 | The inclusive lower bound used for the summary window, if supplied.         |
+| EndTime                       | *string                 | The exclusive upper bound used for the summary window, if supplied.         |
+| GroupBy                       | *string                 | The grouping mode applied to the response, if supplied.                     |
+| Items                         | []ProviderUsageSummary  | A list of summary buckets.                                                  |
+| Items[].Provider              | *string                 | The provider for the bucket when grouped or filtered by provider.           |
+| Items[].ProviderModelID       | *string                 | The provider model ID for the bucket when grouped or filtered by model.     |
+| Items[].TaskID                | *string                 | The task ID for the bucket when grouped or filtered by task.                |
+| Items[].WorkstreamID          | *string                 | The workstream ID for the bucket when grouped or filtered by workstream.    |
+| Items[].BucketStartTime       | *string                 | The day bucket start time when grouped by `day`.                            |
+| Items[].EventCount            | int                     | The number of provider usage events included in the bucket.                 |
+| Items[].PromptTokens          | int                     | The summed prompt/input tokens for the bucket.                              |
+| Items[].CompletionTokens      | int                     | The summed completion/output tokens for the bucket.                         |
+| Items[].TotalTokens           | int                     | The summed total tokens for the bucket.                                     |
+| Items[].CachedReadInputTokens | int                     | The summed cached read input tokens for the bucket.                         |
+| Items[].CacheCreationInputTokens1M | int               | The summed 1 minute cache creation input tokens for the bucket.             |
+| Items[].CacheCreationInputTokens1H | int               | The summed 1 hour cache creation input tokens for the bucket.               |
+| Items[].ReasoningTokens       | int                     | The summed reasoning tokens for the bucket.                                 |
+| Items[].IngestionInputTokens  | int                     | The summed ingestion input tokens for the bucket.                           |
+
+This API reports normalized token counts only. Currency-cost fields are intentionally omitted until provider pricing
+tables are defined.
+
+# 101. RotateTenantEncryptionKey
 
 The RotateTenantEncryptionKey API creates a new tenant encryption key version for a tenant. The caller supplies the
 next version number in the URL path. The request fails with a 409 Conflict if the version is not exactly the latest
@@ -5531,7 +5813,7 @@ Content-Type: application/json; charset=utf-8
 
 If the provided version does not match the next expected version, a 409 Conflict is returned.
 
-# 99. GetTenantEncryptionKey
+# 102. GetTenantEncryptionKey
 
 The GetTenantEncryptionKey API retrieves metadata for a specific tenant encryption key version. Key material is never
 returned in the response. The request returns 404 Not Found if the tenant does not have the requested version.
@@ -5579,7 +5861,7 @@ Content-Type: application/json; charset=utf-8
 
 If the specified version does not exist, a 404 Not Found is returned.
 
-# 100. GetLatestTenantEncryptionKey
+# 103. GetLatestTenantEncryptionKey
 
 The GetLatestTenantEncryptionKey API retrieves metadata for the most recent tenant encryption key version. The API
 returns a 404 Not Found response if the tenant does not have any encryption keys yet. Key material is never returned.
@@ -5626,7 +5908,7 @@ Content-Type: application/json; charset=utf-8
 
 If the tenant does not yet have a key, a 404 Not Found error is returned.
 
-# 101. ListTenantEncryptionKeys
+# 104. ListTenantEncryptionKeys
 
 The ListTenantEncryptionKeys API returns metadata for tenant encryption key versions with pagination support. Key
 material is never exposed in responses.
@@ -5676,9 +5958,9 @@ Content-Type: application/json; charset=utf-8
 | NextToken | *string               | Token to retrieve the next page of results. |
 
 Each `TenantEncryptionKey` object contains the fields described in
-[RotateTenantEncryptionKey](#98-rotatetenantencryptionkey).
+[RotateTenantEncryptionKey](#101-rotatetenantencryptionkey).
 
-   # 102. CreateFile
+# 105. CreateFile
 
 The CreateFile API creates a new file object, and returns a presigned S3 URL that can be used to upload the file
 contents. Te presigned S3 URL can be used to upload the file at most once, and expires after 1 hour and 5 mins.
