@@ -192,6 +192,9 @@ const (
 	ActionGetFile                      Action = "GetFile"
 	ActionGetDefaultBranches           Action = "GetDefaultBranches"
 	ActionSearchTenantTasks            Action = "SearchTenantTasks"
+	ActionWriteProviderUsage           Action = "WriteProviderUsage"
+	ActionListProviderUsageEvents      Action = "ListProviderUsageEvents"
+	ActionGetProviderUsageSummary      Action = "GetProviderUsageSummary"
 )
 
 // TokenType defines the type of token a principal used to authenticate.

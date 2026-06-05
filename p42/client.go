@@ -493,6 +493,7 @@ const (
 	ObjectTypeWorkstream             ObjectType = "Workstream"
 	ObjectTypeWorkstreamShortName    ObjectType = "WorkstreamShortName"
 	ObjectTypeWorkstreamTaskConflict ObjectType = "WorkstreamTaskConflict"
+	ObjectTypeProviderUsageEvent     ObjectType = "ProviderUsageEvent"
 	ObjectTypeRunnerMessage          ObjectType = "RunnerMessage"
 )
 
