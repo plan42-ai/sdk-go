@@ -5490,7 +5490,7 @@ This API is designed to be called by the agent after it receives a terminal prov
 The resource is identified by tenant, task, turn, and iteration index, so the API uses `PUT` semantics and is
 idempotent. Retrying the same request for the same resource replaces the previously stored usage snapshot.
 
-## 98.1 Request
+## 101.1 Request
 
 ```http request
 PUT /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turn_index}/iterations/{iteration_index}/provider-usage?workstreamID={workstreamID} HTTP/1.1
@@ -5544,7 +5544,7 @@ Notes:
 - OpenAI callers should currently set `IngestionInputTokens`, `CacheCreationInputTokens1M`, and `CacheCreationInputTokens1H` to `0`.
 - Anthropic callers should populate cache read and cache creation counters from the provider response when available.
 
-## 98.2 Response
+## 101.2 Response
 
 On success a 201 CREATED is returned with the following JSON body:
 
@@ -5606,7 +5606,7 @@ Content-Type: application/json; charset=utf-8
 The ListProviderUsageEvents API lists raw provider usage event records for a tenant. This API is intended for
 inspection, reconciliation, and drill-down into token usage at the task/turn/iteration level.
 
-## 99.1 Request
+## 102.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/provider-usage-events?maxResults={maxResults}&token={token}&workstreamID={workstreamID}&taskID={taskID}&provider={provider}&model={model}&startTime={startTime}&endTime={endTime} HTTP/1.1
@@ -5631,7 +5631,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                          |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                             |
 
-## 99.2 Response
+## 102.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -5681,7 +5681,7 @@ Each `ProviderUsageEvent` object contains the fields described in [WriteProvider
 The GetProviderUsageSummary API returns aggregated provider usage totals for a tenant over a requested time window.
 This API is intended for dashboards, reconciliation, and future billing workflows.
 
-## 100.1 Request
+## 103.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/provider-usage-summary?groupBy={groupBy}&workstreamID={workstreamID}&taskID={taskID}&provider={provider}&model={model}&startTime={startTime}&endTime={endTime} HTTP/1.1
@@ -5705,7 +5705,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                       |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                          |
 
-## 100.2 Response
+## 103.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -5913,7 +5913,7 @@ If the tenant does not yet have a key, a 404 Not Found error is returned.
 The ListTenantEncryptionKeys API returns metadata for tenant encryption key versions with pagination support. Key
 material is never exposed in responses.
 
-## 101.1 Request
+## 104.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/encryption-keys?maxResults={maxResults}&token={token} HTTP/1.1
@@ -5932,7 +5932,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
-## 101.2 Response
+## 104.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -5976,7 +5976,7 @@ prompts with it should we need to.
 
 Once the file content has been uploaded to S3, it can be attached to a task when calling CreateTask, UpdateTask, CreateTurn, CreateWorkstreamTask or UpdateWorkstreamTask.
 
-## 102.1 Request
+## 105.1 Request
 
 ```http request
 PUT /v1/tenants/{tenant_id}/files/{file_id} HTTP/1.1
@@ -6002,7 +6002,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Name                                     | body     | string  | The name of the file. Required.                                                                                  |
 | Size                                     | body     | int     | The size of the file in bytes. Required. Must be between 1 and 31457280 (30 MB). The presigned upload URL will enforce this exact size via the Content-Length header in the SigV4 signature. |
 
-## 102.2 Response
+## 105.2 Response
 On success a 201 CREATED is returned with the following JSON body:
 
 ```http response
@@ -6029,7 +6029,7 @@ Content-Type: application/json; charset=utf-8
 | CreatedAt | string | The timestamp when the file object was created.                                                                                                                                                                                                                                                                      |
 
 
-# 103. GetDownloadUrl
+# 106. GetDownloadUrl
 
 The GetDownloadUrl API returns a presigned S3 URL that can be used to download file content. A presigned S3 URL is only returned if:
 
@@ -6041,7 +6041,7 @@ The GetDownloadUrl API returns a presigned S3 URL that can be used to download f
 
 The returned URL is valid for 1 hour and 5 mins from the time of the request.
 
-## 103.1 Request
+## 106.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/files/{file_id}/download-url HTTP/1.1
@@ -6059,7 +6059,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.              |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
-## 103.2 Response
+## 106.2 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -6088,14 +6088,14 @@ Content-Type: application/json; charset=utf-8
 | DownloadURLExpiresAt | string | The timestamp when the download URL expires.                                                              |
 | ContentType          | string | The file's content type.                                                                                  |
 
-# 104. ListFiles 
+# 107. ListFiles 
 
 The ListFiles API is an admin api that returns metadata for files owned by a tenant, with pagination support. Files are
 returned in decreasing order of creation time (i.e. newest files are returned first). This API is designed to be used by
 internal tools. To get the files associated with a specific task, fetch the tasks (i.e. GetTask, GetWorkstreamTask,
 ListTask, ListWorkstreamTasks, etc.) and look at the `FileIDs` array.
 
-## 104.1 Request
+## 107.1 Request
 
 ```http request
 GET /v1/tenants/{tenant_id}/files?maxResults={maxResults}&token={token} HTTP/1.1 
@@ -6112,7 +6112,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Authorization                  | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
-## 104.2 Response
+## 107.2 Response
 On success a 200 OK is returned with the following JSON body:
 
 ```http response
@@ -6145,7 +6145,7 @@ Content-Type: application/json; charset=utf-8
 | Items     | [[]File](#1043-file) | List of file metadata objects.              |
 | NextToken | *string              | Token to retrieve the next page of results. | 
 
-## 104.3 File
+## 107.3 File
 
 FileMetadata objects describe metadata for a file object.
 
@@ -6166,7 +6166,7 @@ FileMetadata objects describe metadata for a file object.
 | RejectedAt                | *string                                           | The timestamp when the file was rejected. Will be null if the file has not been rejected.                         |
 | Version                   | int                                               | The version number of the file object                                                                             |
 
-## 104.4 ModerationScanInfo
+## 107.4 ModerationScanInfo
 
 ModerationScanInfo provides metadata about the content moderation scan results for a file. It's essentially a copy
 of the OpenAI moderation endpoint response.
@@ -6179,7 +6179,7 @@ See here for OpenAI moderation API docs: https://developers.openai.com/api/docs/
 | Model   | string                                                   | The Open AI model used for scanning.         |
 | Results | [[]ModerationScanResults](#1045-moderation-scan-results) | The list of moderation results for the file. |
 
-## 104.5 ModerationScanResults
+## 107.5 ModerationScanResults
 
 ModerationScanResults provides details about the content moderation scan for a file, including which categories were flagged.
 
@@ -6190,12 +6190,12 @@ ModerationScanResults provides details about the content moderation scan for a f
 | CategoryScores            | map[string]float    | The scores for each category. The key is the category name, and the value is the score for that category.                                                                                                     |
 | CategoryAppliedInputTypes | map[string][]string | The input types that contributed to each category being flagged. The key is the category name, and the value is a list of input types (e.g. "text", "image") that contributed to that category being flagged. |
 
-# 105. DeleteFile
+# 108. DeleteFile
 
 The DeleteFile API is an admin api that hard deletes file content from S3, but does not remove the associated metadata
 entry. This is called when a file fails a content moderation scan.
 
-## 105.1 Request
+## 108.1 Request
 
 ```http request
 DELETE /v1/tenants/{tenant_id}/files/{file_id} HTTP/1.1
@@ -6211,7 +6211,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Authorization                  | header   | string  | The authorization header for the request.                           |
 | X-Event-Horizon-Signed-Headers | header   | *string | The signed headers for the request, when authenticating with Sigv4. |
 
-## 105.2 Response
+## 108.2 Response
 
 On success a 204 No Content is returned with an empty body. 
 
