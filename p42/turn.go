@@ -55,9 +55,9 @@ type CreateTurnRequest struct {
 // nolint: goconst
 func (c *CreateTurnRequest) GetField(name string) (any, bool) {
 	switch name {
-	case "TenantId":
+	case "TenantID":
 		return c.TenantID, true
-	case "TaskId":
+	case "TaskID":
 		return c.TaskID, true
 	case "TurnIndex":
 		return c.TurnIndex, true
