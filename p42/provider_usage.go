@@ -22,16 +22,12 @@ type ProviderUsageEvent struct {
 	ResponseID                    *string        `json:"ResponseID,omitempty"`
 	PromptTokens                  int            `json:"PromptTokens"`
 	CompletionTokens              int            `json:"CompletionTokens"`
-	TotalTokens                   int            `json:"TotalTokens"`
 	CachedReadInputTokens         int            `json:"CachedReadInputTokens"`
 	CacheCreationInputTokensByTTL map[string]int `json:"CacheCreationInputTokensByTTL,omitempty"`
 	ReasoningTokens               int            `json:"ReasoningTokens"`
-	IngestionInputTokens          int            `json:"IngestionInputTokens"`
 	RequestStartedAt              *time.Time     `json:"RequestStartedAt,omitempty"`
 	ResponseCompletedAt           time.Time      `json:"ResponseCompletedAt"`
 	CreatedAt                     time.Time      `json:"CreatedAt"`
-	UpdatedAt                     time.Time      `json:"UpdatedAt"`
-	Version                       int            `json:"Version"`
 }
 
 func (ProviderUsageEvent) ObjectType() ObjectType { return ObjectTypeProviderUsageEvent }
@@ -49,11 +45,9 @@ type WriteProviderUsageRequest struct {
 	ResponseID                    *string        `json:"ResponseID,omitempty"`
 	PromptTokens                  int            `json:"PromptTokens"`
 	CompletionTokens              int            `json:"CompletionTokens"`
-	TotalTokens                   int            `json:"TotalTokens"`
 	CachedReadInputTokens         int            `json:"CachedReadInputTokens"`
 	CacheCreationInputTokensByTTL map[string]int `json:"CacheCreationInputTokensByTTL,omitempty"`
 	ReasoningTokens               int            `json:"ReasoningTokens"`
-	IngestionInputTokens          int            `json:"IngestionInputTokens"`
 	RequestStartedAt              *time.Time     `json:"RequestStartedAt,omitempty"`
 	ResponseCompletedAt           time.Time      `json:"ResponseCompletedAt"`
 }
@@ -81,16 +75,12 @@ func (r *WriteProviderUsageRequest) GetField(name string) (any, bool) {
 		return r.PromptTokens, true
 	case "CompletionTokens":
 		return r.CompletionTokens, true
-	case "TotalTokens":
-		return r.TotalTokens, true
 	case "CachedReadInputTokens":
 		return r.CachedReadInputTokens, true
 	case "CacheCreationInputTokensByTTL":
 		return r.CacheCreationInputTokensByTTL, true
 	case "ReasoningTokens":
 		return r.ReasoningTokens, true
-	case "IngestionInputTokens":
-		return r.IngestionInputTokens, true
 	case "RequestStartedAt":
 		return EvalNullable(r.RequestStartedAt)
 	case "ResponseCompletedAt":

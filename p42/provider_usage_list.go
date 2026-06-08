@@ -67,11 +67,9 @@ type ProviderUsageSummary struct {
 	BucketGranularity             *string        `json:"BucketGranularity,omitempty"`
 	PromptTokens                  int            `json:"PromptTokens"`
 	CompletionTokens              int            `json:"CompletionTokens"`
-	TotalTokens                   int            `json:"TotalTokens"`
 	CachedReadInputTokens         int            `json:"CachedReadInputTokens"`
 	CacheCreationInputTokensByTTL map[string]int `json:"CacheCreationInputTokensByTTL,omitempty"`
 	ReasoningTokens               int            `json:"ReasoningTokens"`
-	IngestionInputTokens          int            `json:"IngestionInputTokens"`
 	EventCount                    int            `json:"EventCount"`
 }
 
