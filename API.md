@@ -5575,9 +5575,7 @@ Content-Type: application/json; charset=utf-8
   "ReasoningTokens": int,
   "RequestStartedAt": "*string",
   "ResponseCompletedAt": "string",
-  "CreatedAt": "string",
-  "UpdatedAt": "string",
-  "Version": int
+  "CreatedAt": "string"
 }
 ```
 
@@ -5599,8 +5597,6 @@ Content-Type: application/json; charset=utf-8
 | RequestStartedAt               | *string         | The timestamp when the provider request started, if supplied.                                   |
 | ResponseCompletedAt            | string          | The timestamp when the provider response completed.                                             |
 | CreatedAt                      | string          | The timestamp when the usage record was created.                                                |
-| UpdatedAt                      | string          | The timestamp when the usage record was last updated.                                           |
-| Version                        | int             | The version of the usage record.                                                                |
 
 # 99. ListProviderUsageEvents
 
@@ -5659,9 +5655,7 @@ Content-Type: application/json; charset=utf-8
       "ReasoningTokens": int,
       "RequestStartedAt": "*string",
       "ResponseCompletedAt": "string",
-      "CreatedAt": "string",
-      "UpdatedAt": "string",
-      "Version": int
+      "CreatedAt": "string"
     }
   ]
 }
