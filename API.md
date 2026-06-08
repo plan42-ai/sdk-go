@@ -5485,10 +5485,9 @@ Content-Type: application/json; charset=utf-8
 # 98. WriteProviderUsage
 
 The WriteProviderUsage API records normalized provider token usage for a single completed model iteration.
-This API is designed to be called by the agent after it receives a terminal provider response for an iteration.
-
-The resource is identified by tenant, task, turn, and iteration index, so the API uses `PUT` semantics and is
-idempotent. Retrying the same request for the same resource replaces the previously stored usage snapshot.
+The agent calls this once after each model response within a turn (one call per iteration), not once per turn,
+so that per-iteration token usage is captured even when usage counts change across iterations (for example when
+context compaction reduces the input token count).
 
 ## 98.1 Request
 
@@ -5505,11 +5504,9 @@ X-Event-Horizon-Signed-Headers: <signed headers>
   "ResponseID": "*string",
   "PromptTokens": int,
   "CompletionTokens": int,
-  "TotalTokens": int,
   "CachedReadInputTokens": int,
   "CacheCreationInputTokensByTTL": { "<ttl_seconds>": int, ... },
   "ReasoningTokens": int,
-  "IngestionInputTokens": int,
   "RequestStartedAt": "*string",
   "ResponseCompletedAt": "string"
 }
@@ -5520,34 +5517,41 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | tenant_id                      | path     | string          | The ID of the tenant that owns the task execution.                                                             |
 | task_id                        | path     | string          | The ID of the task whose provider usage is being recorded.                                                     |
 | turn_index                     | path     | int             | The turn index for the execution.                                                                              |
-| iteration_index                | path     | int             | The iteration index within the turn. 0-based: the first ChatStream call in a turn is iteration 0.              |
-| workstreamID                   | query    | *string         | Optional. The workstream ID for workstream tasks. If omitted, the task is treated as a non-workstream task.    |
+| iteration_index                | path     | int             | The 0-based iteration index within the turn.                                                                   |
+| workstreamID                   | query    | *string         | Optional. The ID of the workstream the task belongs to.                                                        |
 | Authorization                  | header   | string          | The authorization header for the request.                                                                      |
 | X-Event-Horizon-Signed-Headers | header   | *string         | The signed headers for the request, when authenticating with Sigv4.                                            |
-| Provider                       | body     | string          | The provider name that produced the usage record, for example `openai` or `anthropic`. Rejected with 400 if not in the service's provider allowlist. |
-| ProviderModelID                | body     | string          | The provider-specific model identifier used for the iteration. Rejected with 400 if not in the service's model allowlist for the given provider. |
-| ResponseID                     | body     | *string         | Optional. The provider response identifier, when the provider supplies one.                                    |
-| PromptTokens                   | body     | int             | The number of input tokens billed at the standard (non-cached) input rate. Must exclude any tokens reported separately via `CachedReadInputTokens`, `CacheCreationInputTokensByTTL`, or `IngestionInputTokens`. For OpenAI agents this means subtracting the provider's `cached_tokens` from its `prompt_tokens` before populating this field, since OpenAI reports `cached_tokens` as a subset of `prompt_tokens`. Must be >= 0. |
+| Provider                       | body     | [Provider](#982-provider) | The provider that produced the usage record.                                                         |
+| ProviderModelID                | body     | string          | The concrete provider model identifier billed for the iteration, for example `claude-opus-4-6-20260115` or `gpt-5.4`. This is the underlying provider model string, distinct from the abstract [ModelType](#182-modeltype) selected at task creation, since usage attribution and pricing are keyed on the exact model the provider billed. |
+| ResponseID                     | body     | *string         | Optional. The provider's response identifier, when the provider supplies one. Stored for reconciliation against provider-side billing records and for debugging. |
+| PromptTokens                   | body     | int             | The number of input tokens billed at the standard (non-cached) input rate. Must exclude any tokens reported separately via `CachedReadInputTokens` or `CacheCreationInputTokensByTTL`. For OpenAI agents this means subtracting the provider's `cached_tokens` from its `prompt_tokens` before populating this field, since OpenAI reports `cached_tokens` as a subset of `prompt_tokens`. Must be >= 0. |
 | CompletionTokens               | body     | int             | The number of visible completion/output tokens billed at the standard output rate. Must exclude reasoning tokens (those are reported in `ReasoningTokens`). For OpenAI reasoning models, this means subtracting `completion_tokens_details.reasoning_tokens` from the provider's `completion_tokens` before populating this field, since OpenAI reports reasoning tokens as a subset of `completion_tokens`. Must be >= 0. |
-| TotalTokens                    | body     | int             | The deterministic sum of all normalized token counters in this record (`PromptTokens` + `CompletionTokens` + `CachedReadInputTokens` + sum of `CacheCreationInputTokensByTTL` values + `ReasoningTokens` + `IngestionInputTokens`). Must be >= 0. |
 | CachedReadInputTokens          | body     | int             | The number of input tokens served from cache reads. Must be >= 0.                                              |
-| CacheCreationInputTokensByTTL  | body     | map[string]int  | Map of cache-tier TTL (in seconds, as a string key) to tokens written into that tier. For Anthropic the keys today are `"300"` (5 minutes — the default ephemeral tier, sourced from the provider's `ephemeral_5m_input_tokens`) and `"3600"` (1 hour, sourced from `ephemeral_1h_input_tokens`). New tiers can be reported without an API change. Values must be >= 0. May be empty or omitted. |
-| ReasoningTokens                | body     | int             | The number of reasoning/thinking tokens priced separately from visible completion tokens. Must be the subtracted-out portion — see `CompletionTokens` above. Must be >= 0. |
-| IngestionInputTokens           | body     | int             | The number of provider-metered ingestion tokens distinct from ordinary prompt tokens. Must be >= 0.            |
+| CacheCreationInputTokensByTTL  | body     | map[string]int  | Map of cache-tier TTL (in seconds, as a string key) to tokens written into that tier. A single provider response can write to more than one tier at once, so multiple keys may be non-zero. For Anthropic the keys today are `"300"` (5 minutes — the default ephemeral tier, sourced from the provider's `ephemeral_5m_input_tokens`) and `"3600"` (1 hour, sourced from `ephemeral_1h_input_tokens`). New tiers can be reported without an API change. Values must be >= 0. May be empty or omitted. |
+| ReasoningTokens                | body     | int             | The number of reasoning tokens emitted by the model. Should be distinct from `CompletionTokens`. Must be >= 0. |
 | RequestStartedAt               | body     | *string         | Optional. The timestamp when the provider request started, in ISO 8601 format.                                 |
 | ResponseCompletedAt            | body     | string          | The timestamp when the provider response completed, in ISO 8601 format. Required.                              |
 
 Notes:
 
-- `PromptTokens` is uncached/base input tokens only. Cache reads, cache writes, and provider-specific ingestion are reported in their own counters so each token class can be priced independently at billing time.
-- OpenAI callers must subtract the provider's `cached_tokens` from its reported `prompt_tokens` when populating `PromptTokens`, and report the difference in `CachedReadInputTokens`. For reasoning models, OpenAI callers must also subtract `completion_tokens_details.reasoning_tokens` from `completion_tokens` when populating `CompletionTokens`, and report the difference in `ReasoningTokens`. OpenAI callers should currently leave `CacheCreationInputTokensByTTL` empty and set `IngestionInputTokens` to `0`.
+- `PromptTokens` is uncached/base input tokens only. Cache reads and cache writes are reported in their own counters so each token class can be priced independently at billing time.
+- OpenAI callers must subtract the provider's `cached_tokens` from its reported `prompt_tokens` when populating `PromptTokens`, and report the difference in `CachedReadInputTokens`. For reasoning models, OpenAI callers must also subtract `completion_tokens_details.reasoning_tokens` from `completion_tokens` when populating `CompletionTokens`, and report the difference in `ReasoningTokens`. OpenAI callers should currently leave `CacheCreationInputTokensByTTL` empty.
 - Anthropic callers should populate cache read and cache creation counters from the provider response when available. Anthropic's reported input token count is already net of cache reads/creations, so `PromptTokens` maps directly from it without subtraction. Cache creations are reported in `CacheCreationInputTokensByTTL` keyed by the provider's TTL bucket in seconds. When extended thinking is enabled, populate `ReasoningTokens` from the thinking-token count and ensure `CompletionTokens` reflects only the visible output.
 
 Error responses:
 
 - `409 Conflict / ErrorType=WorkstreamMismatch` — A usage record already exists for the same `(tenant_id, task_id, turn_index, iteration_index)` with a different `workstream_id`. The current record is returned in the conflict body. This signals an agent or upstream bug and should be alerted rather than retried.
 
-## 98.2 Response
+## 98.2 Provider
+
+Provider is an enum that defines the model provider that produced a usage record.
+
+| Value     |
+|-----------|
+| anthropic |
+| openai    |
+
+## 98.3 Response
 
 On success a 201 CREATED is returned with the following JSON body:
 
@@ -5566,11 +5570,9 @@ Content-Type: application/json; charset=utf-8
   "ResponseID": "*string",
   "PromptTokens": int,
   "CompletionTokens": int,
-  "TotalTokens": int,
   "CachedReadInputTokens": int,
   "CacheCreationInputTokensByTTL": { "<ttl_seconds>": int, ... },
   "ReasoningTokens": int,
-  "IngestionInputTokens": int,
   "RequestStartedAt": "*string",
   "ResponseCompletedAt": "string",
   "CreatedAt": "string",
@@ -5591,16 +5593,14 @@ Content-Type: application/json; charset=utf-8
 | ResponseID                     | *string         | The provider response ID, if one was supplied.                                                  |
 | PromptTokens                   | int             | The recorded standard (non-cached) input token count.                                           |
 | CompletionTokens               | int             | The recorded completion/output token count.                                                     |
-| TotalTokens                    | int             | The deterministic sum of all normalized token counters in this record.                          |
 | CachedReadInputTokens          | int             | The recorded cached read input token count.                                                     |
 | CacheCreationInputTokensByTTL  | map[string]int  | Map of cache-tier TTL in seconds (string key) to tokens written into that tier.                 |
 | ReasoningTokens                | int             | The recorded reasoning token count.                                                             |
-| IngestionInputTokens           | int             | The recorded ingestion token count.                                                             |
 | RequestStartedAt               | *string         | The timestamp when the provider request started, if supplied.                                   |
 | ResponseCompletedAt            | string          | The timestamp when the provider response completed.                                             |
 | CreatedAt                      | string          | The timestamp when the usage record was created.                                                |
 | UpdatedAt                      | string          | The timestamp when the usage record was last updated.                                           |
-| Version                        | int             | The version of the usage record. Increments only when a subsequent write changes a persisted field; identical retries (true idempotent calls) leave `Version` unchanged so callers reconciling by version do not see phantom updates. |
+| Version                        | int             | The version of the usage record.                                                                |
 
 # 99. ListProviderUsageEvents
 
@@ -5654,11 +5654,9 @@ Content-Type: application/json; charset=utf-8
       "ResponseID": "*string",
       "PromptTokens": int,
       "CompletionTokens": int,
-      "TotalTokens": int,
       "CachedReadInputTokens": int,
       "CacheCreationInputTokensByTTL": { "<ttl_seconds>": int, ... },
       "ReasoningTokens": int,
-      "IngestionInputTokens": int,
       "RequestStartedAt": "*string",
       "ResponseCompletedAt": "string",
       "CreatedAt": "string",
@@ -5694,7 +5692,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | Parameter                                | Location | Type    | Description                                                                                                  |
 |------------------------------------------|----------|---------|--------------------------------------------------------------------------------------------------------------|
 | tenant_id                                | path     | string  | The ID of the tenant whose usage should be summarized.                                                       |
-| groupBy                                  | query    | *string | Optional. Comma-separated list of aggregation dimensions. Supported values: `hour`, `day`, `month`, `provider`, `model`, `task`, `workstream`. Time dimensions (`hour`/`day`/`month`) are mutually exclusive within a single request. Examples: `groupBy=day,model`, `groupBy=hour`, `groupBy=month,provider`. Routing: the query reads raw usage events when `groupBy` includes `task` or `workstream` **or** when the request specifies `taskID` or `workstreamID` as a filter — those dimensions are not denormalized into the rollup table and the filter cannot otherwise be honored. All other requests read the pre-aggregated hourly rollup table. |
+| groupBy                                  | query    | [][GroupByAttribute](#1002-groupbyattribute) | Optional. The aggregation dimensions to group the summary by. Time dimensions (`hour`, `day`, `month`) are mutually exclusive within a single request. Examples: `groupBy=day,model`, `groupBy=hour`, `groupBy=month,provider`. |
 | workstreamID                             | query    | *string | Optional. When provided, only usage events for the specified workstream are included.                        |
 | taskID                                   | query    | *string | Optional. When provided, only usage events for the specified task are included.                              |
 | provider                                 | query    | *string | Optional. When provided, only usage events for the specified provider are included.                          |
@@ -5705,7 +5703,21 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                       |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                          |
 
-## 100.2 Response
+## 100.2 GroupByAttribute
+
+GroupByAttribute is an enum that defines the dimensions a usage summary can be grouped by.
+
+| Value      |
+|------------|
+| hour       |
+| day        |
+| month      |
+| provider   |
+| model      |
+| task       |
+| workstream |
+
+## 100.3 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -5729,11 +5741,9 @@ Content-Type: application/json; charset=utf-8
       "EventCount": int,
       "PromptTokens": int,
       "CompletionTokens": int,
-      "TotalTokens": int,
       "CachedReadInputTokens": int,
       "CacheCreationInputTokensByTTL": { "<ttl_seconds>": int, ... },
-      "ReasoningTokens": int,
-      "IngestionInputTokens": int
+      "ReasoningTokens": int
     }
   ]
 }
@@ -5744,25 +5754,30 @@ Content-Type: application/json; charset=utf-8
 | TenantID                          | string                  | The tenant the summary applies to.                                                                                |
 | StartTime                         | *string                 | The inclusive lower bound used for the summary window, if supplied.                                               |
 | EndTime                           | *string                 | The exclusive upper bound used for the summary window, if supplied.                                               |
-| GroupBy                           | []string                | The grouping dimensions applied to the response, echoed back in the order they appear in each bucket.             |
-| Items                             | []ProviderUsageSummary  | A list of summary buckets.                                                                                        |
-| Items[].Provider                  | *string                 | The provider for the bucket when grouped or filtered by provider.                                                 |
-| Items[].ProviderModelID           | *string                 | The provider model ID for the bucket when grouped or filtered by model.                                           |
-| Items[].TaskID                    | *string                 | The task ID for the bucket when grouped by `task`.                                                                |
-| Items[].WorkstreamID              | *string                 | The workstream ID for the bucket when grouped by `workstream`.                                                    |
-| Items[].BucketStartTime           | *string                 | The bucket start time when grouped by a time dimension (`hour`, `day`, or `month`).                               |
-| Items[].BucketGranularity         | *string                 | The time-bucket granularity applied (`hour`, `day`, or `month`) when a time dimension is in `GroupBy`.            |
-| Items[].EventCount                | int                     | The number of provider usage events included in the bucket.                                                       |
-| Items[].PromptTokens              | int                     | The summed standard (non-cached) input tokens for the bucket.                                                     |
-| Items[].CompletionTokens          | int                     | The summed completion/output tokens for the bucket.                                                               |
-| Items[].TotalTokens               | int                     | The summed total tokens for the bucket.                                                                           |
-| Items[].CachedReadInputTokens     | int                     | The summed cached read input tokens for the bucket.                                                               |
-| Items[].CacheCreationInputTokensByTTL | map[string]int      | Per-TTL summed cache creation input tokens for the bucket, keyed by TTL in seconds.                               |
-| Items[].ReasoningTokens           | int                     | The summed reasoning tokens for the bucket.                                                                       |
-| Items[].IngestionInputTokens      | int                     | The summed ingestion input tokens for the bucket.                                                                 |
+| GroupBy                           | [][GroupByAttribute](#1002-groupbyattribute) | The grouping dimensions applied to the response, echoed back in the order they appear in each bucket. |
+| Items                             | [][ProviderUsageSummary](#1004-providerusagesummary) | A list of summary buckets.                                                       |
 
-This API reports normalized token counts only. Currency-cost fields are intentionally omitted until provider pricing
-tables are defined.
+This API returns normalized token counts only; it does not return currency costs.
+
+## 100.4 ProviderUsageSummary
+
+ProviderUsageSummary is a single aggregated usage bucket. Grouping-key fields are only populated for the dimensions
+included in the request's `GroupBy`.
+
+| Field                         | Type            | Description                                                                                            |
+|-------------------------------|-----------------|--------------------------------------------------------------------------------------------------------|
+| Provider                      | *string         | The provider for the bucket when grouped or filtered by provider.                                      |
+| ProviderModelID               | *string         | The provider model ID for the bucket when grouped or filtered by model.                                |
+| TaskID                        | *string         | The task ID for the bucket when grouped by `task`.                                                      |
+| WorkstreamID                  | *string         | The workstream ID for the bucket when grouped by `workstream`.                                          |
+| BucketStartTime               | *string         | The bucket start time when grouped by a time dimension (`hour`, `day`, or `month`).                     |
+| BucketGranularity             | *string         | The time-bucket granularity applied (`hour`, `day`, or `month`) when a time dimension is in `GroupBy`.  |
+| EventCount                    | int             | The number of provider usage events included in the bucket.                                            |
+| PromptTokens                  | int             | The summed standard (non-cached) input tokens for the bucket.                                          |
+| CompletionTokens              | int             | The summed completion/output tokens for the bucket.                                                    |
+| CachedReadInputTokens         | int             | The summed cached read input tokens for the bucket.                                                    |
+| CacheCreationInputTokensByTTL | map[string]int  | Per-TTL summed cache creation input tokens for the bucket, keyed by TTL in seconds.                    |
+| ReasoningTokens               | int             | The summed reasoning tokens for the bucket.                                                            |
 
 # 101. RotateTenantEncryptionKey
 
