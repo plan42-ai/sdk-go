@@ -5760,8 +5760,8 @@ included in the request's `GroupBy`.
 
 | Field                         | Type            | Description                                                                                            |
 |-------------------------------|-----------------|--------------------------------------------------------------------------------------------------------|
-| Provider                      | *string         | The provider for the bucket when grouped or filtered by provider.                                      |
-| ProviderModelID               | *string         | The provider model ID for the bucket when grouped or filtered by model.                                |
+| Provider                      | *string         | The provider for the bucket when grouped by `provider`.                                                 |
+| ProviderModelID               | *string         | The provider model ID for the bucket when grouped by `model`.                                           |
 | TaskID                        | *string         | The task ID for the bucket when grouped by `task`.                                                      |
 | WorkstreamID                  | *string         | The workstream ID for the bucket when grouped by `workstream`.                                          |
 | BucketStartTime               | *string         | The bucket start time when grouped by a time dimension (`hour`, `day`, or `month`).                     |
