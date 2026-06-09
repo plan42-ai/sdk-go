@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -190,6 +191,86 @@ func (c *Client) ListProviderUsageEvents(
 	}
 
 	var out List[*ProviderUsageEvent]
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetProviderUsageSummary aggregates provider token usage for a tenant
+// over a time window. GroupBy is encoded on the wire as a comma-separated
+// list, in the order provided; the API service parses it the same way.
+// StartTime is an inclusive lower bound; EndTime is exclusive, matching
+// the documented bound semantics shared with the events list. Time fields
+// are serialized as RFC3339Nano (UTC).
+//
+// The response carries one bucket per distinct group key. Provider and
+// ProviderModelID are populated on every bucket when grouped OR filtered;
+// TaskID and WorkstreamID only when grouped. BucketGranularity is set
+// when a time dimension is in GroupBy and tells the caller whether
+// BucketStartTime represents an hour, day, or month.
+func (c *Client) GetProviderUsageSummary(
+	ctx context.Context,
+	req *GetProviderUsageSummaryRequest,
+) (*GetProviderUsageSummaryResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "provider-usage-summary")
+	q := u.Query()
+	if len(req.GroupBy) > 0 {
+		parts := make([]string, len(req.GroupBy))
+		for i, dim := range req.GroupBy {
+			parts[i] = string(dim)
+		}
+		q.Set("groupBy", strings.Join(parts, ","))
+	}
+	if req.WorkstreamID != nil {
+		q.Set("workstreamID", *req.WorkstreamID)
+	}
+	if req.TaskID != nil {
+		q.Set("taskID", *req.TaskID)
+	}
+	if req.Provider != nil {
+		q.Set("provider", *req.Provider)
+	}
+	if req.Model != nil {
+		q.Set("model", *req.Model)
+	}
+	if req.StartTime != nil {
+		q.Set("startTime", req.StartTime.UTC().Format(time.RFC3339Nano))
+	}
+	if req.EndTime != nil {
+		q.Set("endTime", req.EndTime.UTC().Format(time.RFC3339Nano))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out GetProviderUsageSummaryResponse
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
