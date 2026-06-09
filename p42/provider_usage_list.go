@@ -1,6 +1,14 @@
 package p42
 
-import "time"
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
+	"time"
+)
 
 type ListProviderUsageEventsRequest struct {
 	FeatureFlags
@@ -116,4 +124,74 @@ type GetProviderUsageSummaryResponse struct {
 	EndTime   *time.Time                    `json:"EndTime,omitempty"`
 	GroupBy   []ProviderUsageSummaryGroupBy `json:"GroupBy"`
 	Items     []ProviderUsageSummary        `json:"Items"`
+}
+
+// ListProviderUsageEvents lists raw provider usage event records for a tenant,
+// optionally filtered by workstream, task, provider, model, and a
+// [StartTime, EndTime) window, with pagination via MaxResults/Token.
+func (c *Client) ListProviderUsageEvents(
+	ctx context.Context,
+	req *ListProviderUsageEventsRequest,
+) (*List[*ProviderUsageEvent], error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+
+	u := c.BaseURL.JoinPath("v1", "tenants", url.PathEscape(req.TenantID), "provider-usage-events")
+	q := u.Query()
+	if req.MaxResults != nil {
+		q.Set("maxResults", strconv.Itoa(*req.MaxResults))
+	}
+	if req.Token != nil {
+		q.Set("token", *req.Token)
+	}
+	if req.WorkstreamID != nil {
+		q.Set("workstreamID", *req.WorkstreamID)
+	}
+	if req.TaskID != nil {
+		q.Set("taskID", *req.TaskID)
+	}
+	if req.Provider != nil {
+		q.Set("provider", *req.Provider)
+	}
+	if req.Model != nil {
+		q.Set("model", *req.Model)
+	}
+	if req.StartTime != nil {
+		q.Set("startTime", req.StartTime.UTC().Format(time.RFC3339Nano))
+	}
+	if req.EndTime != nil {
+		q.Set("endTime", req.EndTime.UTC().Format(time.RFC3339Nano))
+	}
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out List[*ProviderUsageEvent]
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
