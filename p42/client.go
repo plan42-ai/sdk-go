@@ -493,6 +493,7 @@ const (
 	ObjectTypeWorkstream             ObjectType = "Workstream"
 	ObjectTypeWorkstreamShortName    ObjectType = "WorkstreamShortName"
 	ObjectTypeWorkstreamTaskConflict ObjectType = "WorkstreamTaskConflict"
+	ObjectTypeProviderUsageEvent     ObjectType = "ProviderUsageEvent"
 	ObjectTypeRunnerMessage          ObjectType = "RunnerMessage"
 )
 
@@ -577,6 +578,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &WorkstreamShortName{}
 		case ObjectTypeWorkstreamTaskConflict:
 			current = &WorkstreamTaskConflict{}
+		case ObjectTypeProviderUsageEvent:
+			current = &ProviderUsageEvent{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
