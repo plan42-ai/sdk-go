@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -55,8 +56,8 @@ func TestLogStream(t *testing.T) {
 	defer ls.Close()
 
 	var logs []p42.TurnLog
-	for entry := range ls.Logs() {
-		logs = append(logs, entry.Log)
+	for entry := range ls.Events() {
+		logs = append(logs, entry.Event)
 	}
 
 	if len(logs) != 2 {
@@ -130,8 +131,8 @@ func TestLogStreamWithLastID_UsesHeader(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for entry := range ls.Logs() {
-			logs = append(logs, entry.Log)
+		for entry := range ls.Events() {
+			logs = append(logs, entry.Event)
 		}
 	}()
 	time.Sleep(50 * time.Millisecond)
@@ -177,8 +178,8 @@ func TestLogStreamWithLastID_UpdatesLastID(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for entry := range ls.Logs() {
-			logs = append(logs, entry.Log)
+		for entry := range ls.Events() {
+			logs = append(logs, entry.Event)
 		}
 	}()
 	time.Sleep(50 * time.Millisecond)
@@ -191,8 +192,8 @@ func TestLogStreamWithLastID_UpdatesLastID(t *testing.T) {
 	if len(logs) != 1 || logs[0].Message != "foo" {
 		t.Errorf("unexpected logs: %#v", logs)
 	}
-	if lsLastID := ls.LastEventID(); lsLastID != 100 {
-		t.Errorf("expected lastID to be updated to 100, got %d", lsLastID)
+	if lsLastID := ls.LastEventID(); lsLastID != "100" {
+		t.Errorf("expected lastID to be updated to 100, got %s", lsLastID)
 	}
 }
 
@@ -242,12 +243,12 @@ func TestLogStreamReadBatchBounded(t *testing.T) {
 	ls := p42.NewLogStream(p42.NewClient(srv.URL), "ten", "task", 0, 10)
 	defer ls.Close()
 
-	batch, err := ls.ReadBatch(context.Background(), 2, time.Second, 0)
+	batch, err := ls.ReadBatch(context.Background(), 2, time.Second, "0")
 	require.NoError(t, err)
-	require.Len(t, batch.Logs, 2)
-	require.Equal(t, "one", batch.Logs[0].Message)
-	require.Equal(t, "two", batch.Logs[1].Message)
-	require.Equal(t, 2, batch.LastEventID)
+	require.Len(t, batch.Events, 2)
+	require.Equal(t, "one", batch.Events[0].Message)
+	require.Equal(t, "two", batch.Events[1].Message)
+	require.Equal(t, "2", batch.LastEventID)
 	require.False(t, batch.ReachedEnd)
 }
 
@@ -270,10 +271,10 @@ func TestLogStreamReadBatchTimeout(t *testing.T) {
 	ls := p42.NewLogStream(p42.NewClient(srv.URL), "ten", "task", 0, 1)
 	defer ls.Close()
 
-	batch, err := ls.ReadBatch(context.Background(), 1, 50*time.Millisecond, 0)
+	batch, err := ls.ReadBatch(context.Background(), 1, 50*time.Millisecond, "0")
 	require.NoError(t, err)
-	require.Empty(t, batch.Logs)
-	require.Equal(t, 0, batch.LastEventID)
+	require.Empty(t, batch.Events)
+	require.Equal(t, "0", batch.LastEventID)
 	require.False(t, batch.ReachedEnd)
 }
 
@@ -306,25 +307,27 @@ func TestLogStreamReadBatchResumeUsesLastEventID(t *testing.T) {
 
 	client := p42.NewClient(srv.URL)
 	first := p42.NewLogStream(client, "ten", "task", 0, 10)
-	firstBatch, err := first.ReadBatch(context.Background(), 2, time.Second, 0)
+	firstBatch, err := first.ReadBatch(context.Background(), 2, time.Second, "0")
 	require.NoError(t, err)
-	require.Len(t, firstBatch.Logs, 2)
-	require.Equal(t, 2, firstBatch.LastEventID)
+	require.Len(t, firstBatch.Events, 2)
+	require.Equal(t, "2", firstBatch.LastEventID)
 	require.NoError(t, first.Close())
 
-	second := p42.NewLogStream(client, "ten", "task", 0, 10, p42.WithLastID(firstBatch.LastEventID))
+	lastID, err := strconv.Atoi(firstBatch.LastEventID)
+	require.NoError(t, err)
+	second := p42.NewLogStream(client, "ten", "task", 0, 10, p42.WithLastID(lastID))
 	defer second.Close()
 	close(allowSecondResponse)
-	secondBatch, err := second.ReadBatch(context.Background(), 1, 50*time.Millisecond, 2)
+	secondBatch, err := second.ReadBatch(context.Background(), 1, 50*time.Millisecond, "2")
 	require.NoError(t, err)
-	if len(secondBatch.Logs) == 1 {
-		require.Equal(t, "three", secondBatch.Logs[0].Message)
+	if len(secondBatch.Events) == 1 {
+		require.Equal(t, "three", secondBatch.Events[0].Message)
 	}
 	require.Equal(t, secondBatch.LastEventID, second.LastEventID())
 	require.GreaterOrEqual(t, secondBatch.LastEventID, firstBatch.LastEventID)
 	require.NoError(t, second.Close())
 	require.Equal(t, "", <-lastEventIDs)
-	require.Equal(t, fmt.Sprintf("%d", firstBatch.LastEventID), <-lastEventIDs)
+	require.Equal(t, firstBatch.LastEventID, <-lastEventIDs)
 }
 
 func TestLogStreamReadBatchReachedEnd(t *testing.T) {
@@ -349,14 +352,14 @@ func TestLogStreamReadBatchReachedEnd(t *testing.T) {
 	ls := p42.NewLogStream(p42.NewClient(srv.URL), "ten", "task", 0, 10)
 	defer ls.Close()
 
-	firstBatch, err := ls.ReadBatch(context.Background(), 1, time.Second, 0)
+	firstBatch, err := ls.ReadBatch(context.Background(), 1, time.Second, "0")
 	require.NoError(t, err)
-	require.Len(t, firstBatch.Logs, 1)
+	require.Len(t, firstBatch.Events, 1)
 	require.False(t, firstBatch.ReachedEnd)
 
-	secondBatch, err := ls.ReadBatch(context.Background(), 1, time.Second, 1)
+	secondBatch, err := ls.ReadBatch(context.Background(), 1, time.Second, "1")
 	require.NoError(t, err)
-	require.Empty(t, secondBatch.Logs)
+	require.Empty(t, secondBatch.Events)
 	require.True(t, secondBatch.ReachedEnd)
-	require.Equal(t, 1, secondBatch.LastEventID)
+	require.Equal(t, "1", secondBatch.LastEventID)
 }
