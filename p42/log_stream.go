@@ -1,80 +1,57 @@
 package p42
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"log/slog"
 	"strconv"
-	"strings"
-	"sync/atomic"
-	"time"
 
-	"github.com/plan42-ai/concurrency"
 	"github.com/plan42-ai/sdk-go/internal/util"
 )
 
 // LogStream streams logs for a turn using Server-Sent Events.
 type LogStream struct {
-	cg             *concurrency.ContextGroup
-	client         *Client
-	tenantID       string
-	taskID         string
-	turnIndex      int
+	*SSEStream[TurnLog]
+}
+
+type LogStreamOption func(*logStreamConfig)
+
+type logStreamConfig struct {
 	includeDeleted bool
 	workstreamID   *string
 	featureFlags   map[string]bool
 	delegatedAuth  DelegatedAuthInfo
-	logs           chan LogStreamEntry
-	lastID         atomic.Int64
-	retry          time.Duration
-	backoff        *util.Backoff
+	lastID         int
 }
-
-// LogStreamEntry is a single log event emitted by LogStream.
-type LogStreamEntry struct {
-	EventID int
-	Log     TurnLog
-}
-
-// LogStreamBatch describes the result of a bounded log read.
-type LogStreamBatch struct {
-	Logs        []TurnLog
-	LastEventID int
-	ReachedEnd  bool
-}
-
-type LogStreamOption func(s *LogStream)
 
 func WithIncludeDeleted(value bool) LogStreamOption {
-	return func(s *LogStream) {
-		s.includeDeleted = value
+	return func(cfg *logStreamConfig) {
+		cfg.includeDeleted = value
 	}
 }
 
 func WithWorkstreamID(workstreamID *string) LogStreamOption {
-	return func(s *LogStream) {
-		s.workstreamID = workstreamID
+	return func(cfg *logStreamConfig) {
+		cfg.workstreamID = workstreamID
 	}
 }
 
 func WithFeatureFlags(flags map[string]bool) LogStreamOption {
-	return func(s *LogStream) {
-		s.featureFlags = flags
+	return func(cfg *logStreamConfig) {
+		cfg.featureFlags = flags
 	}
 }
 
 func WithLastID(lastID int) LogStreamOption {
-	return func(s *LogStream) {
-		s.lastID.Store(int64(lastID))
+	return func(cfg *logStreamConfig) {
+		cfg.lastID = lastID
 	}
 }
 
 func WithDelegatedAuth(delegatedAuth DelegatedAuthInfo) LogStreamOption {
-	return func(s *LogStream) {
-		s.delegatedAuth = delegatedAuth
+	return func(cfg *logStreamConfig) {
+		cfg.delegatedAuth = delegatedAuth
 	}
 }
 
@@ -86,256 +63,47 @@ func NewLogStream(
 	buffer int,
 	options ...LogStreamOption,
 ) *LogStream {
-	ls := &LogStream{
-		cg:        concurrency.NewContextGroup(),
-		client:    client,
-		tenantID:  tenantID,
-		taskID:    taskID,
-		turnIndex: turnIndex,
-		logs:      make(chan LogStreamEntry, buffer),
-		backoff:   util.NewBackoff(100*time.Millisecond, 2*time.Second),
-	}
-
+	cfg := logStreamConfig{}
 	for _, opt := range options {
-		opt(ls)
+		opt(&cfg)
 	}
 
-	ls.cg.Add(1)
-	go ls.run()
-	return ls
-}
-
-// Logs returns a channel that emits log events as they are received.
-func (l *LogStream) Logs() <-chan LogStreamEntry { return l.logs }
-
-// LastEventID returns the latest SSE event id observed by the stream.
-func (l *LogStream) LastEventID() int {
-	return int(l.lastID.Load())
-}
-
-// ReadBatch reads logs until maxEvents have been collected, the timeout expires, or the
-// currently available log stream is exhausted. The returned LastEventID can be supplied
-// back via WithLastID to resume from the same position on a later call.
-func (l *LogStream) ReadBatch(ctx context.Context, maxEvents int, timeout time.Duration, lastEventID int) (*LogStreamBatch, error) {
-	if maxEvents <= 0 {
-		return nil, errors.New("max events must be greater than zero")
-	}
-
-	batchCtx := ctx
-	var cancel context.CancelFunc
-	if timeout > 0 {
-		batchCtx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	logs := make([]TurnLog, 0, maxEvents)
-	for len(logs) < maxEvents {
-		select {
-		case <-batchCtx.Done():
-			if errors.Is(batchCtx.Err(), context.DeadlineExceeded) {
-				return &LogStreamBatch{
-					Logs:        logs,
-					LastEventID: lastEventID,
-					ReachedEnd:  false,
-				}, nil
+	stream := NewSSEStream[TurnLog](
+		buffer,
+		strconv.Itoa(cfg.lastID),
+		"LogStream",
+		func(ctx context.Context, lastEventID string) (io.ReadCloser, error) {
+			req := &StreamTurnLogsRequest{
+				FeatureFlags:      FeatureFlags{FeatureFlags: cfg.featureFlags},
+				DelegatedAuthInfo: cfg.delegatedAuth,
+				TenantID:          tenantID,
+				TaskID:            taskID,
+				TurnIndex:         turnIndex,
+				IncludeDeleted:    util.Pointer(cfg.includeDeleted),
+				WorkstreamID:      cfg.workstreamID,
 			}
-			return nil, batchCtx.Err()
-		case entry, ok := <-l.logs:
-			if !ok {
-				return &LogStreamBatch{
-					Logs:        logs,
-					LastEventID: lastEventID,
-					ReachedEnd:  true,
-				}, nil
+			if lastEventID != "" && lastEventID != "0" {
+				parsedLastID, err := strconv.Atoi(lastEventID)
+				if err != nil {
+					return nil, err
+				}
+				req.LastEventID = &parsedLastID
 			}
-			logs = append(logs, entry.Log)
-			lastEventID = entry.EventID
-		}
-	}
-
-	return &LogStreamBatch{
-		Logs:        logs,
-		LastEventID: lastEventID,
-		ReachedEnd:  false,
-	}, nil
-}
-
-// Close cancels the stream and waits for shutdown.
-func (l *LogStream) Close() error { return l.cg.Close() }
-
-// ShutdownContext waits for the stream to finish with a context.
-func (l *LogStream) ShutdownContext(ctx context.Context) error { return l.cg.WaitContext(ctx) }
-
-// ShutdownTimeout waits for the stream to finish with a timeout.
-func (l *LogStream) ShutdownTimeout(d time.Duration) error { return l.cg.WaitTimeout(d) }
-
-func (l *LogStream) run() {
-	defer l.cg.Done()
-	defer l.cg.Cancel()
-	defer close(l.logs)
-
-	for {
-		if err := l.backoff.WaitAtLeast(l.cg.Context(), l.retry); err != nil {
-			return
-		}
-
-		err := l.connectAndStream(l.cg.Context())
-		if err == nil {
-			l.backoff.Recover()
-			continue
-		}
-		if errors.Is(err, io.EOF) {
-			// no more logs
-			return
-		}
-		if l.cg.Context().Err() != nil {
-			return
-		}
-		slog.ErrorContext(l.cg.Context(), "LogStream: stream error", "error", err)
-		l.backoff.Backoff()
-	}
-}
-
-func (l *LogStream) connectAndStream(ctx context.Context) error {
-	req := &StreamTurnLogsRequest{
-		FeatureFlags: FeatureFlags{
-			FeatureFlags: l.featureFlags,
+			return client.StreamTurnLogs(ctx, req)
 		},
-		DelegatedAuthInfo: l.delegatedAuth,
-		TenantID:          l.tenantID,
-		TaskID:            l.taskID,
-		TurnIndex:         l.turnIndex,
-		IncludeDeleted:    util.Pointer(l.includeDeleted),
-		WorkstreamID:      l.workstreamID,
-	}
-	lastID := int(l.lastID.Load())
-	if lastID != 0 {
-		req.LastEventID = &lastID
-	}
-
-	req.FeatureFlags = FeatureFlags{FeatureFlags: l.featureFlags}
-
-	body, err := l.client.StreamTurnLogs(ctx, req)
-	if err != nil {
-		return err
-	}
-	if body == nil {
-		return io.EOF
-	}
-	defer body.Close()
-
-	return l.consume(ctx, body)
-}
-
-// sseEvent represents a Server-Sent Event being parsed.
-type sseEvent struct {
-	eventType string
-	dataBuf   strings.Builder
-	id        *int
-	retry     *int
-}
-
-// reset clears the event state for reuse.
-func (e *sseEvent) reset() {
-	e.eventType = ""
-	e.dataBuf.Reset()
-	e.id = nil
-	e.retry = nil
-}
-
-func (l *LogStream) consume(ctx context.Context, r io.Reader) error {
-	br := bufio.NewReader(r)
-	event := &sseEvent{}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		line, err := br.ReadString('\n')
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil
+		func(ctx context.Context, event *SSEEvent) (*TurnLog, error) {
+			if event.EventType != "log" || event.Data == "" {
+				return nil, nil
 			}
-			return err
-		}
-		line = strings.TrimRight(line, "\r\n")
 
-		// Empty line indicates end of an event
-		if line == "" {
-			if err := l.processCompleteEvent(ctx, event); err != nil {
-				return err
+			var logEntry TurnLog
+			if err := json.Unmarshal([]byte(event.Data), &logEntry); err != nil {
+				slog.ErrorContext(ctx, "LogStream: failed to decode log", "error", err)
+				return nil, nil
 			}
-			event.reset()
-			continue
-		}
+			return &logEntry, nil
+		},
+	)
 
-		l.parseSSELine(event, line)
-	}
-}
-
-// parseSSELine processes a single line of an SSE stream.
-func (l *LogStream) parseSSELine(event *sseEvent, line string) {
-	// Skip comments
-	if strings.HasPrefix(line, ":") {
-		return
-	}
-
-	idx := strings.Index(line, ":")
-	if idx == -1 {
-		return
-	}
-
-	field := strings.TrimSpace(line[:idx])
-	value := strings.TrimSpace(line[idx+1:])
-
-	switch field {
-	case "event":
-		event.eventType = value
-	case "data":
-		if event.dataBuf.Len() > 0 {
-			event.dataBuf.WriteByte('\n')
-		}
-		event.dataBuf.WriteString(value)
-	case "id":
-		if v, err := strconv.Atoi(value); err == nil {
-			event.id = util.Pointer(v)
-		}
-	case "retry":
-		if v, err := strconv.Atoi(value); err == nil {
-			event.retry = util.Pointer(v)
-		}
-	}
-}
-
-// processCompleteEvent handles a completed SSE event.
-func (l *LogStream) processCompleteEvent(ctx context.Context, event *sseEvent) error {
-	if event.eventType != "log" || event.dataBuf.Len() == 0 {
-		return nil
-	}
-
-	var logEntry TurnLog
-	if err := json.Unmarshal([]byte(event.dataBuf.String()), &logEntry); err != nil {
-		slog.ErrorContext(ctx, "LogStream: failed to decode log", "error", err)
-		return nil
-	}
-
-	entry := LogStreamEntry{EventID: *event.id, Log: logEntry}
-
-	select {
-	case l.logs <- entry:
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-
-	if event.id != nil {
-		l.lastID.Store(int64(*event.id))
-	}
-	if event.retry != nil {
-		l.retry = time.Duration(*event.retry) * time.Millisecond
-	}
-
-	return nil
+	return &LogStream{SSEStream: stream}
 }
