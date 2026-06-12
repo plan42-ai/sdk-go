@@ -5568,6 +5568,33 @@ func TestGetLastTurnLogWorkstreamID(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetLastTurnLogAgentID(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "agent-1", r.URL.Query().Get("agentID"))
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(p42.LastTurnLog{})
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	agentID := "agent-1"
+	_, err := client.GetLastTurnLog(
+		context.Background(), &p42.GetLastTurnLogRequest{
+			TenantID:  "abc",
+			TaskID:    "task",
+			TurnIndex: 1,
+			AgentID:   &agentID,
+		},
+	)
+	require.NoError(t, err)
+}
+
 func TestGetLastTurnLogPathEscaping(t *testing.T) {
 	t.Parallel()
 
@@ -6239,6 +6266,33 @@ func TestStreamTurnLogsWorkstreamID(t *testing.T) {
 			TaskID:       "task",
 			TurnIndex:    0,
 			WorkstreamID: &workstreamID,
+		},
+	)
+	require.NoError(t, err)
+	_ = body.Close()
+}
+
+func TestStreamTurnLogsAgentID(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "agent-1", r.URL.Query().Get("agentID"))
+			w.WriteHeader(http.StatusOK)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	agentID := "agent-1"
+	body, err := client.StreamTurnLogs(
+		context.Background(), &p42.StreamTurnLogsRequest{
+			TenantID:  "abc",
+			TaskID:    "task",
+			TurnIndex: 0,
+			AgentID:   &agentID,
 		},
 	)
 	require.NoError(t, err)
