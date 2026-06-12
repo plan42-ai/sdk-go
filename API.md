@@ -2013,17 +2013,19 @@ Content-Type: application/json; charset=utf-8
 
 # 28. StreamTurnLogs
 
-StreamTurns streams logs for a turn using Server-Sent Events (SSE). 
+StreamTurnLogs streams logs for a turn using Server-Sent Events (SSE). Requests may optionally include an `agentID`
+query parameter to stream logs for a specific sub-agent. When not provided, the API defaults the agent ID to
+`00000000-0000-0000-0000-000000000000` and returns the main agent's logs.
 
 ## 28.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs?workstreamID={workstreamID}&includeDeleted={includeDeleted} HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs?workstreamID={workstreamID}&includeDeleted={includeDeleted}&agentID={agentID} HTTP/1.1
 Last-Event-ID: <last-event-id>
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
-Accept: text/event-streamS
+Accept: text/event-stream
 ```
 
 | Parameter                                | Location | Type    | Description                                                                                       |
@@ -2032,7 +2034,8 @@ Accept: text/event-streamS
 | task_id                                  | path     | string  | The ID of the task to stream logs for.                                                            |
 | turnIndex                                | path     | int     | The index of the turn to stream logs for.                                                         |
 | workstreamID                             | query    | *string | Optional. The ID of the workstream the task belongs to.                                           |
-| includeDeleted                           | query    | *bool   | Optional. Set to true to return logs for turns on deleted tasks. |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return logs for turns on deleted tasks.                                  |
+| agentID                                  | query    | *string | Optional. The agent ID whose logs should be streamed. Defaults to `00000000-0000-0000-0000-000000000000` (the main agent) when omitted. |
 | Last-Event-ID                            | header   | *string | Optional. The last event ID received by the client. Used to resume streaming from the last event. |
 | Authorization                            | header   | string  | The authorization header for the request.                                                         |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
