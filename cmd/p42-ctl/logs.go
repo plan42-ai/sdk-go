@@ -59,6 +59,7 @@ type UploadLogsOptions struct {
 	TaskID       string  `help:"The id of the task to upload logs for." name:"task-id" short:"t" required:""`
 	TurnIndex    int     `help:"The turn to upload logs for." name:"turn-index" short:"n" required:""`
 	WorkstreamID *string `help:"Optional workstream id the task belongs to." name:"workstream-id" short:"w"`
+	AgentID      *string `help:"Optional. The agent ID whose logs are being uploaded." name:"agent-id" short:"a"`
 	JSON         string  `help:"The file containing the logs to upload." short:"j" default:"-"`
 }
 
@@ -109,6 +110,7 @@ func (o *UploadLogsOptions) Run(ctx context.Context, s *SharedOptions) error {
 			TurnIndex:    o.TurnIndex,
 			Version:      turn.Version,
 			WorkstreamID: o.WorkstreamID,
+			AgentID:      o.AgentID,
 			StartIndex:   last.Index + 1,
 			Logs:         logsCh,
 			FeatureFlags: getTurnReq.FeatureFlags.FeatureFlags,

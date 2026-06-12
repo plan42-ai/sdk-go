@@ -287,6 +287,7 @@ var helpMap = map[string]string{
 }
 `,
 	"logs upload": `
+
 --- Input JSON Schema ---
 
 {
