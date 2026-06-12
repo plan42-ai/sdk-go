@@ -6288,13 +6288,76 @@ Content-Type: application/json; charset=utf-8
 
 See [FileMetadata](#1073-file) for more info on the response.
 
+# 110. UpdateFile
+
+The UpdateFile API is an admin api that allows updating file metadata. It's used by internal services to update
+metadata about a file as various scans complete.
+
+## 110.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/files/{file_id} HTTP/1
+Accept: application/json
+Content-Type: application/json
+Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+	  "IsMalicious": *bool,
+	  "ModerationScanInfo": *ModerationScanInfo,
+	  "ContentType" : *string,
+	  "RejectionReason": *string,
+	}
+```
+
+| Parameter                      | Location | Type                | Description                                                                                                                                          |
+|--------------------------------|----------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                      | path     | string              | The ID of the tenant that owns the file.                                                                                                             |
+| file_id                        | path     | string              | The ID of the file to update.                                                                                                                        |
+| Authorization                  | header   | string              | The authorization header for the request.                                                                                                            |
+| X-Event-Horizon-Signed-Headers | header   | *string             | The signed headers for the request, when authenticating with Sigv4.                                                                                  |
+| version                        | header   | string              | The version of the file to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
+| IsMalicious                    | body     | *bool               | Optiopnal. When set marks the file as malicious or non-malicious. Cannot be modified once set.                                                       |
+| ModerationScanInfo             | body     | *ModerationScanInfo | Optional. Sets the results of a moderations can. Cannot be modified once set.                                                                        |
+| ContentType                    | body     | *string             | Optional. Sets the file's mime type. This is set by a lambda, using libmagic, after the file's malware scan has completed.                           |
+| RejectionReason                | body     | *string             | Optional. Sets the reason the file was rejected. This is set by a lambda when the detected mime type is not supported. Cannot be modified once set. |
+
+## 110.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "TenantID": "string",
+  "FileID": "string",  
+  "Name": "string",
+  "Size": int,
+  "CreatedAt": "string",
+  "IsMalicious": *bool,
+  "MalwareScanCompletedAt": "*string",
+  "ModerationScanInfo": {},
+  "ModerationScanCompletedAt": *string,
+  "UpdatedAt": "*string",
+  "ContentType" : "*string",
+  "Version": int
+}
+```   
+
+See [FileMetadata](#1073-file) for more info on the response.
+
 # 111. CreateSubAgent
 
 The CreateSubAgent API launches a sub-agent for a given turn. A sub-agent runs concurrently with the main agent for a
 turn inside its own MicroVM. Sub-agents are useful for parallel work or for delegating work to another agent with a
 different prompt, tool set, or role.
 
-Sub-agents use the same Plan42 Environment and PR state as their parent turn.
+Sub-agents use the same Plan42 Environment and PR state as their parent turn. Agents can communicate with each other
+using [SendMessage](#112-sendmessage), and callers can enumerate all agents associated with a turn using
+[ListSubAgents](#114-listsubagents).
 
 ## 111.1 Request
 
@@ -6343,7 +6406,7 @@ tool set, and default model and reasoning behavior.
 |------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | CodeReview | A code review sub-agent. This uses the same image as the main coding agent, but with a code-review-specific system prompt. The model defaults to `Codex` and the reasoning level defaults to `Max`. It also uses a reduced tool set that removes tools not needed for code review.                                                   |
 | Custom     | A custom sub-agent. This uses the same image and tool set as the parent coding agent. The model and reasoning level default to the same values used by the parent agent.                                                                                                                                                                                                             |
-| Main       | The main agent associated with a turn. This value cannot be specified when calling CreateSubAgent. It may be returned by APIs that enumerate agents associated with a turn.                                                                                                                                                                                                            |
+| Main       | The main agent associated with a turn. This value cannot be specified when calling CreateSubAgent. Returned from [ListSubAgents](#114-listsubagents) to indicate the main agent for the turn.                                                                                                                                                                                          |
 
 ## 111.3 Response
 
@@ -6409,42 +6472,55 @@ AgentStatus is an enum that indicates the current status of a sub-agent.
 
 The caller must have permission to update the owning turn.
 
-# 110. UpdateFile
+# 112. SendMessage
 
-The UpdateFile API is an admin api that allows updating file metadata. It's used by internal services to update
-metadata about a file as various scans complete.
+The SendMessage API allows the sub-agents associated with a turn, including the main agent, to send messages to
+each other. It also allows a user to send messages to the main agent for a running turn.
 
-## 110.1 Request
+A completion message is automatically delivered to the parent agent when a sub-agent completes.
+
+## 112.1 Request
 
 ```http request
-PATCH /v1/tenants/{tenant_id}/files/{file_id} HTTP/1
+PUT /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turn_index}/messages/{message_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
 Accept: application/json
-Content-Type: application/json
 Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
 X-Event-Horizon-Signed-Headers: <signed headers>
-If-Match: <version>
 
 {
-	  "IsMalicious": *bool,
-	  "ModerationScanInfo": *ModerationScanInfo,
-	  "ContentType" : *string,
-	  "RejectionReason": *string,
-	}
+  "From": "string",
+  "FromType": "FromType",
+  "To": ["string"],
+  "Message": "string"
+}
 ```
 
-| Parameter                      | Location | Type                | Description                                                                                                                                          |
-|--------------------------------|----------|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| tenant_id                      | path     | string              | The ID of the tenant that owns the file.                                                                                                             |
-| file_id                        | path     | string              | The ID of the file to update.                                                                                                                        |
-| Authorization                  | header   | string              | The authorization header for the request.                                                                                                            |
-| X-Event-Horizon-Signed-Headers | header   | *string             | The signed headers for the request, when authenticating with Sigv4.                                                                                  |
-| version                        | header   | string              | The version of the file to update. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
-| IsMalicious                    | body     | *bool               | Optiopnal. When set marks the file as malicious or non-malicious. Cannot be modified once set.                                                       |
-| ModerationScanInfo             | body     | *ModerationScanInfo | Optional. Sets the results of a moderations can. Cannot be modified once set.                                                                        |
-| ContentType                    | body     | *string             | Optional. Sets the file's mime type. This is set by a lambda, using libmagic, after the file's malware scan has completed.                           |
-| RejectionReason                | body     | *string             | Optional. Sets the reason the file was rejected. This is set by a lambda when the detected mime type is not supported. Cannot be modified once set. |
+| Parameter                                | Location | Type                              | Description                                                                                                                             |
+|------------------------------------------|----------|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                            | The tenant ID that owns the turn the message is being sent to.                                                                          |
+| task_id                                  | path     | string                            | The task ID that owns the turn the message is being sent to.                                                                            |
+| turn_index                               | path     | int                               | The turn index that the message is being sent to.                                                                                       |
+| message_id                               | path     | string                            | The unique ID for the message being sent. This must be a v4 UUID.                                                                       |
+| Authorization                            | header   | string                            | The authorization header for the request.                                                                                               |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                           | The authorization header for the delegating principal.                                                                                  |
+| X-Event-Horizon-Signed-Headers           | header   | *string                           | The signed headers for the request, when authenticating with Sigv4.                                                                     |
+| From                                     | body     | string                            | The ID of the sender. This is either a TenantID or an AgentID, depending on `FromType`.                                                |
+| FromType                                 | body     | [FromType](#1122-fromtype)        | The type of sender.                                                                                                                     |
+| To                                       | body     | []string                          | The agent IDs of the recipients. Use `00000000-0000-0000-0000-000000000000` to include the main agent.                                |
+| Message                                  | body     | string                            | The content of the message.                                                                                                             |
 
-## 110.2 Response
+## 112.2 FromType
+
+FromType is an enum indicating the type of sender of a message.
+
+| Value  | Description                                                                                                                                                                |
+|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Agent  | The sender is an agent. The value of `From` should be an AgentID. The value `00000000-0000-0000-0000-000000000000` denotes the main agent.                             |
+| Tenant | The sender is a user. The value of `From` should be the user's TenantID.                                                                                                  |
+
+## 112.3 Response
 
 On success a 200 OK is returned with the following JSON body:
 
@@ -6453,19 +6529,163 @@ HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
 
 {
-  "TenantID": "string",
-  "FileID": "string",  
-  "Name": "string",
-  "Size": int,
-  "CreatedAt": "string",
-  "IsMalicious": *bool,
-  "MalwareScanCompletedAt": "*string",
-  "ModerationScanInfo": {},
-  "ModerationScanCompletedAt": *string,
-  "UpdatedAt": "*string",
-  "ContentType" : "*string",
-  "Version": int
+  "MessageID": "string",
+  "FromTenantID": "*string",
+  "FromAgentID": "*string",
+  "To": ["string"],
+  "Message": "string",
+  "CreatedAt": "string"
 }
-```   
+```
 
-See [FileMetadata](#1073-file) for more info on the response.
+| Field        | Type     | Description                                     |
+|--------------|----------|-------------------------------------------------|
+| MessageID    | string   | The unique ID of the sent message.              |
+| FromTenantID | *string  | The tenant ID of the sender, if applicable.     |
+| FromAgentID  | *string  | The agent ID of the sender, if applicable.      |
+| To           | []string | The agent IDs of the recipients.                |
+| Message      | string   | The content of the sent message.                |
+| CreatedAt    | string   | The timestamp when the message was created.     |
+
+See [Error Handling](#2-error-handling) for details on error responses.
+
+# 113. StreamMessages
+
+The StreamMessages API allows an agent to retrieve the messages sent to it.
+
+## 113.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turn_index}/messages?to={agent_id} HTTP/1.1
+Last-Event-ID: <token>
+Accept: text/event-stream
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                    |
+|------------------------------------------|----------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The tenant ID that owns the turn the messages are being retrieved for.                                                                                         |
+| task_id                                  | path     | string  | The task ID that owns the turn the messages are being retrieved for.                                                                                           |
+| turn_index                               | path     | int     | The turn index that the messages are being retrieved for.                                                                                                      |
+| agent_id                                 | query    | string  | The agent ID of the recipient whose messages are being retrieved. Use `00000000-0000-0000-0000-000000000000` for the main agent.                            |
+| Last-Event-ID                            | header   | *string | The ID of the last event received by the agent. Optional. Used to resume the stream from the last event.                                                      |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                      |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                         |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                            |
+
+## 113.2 Response
+
+If there are no more messages to stream because the turn has completed, a 204 No Content is returned with an empty body.
+Otherwise, on success a 200 OK is returned as a server-sent event stream.
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: text/event-stream; charset=utf-8
+
+event: AgentMessage
+data: {}
+id: <token>
+retry: 1000
+
+event: UserMessage
+data: {}
+id: <token>
+retry: 1000
+```
+
+| Field | Type                                    | Description              |
+|-------|-----------------------------------------|--------------------------|
+| event | [MessageType](#1133-messagetype)        | The type of message.     |
+
+## 113.3 MessageType
+
+| Value              | Description                                                                                                                                                              |
+|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| AgentMessage       | A message sent from one agent to another. The `data` field contains a JSON [Message](#1123-response) object.                                                          |
+| UserMessage        | A message sent from a user to the main agent. The `data` field contains a JSON [Message](#1123-response) object.                                                      |
+| SubAgentCompletion | An automatic message sent to the parent agent when a sub-agent completes. The `data` field contains a JSON [SubAgentCompletionMessage](#1134-subagentcompletionmessage) object. |
+
+## 113.4 SubAgentCompletionMessage
+
+When a sub-agent completes, a completion message is automatically sent to the parent agent with the following format:
+
+```json
+{
+  "AgentID": "string",
+  "StillRunning": bool,
+  "CompletionMessage": "string"
+}
+```
+
+| Field             | Type   | Description                                                                                                                                                                                                                                                                                                                                |
+|-------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| AgentID           | string | The unique ID of the sub-agent that completed.                                                                                                                                                                                                                                                                                              |
+| StillRunning      | bool   | Whether the sub-agent is still running. This can be true when the sub-agent completed its task but is still running because `AutoExit` was set to false. If true, the agent may receive additional messages and may complete again later.                                                                                               |
+| CompletionMessage | string | The final model output produced when the sub-agent completed.                                                                                                                                                                                                                                                                               |
+
+# 114. ListSubAgents
+
+The ListSubAgents API returns the agents associated with a turn, along with their current status. This is useful for
+checking on the status of code review sub-agents and monitoring the progress of delegated work.
+
+The main agent is represented in the response with AgentID `00000000-0000-0000-0000-000000000000`.
+
+## 114.1 Request
+
+```http request
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turn_index}/subagents?maxResults={max_results}&token={token} HTTP/1.1
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+```
+
+| Parameter                                | Location | Type    | Description                                                                                                                                                                |
+|------------------------------------------|----------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string  | The tenant ID that owns the turn the sub-agents are associated with.                                                                                                       |
+| task_id                                  | path     | string  | The task ID that owns the turn the sub-agents are associated with.                                                                                                         |
+| turn_index                               | path     | int     | The turn index that the sub-agents are associated with.                                                                                                                    |
+| max_results                              | query    | int     | Optional. The maximum number of sub-agents to return. Defaults to 100.                                                                                                     |
+| token                                    | query    | string  | Optional. The pagination token from a previous ListSubAgents response.                                                                                                     |
+| Authorization                            | header   | string  | The authorization header for the request.                                                                                                                                  |
+| X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                                     |
+| X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                                        |
+
+## 114.2 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "Items": [
+    {
+      "AgentID": "string",
+      "AgentType": "AgentType",
+      "Prompt": "*string",
+      "AutoExit": bool,
+      "Name": "string",
+      "Model": "ModelType",
+      "ReasoningLevel": "ReasoningLevel",
+      "Status": "AgentStatus",
+      "Version": int,
+      "CreatedAt": "string",
+      "UpdatedAt": "string"
+    }
+  ],
+  "NextToken": "*string"
+}
+```
+
+| Field     | Type              | Description                                                         |
+|-----------|-------------------|---------------------------------------------------------------------|
+| Items     | []SubAgent        | The list of agents associated with the turn.                        |
+| NextToken | *string           | The token to use to retrieve the next page of results, if any.      |
+
+Each element in `Items` has the same shape as the [CreateSubAgent response](#1113-response).
+
+See [Error Handling](#2-error-handling) for details on error responses.
