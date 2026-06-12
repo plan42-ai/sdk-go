@@ -1312,14 +1312,6 @@ func (c *Client) UploadTurnLogs(ctx context.Context, req *UploadTurnLogsRequest)
 		strconv.Itoa(req.TurnIndex),
 		"logs",
 	)
-	q := u.Query()
-	if req.AgentID != nil {
-		q.Set("agentID", *req.AgentID)
-	}
-	if len(q) > 0 {
-		u.RawQuery = q.Encode()
-	}
-
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, err

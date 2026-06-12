@@ -5622,7 +5622,6 @@ func TestUploadTurnLogs(t *testing.T) {
 			require.Equal(t, http.MethodPost, r.Method)
 			require.Equal(t, "/v1/tenants/abc/tasks/task/turns/0/logs", r.URL.Path)
 			require.Equal(t, "1", r.Header.Get("If-Match"))
-			require.Equal(t, "agent-1", r.URL.Query().Get("agentID"))
 
 			var reqBody p42.UploadTurnLogsRequest
 			err := json.NewDecoder(r.Body).Decode(&reqBody)
@@ -5712,7 +5711,10 @@ func TestUploadTurnLogsPathEscaping(t *testing.T) {
 			require.Equal(t, escapedTenantID, parts[3])
 			require.Equal(t, escapedTaskID, parts[5])
 			require.Equal(t, "0", parts[7])
-			require.Equal(t, "agent needs escape", r.URL.Query().Get("agentID"))
+			var reqBody p42.UploadTurnLogsRequest
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&reqBody))
+			require.NotNil(t, reqBody.AgentID)
+			require.Equal(t, "agent needs escape", *reqBody.AgentID)
 
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(p42.UploadTurnLogsResponse{Version: 1})
