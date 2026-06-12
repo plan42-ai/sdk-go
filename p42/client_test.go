@@ -5622,6 +5622,7 @@ func TestUploadTurnLogs(t *testing.T) {
 			require.Equal(t, http.MethodPost, r.Method)
 			require.Equal(t, "/v1/tenants/abc/tasks/task/turns/0/logs", r.URL.Path)
 			require.Equal(t, "1", r.Header.Get("If-Match"))
+			require.Equal(t, "agent-1", r.URL.Query().Get("agentID"))
 
 			var reqBody p42.UploadTurnLogsRequest
 			err := json.NewDecoder(r.Body).Decode(&reqBody)
@@ -5629,6 +5630,8 @@ func TestUploadTurnLogs(t *testing.T) {
 			require.Equal(t, 0, reqBody.Index)
 			require.NotNil(t, reqBody.WorkstreamID)
 			require.Equal(t, "ws", *reqBody.WorkstreamID)
+			require.NotNil(t, reqBody.AgentID)
+			require.Equal(t, "agent-1", *reqBody.AgentID)
 			require.Len(t, reqBody.Logs, 1)
 			require.Equal(t, "msg", reqBody.Logs[0].Message)
 
@@ -5643,6 +5646,7 @@ func TestUploadTurnLogs(t *testing.T) {
 	client := p42.NewClient(srv.URL)
 	logs := []p42.TurnLog{{Timestamp: time.Unix(0, 0), Message: "msg"}}
 	wsID := "ws"
+	agentID := "agent-1"
 	resp, err := client.UploadTurnLogs(
 		context.Background(), &p42.UploadTurnLogsRequest{
 			TenantID:     "abc",
@@ -5650,6 +5654,7 @@ func TestUploadTurnLogs(t *testing.T) {
 			TurnIndex:    0,
 			Version:      1,
 			WorkstreamID: &wsID,
+			AgentID:      &agentID,
 			Index:        0,
 			Logs:         logs,
 		},
@@ -5707,6 +5712,7 @@ func TestUploadTurnLogsPathEscaping(t *testing.T) {
 			require.Equal(t, escapedTenantID, parts[3])
 			require.Equal(t, escapedTaskID, parts[5])
 			require.Equal(t, "0", parts[7])
+			require.Equal(t, "agent needs escape", r.URL.Query().Get("agentID"))
 
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(p42.UploadTurnLogsResponse{Version: 1})
@@ -5717,6 +5723,7 @@ func TestUploadTurnLogsPathEscaping(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
+	agentID := "agent needs escape"
 	_, err := client.UploadTurnLogs(
 		context.Background(), &p42.UploadTurnLogsRequest{
 			TenantID:  tenantIDThatNeedsEscaping,
@@ -5724,6 +5731,7 @@ func TestUploadTurnLogsPathEscaping(t *testing.T) {
 			TurnIndex: 0,
 			Version:   1,
 			Index:     0,
+			AgentID:   &agentID,
 		},
 	)
 	require.NoError(t, err)

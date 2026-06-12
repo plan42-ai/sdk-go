@@ -1958,7 +1958,7 @@ conflict will be returned.
 ## 27.1 Request
 
 ```http request
-POST /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs HTTP/1.1
+POST /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs?agentID={agentID} HTTP/1.1
 Accept: application/json
 Content-Type: application/json; charset=utf-8
 Authorization: <authorization>
@@ -1984,6 +1984,7 @@ If-Match: <version>
 | tenant_id                                | path     | string  | The ID of the tenant to upload logs for.                                                                                                                      |
 | task_id                                  | path     | string  | The ID of the task to upload logs for.                                                                                                                        |
 | turnIndex                                | path     | int     | The index of the turn to upload logs for.                                                                                                                     |
+| agentID                                  | query    | *string | Optional. When provided, attributes the uploaded logs to the specified agent. Defaults to the main agent ID when omitted.                                     |
 | Authorization                            | header   | string  | The authorization header for the request.                                                                                                                     |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                                                                                        |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                           |

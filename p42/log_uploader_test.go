@@ -114,6 +114,33 @@ func TestLogUploaderWorkstreamID(t *testing.T) {
 	require.Equal(t, wsID, *fake.reqs[0].WorkstreamID)
 }
 
+func TestLogUploaderAgentID(t *testing.T) {
+	logs := make(chan p42.TurnLog)
+	fake := &fakeUploadClient{}
+	agentID := "agent-123"
+	lu := p42.NewLogUploader(
+		&p42.LogUploaderConfig{
+			Client:     fake,
+			TenantID:   "t",
+			TaskID:     "task",
+			TurnIndex:  0,
+			Version:    1,
+			StartIndex: 0,
+			Logs:       logs,
+			AgentID:    &agentID,
+		},
+	)
+
+	logs <- p42.TurnLog{Message: "msg"}
+	close(logs)
+
+	err := lu.ShutdownTimeout(time.Second)
+	require.NoError(t, err)
+	require.Len(t, fake.reqs, 1)
+	require.NotNil(t, fake.reqs[0].AgentID)
+	require.Equal(t, agentID, *fake.reqs[0].AgentID)
+}
+
 func TestLogUploaderBatchAge(t *testing.T) {
 	logs := make(chan p42.TurnLog)
 	fake := &fakeUploadClient{}
