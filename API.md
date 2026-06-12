@@ -6288,6 +6288,127 @@ Content-Type: application/json; charset=utf-8
 
 See [FileMetadata](#1073-file) for more info on the response.
 
+# 111. CreateSubAgent
+
+The CreateSubAgent API launches a sub-agent for a given turn. A sub-agent runs concurrently with the main agent for a
+turn inside its own MicroVM. Sub-agents are useful for parallel work or for delegating work to another agent with a
+different prompt, tool set, or role.
+
+Sub-agents use the same Plan42 Environment and PR state as their parent turn.
+
+## 111.1 Request
+
+```http request
+PUT /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turn_index}/subagents/{agent_id} HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Accept: application/json
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+
+{
+  "WorkstreamID": "*string",
+  "AgentType": "AgentType",
+  "Prompt": "*string",
+  "AutoExit": "*bool",
+  "Name": "string",
+  "Model": "*ModelType",
+  "ReasoningLevel": "*ReasoningLevel"
+}
+```
+
+| Parameter                                | Location | Type                                    | Description                                                                                                                                               |
+|------------------------------------------|----------|-----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                                  | The tenant ID that owns the turn the sub-agent is being launched for.                                                                                     |
+| task_id                                  | path     | string                                  | The task ID that owns the turn the sub-agent is being launched for.                                                                                       |
+| turn_index                               | path     | int                                     | The turn index that the sub-agent is being launched for.                                                                                                  |
+| agent_id                                 | path     | string                                  | The unique ID for the sub-agent to be launched. This must be a v4 UUID.                                                                                   |
+| Authorization                            | header   | string                                  | The authorization header for the request.                                                                                                                 |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                                 | The authorization header for the delegating principal.                                                                                                    |
+| X-Event-Horizon-Signed-Headers           | header   | *string                                 | The signed headers for the request, when authenticating with Sigv4.                                                                                       |
+| WorkstreamID                             | body     | *string                                 | Optional. The workstream the owning task is associated with.                                                                                              |
+| AgentType                                | body     | [AgentType](#1112-agenttype)            | The type of sub-agent to launch.                                                                                                                          |
+| Prompt                                   | body     | *string                                 | Optional. The prompt to use for the sub-agent. This should be nil when `AgentType` is `CodeReview` and must be non-nil when `AgentType` is `Custom`.   |
+| AutoExit                                 | body     | *bool                                   | Optional. Defaults to true. Whether the sub-agent should automatically exit when it completes its task. Must be false when `AgentType` is `CodeReview`. |
+| Name                                     | body     | string                                  | A friendly name for the sub-agent.                                                                                                                        |
+| Model                                    | body     | *[ModelType](#182-modeltype)            | Optional. Overrides the model used for the sub-agent.                                                                                                     |
+| ReasoningLevel                           | body     | *[ReasoningLevel](#1114-reasoninglevel) | Optional. Overrides the reasoning level used for the sub-agent.                                                                                           |
+
+## 111.2 AgentType
+
+AgentType is an enum that specifies the type of agent to launch. The value determines the agent image, system prompt,
+tool set, and default model and reasoning behavior.
+
+| Value      | Description                                                                                                                                                                                                                                                                                                                                                                             |
+|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| CodeReview | A code review sub-agent. This uses the same image as the main coding agent, but with a code-review-specific system prompt. The model defaults to `Codex` and the reasoning level defaults to `Max`. It also uses a reduced tool set that removes tools not needed for code review.                                                   |
+| Custom     | A custom sub-agent. This uses the same image and tool set as the parent coding agent. The model and reasoning level default to the same values used by the parent agent.                                                                                                                                                                                                             |
+| Main       | The main agent associated with a turn. This value cannot be specified when calling CreateSubAgent. It may be returned by APIs that enumerate agents associated with a turn.                                                                                                                                                                                                            |
+
+## 111.3 Response
+
+On success a 200 OK is returned with the following JSON body:
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "AgentID": "string",
+  "AgentType": "AgentType",
+  "Prompt": "*string",
+  "AutoExit": bool,
+  "Name": "string",
+  "Model": "ModelType",
+  "ReasoningLevel": "ReasoningLevel",
+  "Status": "AgentStatus",
+  "Version": int,
+  "CreatedAt": "string",
+  "UpdatedAt": "string"
+}
+```
+
+| Field          | Type                                    | Description                                                                            |
+|----------------|-----------------------------------------|----------------------------------------------------------------------------------------|
+| AgentID        | string                                  | The unique ID of the launched sub-agent.                                               |
+| AgentType      | [AgentType](#1112-agenttype)            | The type of the launched sub-agent.                                                    |
+| Prompt         | *string                                 | The prompt used for the launched sub-agent.                                            |
+| AutoExit       | bool                                    | Whether the launched sub-agent will automatically exit when it completes its task.     |
+| Name           | string                                  | The friendly name of the launched sub-agent.                                           |
+| Model          | [ModelType](#182-modeltype)             | The model used for the launched sub-agent.                                             |
+| ReasoningLevel | [ReasoningLevel](#1114-reasoninglevel)  | The reasoning level used for the launched sub-agent.                                   |
+| Status         | [AgentStatus](#1115-agentstatus)        | The current status of the launched sub-agent.                                          |
+| Version        | int                                     | The version of the launched sub-agent.                                                 |
+| CreatedAt      | string                                  | The timestamp when the sub-agent was created, in ISO 8601 format.                      |
+| UpdatedAt      | string                                  | The timestamp when the sub-agent was last updated, in ISO 8601 format.                 |
+
+See [Error Handling](#2-error-handling) for details on error responses.
+
+## 111.4 ReasoningLevel
+
+ReasoningLevel is an enum that controls how much reasoning budget the model uses.
+
+| Value  |
+|--------|
+| Low    |
+| Medium |
+| High   |
+| Max    |
+
+## 111.5 AgentStatus
+
+AgentStatus is an enum that indicates the current status of a sub-agent.
+
+| Value      | Description                                                                                                                                                                   |
+|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Running    | The sub-agent is currently running.                                                                                                                                           |
+| Waiting    | The sub-agent has completed its task, but is still running because `AutoExit` was set to false when the sub-agent was launched. It is waiting to receive additional messages. |
+| Terminated | The sub-agent has terminated. New messages cannot be sent to a terminated agent.                                                                                              |
+
+## 111.6 Authorization Requirements
+
+The caller must have permission to update the owning turn.
+
 # 110. UpdateFile
 
 The UpdateFile API is an admin api that allows updating file metadata. It's used by internal services to update
