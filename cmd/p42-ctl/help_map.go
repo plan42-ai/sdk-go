@@ -287,15 +287,16 @@ var helpMap = map[string]string{
 }
 `,
 	"logs upload": `
+
 --- Input JSON Schema ---
 
 {
-	    "Index": int,
-	    "WorkstreamID": "*string",
-	    "Logs": [
-	        {
-	            "Timestamp": "string",
-	            "Message": "string"
+    "Index": int,
+    "WorkstreamID": "*string",
+    "Logs": [
+        {
+            "Timestamp": "string",
+            "Message": "string"
         }
     ]
 }
