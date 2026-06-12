@@ -225,6 +225,34 @@ func TestLogStreamWorkstreamID(t *testing.T) {
 	}
 }
 
+func TestLogStreamAgentID(t *testing.T) {
+	t.Parallel()
+
+	var gotAgentID string
+	srv := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				gotAgentID = r.URL.Query().Get("agentID")
+				w.WriteHeader(http.StatusNoContent)
+			},
+		),
+	)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	agentID := "agent-123"
+	ls := p42.NewLogStream(client, "ten", "task", 0, 1, p42.WithAgentID(&agentID))
+	defer ls.Close()
+
+	if err := ls.ShutdownTimeout(time.Second); err != nil {
+		t.Fatalf("shutdown error: %v", err)
+	}
+
+	if gotAgentID != "agent-123" {
+		t.Fatalf("expected agentID query 'agent-123', got '%s'", gotAgentID)
+	}
+}
+
 func TestLogStreamReadBatchBounded(t *testing.T) {
 	t.Parallel()
 

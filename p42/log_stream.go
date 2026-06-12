@@ -20,6 +20,7 @@ type LogStreamOption func(*logStreamConfig)
 type logStreamConfig struct {
 	includeDeleted bool
 	workstreamID   *string
+	agentID        *string
 	featureFlags   map[string]bool
 	delegatedAuth  DelegatedAuthInfo
 	lastID         int
@@ -34,6 +35,12 @@ func WithIncludeDeleted(value bool) LogStreamOption {
 func WithWorkstreamID(workstreamID *string) LogStreamOption {
 	return func(cfg *logStreamConfig) {
 		cfg.workstreamID = workstreamID
+	}
+}
+
+func WithAgentID(agentID *string) LogStreamOption {
+	return func(cfg *logStreamConfig) {
+		cfg.agentID = agentID
 	}
 }
 
@@ -81,6 +88,7 @@ func NewLogStream(
 				TurnIndex:         turnIndex,
 				IncludeDeleted:    util.Pointer(cfg.includeDeleted),
 				WorkstreamID:      cfg.workstreamID,
+				AgentID:           cfg.agentID,
 			}
 			if lastEventID != "" && lastEventID != "0" {
 				parsedLastID, err := strconv.Atoi(lastEventID)

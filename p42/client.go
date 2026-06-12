@@ -1231,6 +1231,7 @@ type GetLastTurnLogRequest struct {
 	TurnIndex      int     `json:"-"`
 	WorkstreamID   *string `json:"-"`
 	IncludeDeleted *bool   `json:"-"`
+	AgentID        *string `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -1247,6 +1248,8 @@ func (r *GetLastTurnLogRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.WorkstreamID)
 	case "IncludeDeleted":
 		return EvalNullable(r.IncludeDeleted)
+	case "AgentID":
+		return EvalNullable(r.AgentID)
 	default:
 		return nil, false
 	}
@@ -1352,6 +1355,7 @@ type StreamTurnLogsRequest struct {
 	LastEventID    *int    `json:"-"`
 	IncludeDeleted *bool   `json:"-"`
 	WorkstreamID   *string `json:"-"`
+	AgentID        *string `json:"-"`
 }
 
 // GetField retrieves the value of a field by name.
@@ -1369,6 +1373,8 @@ func (r *StreamTurnLogsRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.IncludeDeleted)
 	case "WorkstreamID":
 		return EvalNullable(r.WorkstreamID)
+	case "AgentID":
+		return EvalNullable(r.AgentID)
 	default:
 		return nil, false
 	}
@@ -1405,6 +1411,9 @@ func (c *Client) StreamTurnLogs(ctx context.Context, req *StreamTurnLogsRequest)
 	}
 	if req.WorkstreamID != nil {
 		q.Set("workstreamID", *req.WorkstreamID)
+	}
+	if req.AgentID != nil {
+		q.Set("agentID", *req.AgentID)
 	}
 	u.RawQuery = q.Encode()
 
@@ -1472,6 +1481,9 @@ func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest)
 	}
 	if req.IncludeDeleted != nil {
 		q.Set("includeDeleted", strconv.FormatBool(*req.IncludeDeleted))
+	}
+	if req.AgentID != nil {
+		q.Set("agentID", *req.AgentID)
 	}
 	u.RawQuery = q.Encode()
 
