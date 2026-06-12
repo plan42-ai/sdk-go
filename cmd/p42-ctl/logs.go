@@ -22,6 +22,7 @@ type StreamLogsOptions struct {
 	TurnIndex      int     `help:"The turn to stream logs for." name:"turn-index" short:"n" required:""`
 	WorkstreamID   *string `help:"Optional. The id of the workstream the task belongs to." name:"workstream-id" short:"w" optional:""`
 	IncludeDeleted bool    `help:"Include logs for turns on deleted tasks" short:"d"`
+	AgentID        *string `help:"Optional. The agent id to filter log events by." name:"agent-id" short:"a" optional:""`
 }
 
 func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
@@ -40,6 +41,7 @@ func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
 		p42.WithIncludeDeleted(o.IncludeDeleted),
 		p42.WithFeatureFlags(flags.FeatureFlags),
 		p42.WithWorkstreamID(o.WorkstreamID),
+		p42.WithAgentID(o.AgentID),
 	)
 	defer ls.Close()
 
