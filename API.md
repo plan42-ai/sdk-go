@@ -2081,16 +2081,12 @@ retry: 1000
 
 # 29. GetLastTurnLog
 
-GetLastTurnLog retrieves the last log entry for a turn.
-
-Requests may optionally include an `agentID` query parameter to retrieve the last log entry for a specific sub-agent.
-When not provided, the API defaults the agent ID to `00000000-0000-0000-0000-000000000000` and returns the main
-agent's last log entry.
+GetLastTurnLog retrieves the last log entry for a turn. 
 
 ## 29.1 Request
 
 ```http request
-GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs/last?workstreamID={workstreamID}&includeDeleted={includeDeleted}&agentID={agentID} HTTP/1.1
+GET /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turnIndex}/logs/last?workstreamID={workstreamID}&includeDeleted={includeDeleted} HTTP/1.1
 Accept: application/json
 Authorization: <authorization>
 X-Event-Horizon-Delegating-Authorization: <authorization>
@@ -2103,8 +2099,7 @@ X-Event-Horizon-Signed-Headers: <signed headers>
 | task_id                                  | path     | string  | The ID of the task to get the last log for.                                                       |
 | turnIndex                                | path     | int     | The index of the turn to get the last log for.                                                    |
 | workstreamID                             | query    | *string | Optional. The ID of the workstream the task belongs to.                                           |
-| includeDeleted                           | query    | *bool   | Optional. Set to true to return logs for turns on deleted tasks.                                  |
-| agentID                                  | query    | *string | Optional. The agent ID whose last log should be returned. Defaults to `00000000-0000-0000-0000-000000000000` (the main agent) when omitted. |
+| includeDeleted                           | query    | *bool   | Optional. Set to true to return logs for turns on deleted tasks. |
 | Authorization                            | header   | string  | The authorization header for the request.                                                         |
 | X-Event-Horizon-Delegating-Authorization | header   | *string | The authorization header for the delegating principal.                                            |
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                               |
