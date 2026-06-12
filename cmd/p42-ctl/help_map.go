@@ -292,7 +292,6 @@ var helpMap = map[string]string{
 {
 	    "Index": int,
 	    "WorkstreamID": "*string",
-	    "AgentID": "*string",
 	    "Logs": [
 	        {
 	            "Timestamp": "string",
