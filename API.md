@@ -1945,6 +1945,10 @@ See [CreateTurn](#232-response) for details on the response fields.
 
 The UploadTurnLogs API is used to upload a batch logs for a turn.
 
+To support sub-agents, requests may now include an optional `AgentID` identifying the agent whose logs are being
+uploaded. When `AgentID` is omitted the logs are attributed to the main agent using the reserved ID
+`00000000-0000-0000-0000-000000000000`.
+
 The requested is limited to a maximum of 500 logs and a maximum of 1MB in size. If the request exceeds these limits, 
 a `413 Content Too Large` error is returned.
 
@@ -1965,6 +1969,7 @@ If-Match: <version>
 {
     "Index": int,
     "WorkstreamID": "*string",
+    "AgentID": "*string",
     "Logs": [
         {
             "Timestamp": "string",
@@ -1984,6 +1989,7 @@ If-Match: <version>
 | X-Event-Horizon-Signed-Headers           | header   | *string | The signed headers for the request, when authenticating with Sigv4.                                                                                           |
 | version                                  | header   | string  | The version of the turn to upload logs for. This is used for optimistic concurrency control. If the version does not match, a 409 Conflict error is returned. |
 | WorkstreamID                             | body     | *string | Optional. The ID of the workstream the task belongs to.                                                                                                       |
+| AgentID                                  | body     | *string | Optional. The agent ID whose logs are being uploaded. Defaults to `00000000-0000-0000-0000-000000000000` (the main agent) when not provided.                    |
 | Index                                    | body     | int     | The log index of the first entry in the log batch. This should be the last index + 1 of the previous log batch, or 0 for the first batch.                     |
 | Logs                                     | body     | []Log   | The list of logs to upload. Each log entry should have a timestamp and message.                                                                               |
 
