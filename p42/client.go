@@ -1217,6 +1217,7 @@ type UploadTurnLogsRequest struct {
 	TurnIndex    int       `json:"-"`
 	Version      int       `json:"-"`
 	WorkstreamID *string   `json:"WorkstreamID,omitempty"`
+	AgentID      *string   `json:"AgentID,omitempty"`
 	Index        int       `json:"Index"`
 	Logs         []TurnLog `json:"Logs"`
 }
@@ -1265,6 +1266,8 @@ func (r *UploadTurnLogsRequest) GetField(name string) (any, bool) {
 		return r.Version, true
 	case "WorkstreamID":
 		return EvalNullable(r.WorkstreamID)
+	case "AgentID":
+		return EvalNullable(r.AgentID)
 	case "Index":
 		return r.Index, true
 	case "Logs":

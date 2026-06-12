@@ -18,6 +18,7 @@ type LogUploaderConfig struct {
 	TurnIndex    int
 	Version      int
 	WorkstreamID *string
+	AgentID      *string
 	StartIndex   int
 	Logs         <-chan TurnLog
 
@@ -43,6 +44,7 @@ type LogUploader struct {
 	turnIndex    int
 	version      int
 	workstreamID *string
+	agentID      *string
 	index        int
 
 	logs <-chan TurnLog
@@ -97,6 +99,7 @@ func NewLogUploader(cfg *LogUploaderConfig) *LogUploader {
 		turnIndex:     cfg.TurnIndex,
 		version:       cfg.Version,
 		workstreamID:  cfg.WorkstreamID,
+		agentID:       cfg.AgentID,
 		index:         cfg.StartIndex,
 		logs:          cfg.Logs,
 		featureFlags:  cfg.FeatureFlags,
@@ -171,6 +174,7 @@ func (l *LogUploader) flush() {
 			TurnIndex:    l.turnIndex,
 			Version:      l.version,
 			WorkstreamID: l.workstreamID,
+			AgentID:      l.agentID,
 			Index:        l.index,
 			Logs:         l.batch,
 			FeatureFlags: FeatureFlags{FeatureFlags: l.featureFlags},
