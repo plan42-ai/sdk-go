@@ -6468,10 +6468,6 @@ AgentStatus is an enum that indicates the current status of a sub-agent.
 | Waiting    | The sub-agent has completed its task, but is still running because `AutoExit` was set to false when the sub-agent was launched. It is waiting to receive additional messages. |
 | Terminated | The sub-agent has terminated. New messages cannot be sent to a terminated agent.                                                                                              |
 
-## 111.6 Authorization Requirements
-
-The caller must have permission to update the owning turn.
-
 # 112. SendMessage
 
 The SendMessage API allows the sub-agents associated with a turn, including the main agent, to send messages to
