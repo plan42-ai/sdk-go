@@ -82,12 +82,12 @@ func (RunnerMessage) ObjectType() ObjectType {
 	return ObjectTypeRunnerMessage
 }
 
-// MessageFromType identifies the type of sender for turn messages.
-type MessageFromType string
+// FromType identifies the type of sender for turn messages.
+type FromType string
 
 const (
-	MessageFromTypeAgent  MessageFromType = "Agent"
-	MessageFromTypeTenant MessageFromType = "Tenant"
+	FromTypeAgent  FromType = "Agent"
+	FromTypeTenant FromType = "Tenant"
 )
 
 // SentMessage represents a message sent between agents or from a tenant to the main agent.
@@ -105,14 +105,14 @@ type SendMessageRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
 
-	TenantID  string          `json:"-"`
-	TaskID    string          `json:"-"`
-	TurnIndex int             `json:"-"`
-	MessageID string          `json:"-"`
-	From      string          `json:"From"`
-	FromType  MessageFromType `json:"FromType"`
-	To        []string        `json:"To"`
-	Message   string          `json:"Message"`
+	TenantID  string   `json:"-"`
+	TaskID    string   `json:"-"`
+	TurnIndex int      `json:"-"`
+	MessageID string   `json:"-"`
+	From      string   `json:"From"`
+	FromType  FromType `json:"FromType"`
+	To        []string `json:"To"`
+	Message   string   `json:"Message"`
 }
 
 // GetField retrieves the value of a field by name.

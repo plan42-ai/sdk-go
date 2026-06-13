@@ -5235,7 +5235,7 @@ func TestSendMessage(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&reqBody)
 			require.NoError(t, err)
 			require.Equal(t, "sender", reqBody.From)
-			require.Equal(t, p42.MessageFromTypeAgent, reqBody.FromType)
+			require.Equal(t, p42.FromTypeAgent, reqBody.FromType)
 			require.Equal(t, []string{"agent-1", "agent-2"}, reqBody.To)
 			require.Equal(t, "hello", reqBody.Message)
 
@@ -5263,7 +5263,7 @@ func TestSendMessage(t *testing.T) {
 			TurnIndex: 2,
 			MessageID: "msg-1",
 			From:      "sender",
-			FromType:  p42.MessageFromTypeAgent,
+			FromType:  p42.FromTypeAgent,
 			To:        []string{"agent-1", "agent-2"},
 			Message:   "hello",
 		},
@@ -5286,7 +5286,7 @@ func TestSendMessageError(t *testing.T) {
 			TurnIndex: 2,
 			MessageID: "msg-1",
 			From:      "sender",
-			FromType:  p42.MessageFromTypeAgent,
+			FromType:  p42.FromTypeAgent,
 			To:        []string{"agent-1"},
 			Message:   "hello",
 		},
@@ -5328,7 +5328,7 @@ func TestSendMessagePathEscaping(t *testing.T) {
 			TurnIndex: 2,
 			MessageID: messageIDThatNeedsEscaping,
 			From:      "sender",
-			FromType:  p42.MessageFromTypeAgent,
+			FromType:  p42.FromTypeAgent,
 			To:        []string{"agent-1"},
 			Message:   "hello",
 		},
@@ -5344,25 +5344,25 @@ func TestSendMessageValidation(t *testing.T) {
 	_, err := client.SendMessage(context.Background(), nil)
 	require.EqualError(t, err, "req is nil")
 
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.MessageFromTypeAgent, To: []string{"agent"}})
+	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
 	require.EqualError(t, err, "tenant id is required")
 
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.MessageFromTypeAgent, To: []string{"agent"}})
+	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
 	require.EqualError(t, err, "task id is required")
 
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: -1, MessageID: "msg", From: "from", FromType: p42.MessageFromTypeAgent, To: []string{"agent"}})
+	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: -1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
 	require.EqualError(t, err, "turn index is required")
 
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, From: "from", FromType: p42.MessageFromTypeAgent, To: []string{"agent"}})
+	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
 	require.EqualError(t, err, "message id is required")
 
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, MessageID: "msg", FromType: p42.MessageFromTypeAgent, To: []string{"agent"}})
+	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, MessageID: "msg", FromType: p42.FromTypeAgent, To: []string{"agent"}})
 	require.EqualError(t, err, "from is required")
 
 	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", To: []string{"agent"}})
 	require.EqualError(t, err, "from type is required")
 
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.MessageFromTypeAgent})
+	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent})
 	require.EqualError(t, err, "to is required")
 }
 
@@ -9145,7 +9145,7 @@ func TestFeatureFlagsHeader(t *testing.T) {
 						TurnIndex:    2,
 						MessageID:    "msg",
 						From:         "from",
-						FromType:     p42.MessageFromTypeAgent,
+						FromType:     p42.FromTypeAgent,
 						To:           []string{"agent"},
 						Message:      "hello",
 					},
