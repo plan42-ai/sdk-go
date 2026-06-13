@@ -5223,6 +5223,137 @@ func TestCreateTurnPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestSendMessage(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodPut, r.Method)
+			require.Equal(t, "/v1/tenants/abc/tasks/task1/turns/2/messages/msg-1", r.URL.Path)
+
+			var reqBody p42.SendMessageRequest
+			err := json.NewDecoder(r.Body).Decode(&reqBody)
+			require.NoError(t, err)
+			require.Equal(t, "sender", reqBody.From)
+			require.Equal(t, p42.FromTypeAgent, reqBody.FromType)
+			require.Equal(t, []string{"agent-1", "agent-2"}, reqBody.To)
+			require.Equal(t, "hello", reqBody.Message)
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.Message{
+				MessageID:   "msg-1",
+				FromAgentID: util.Pointer("sender"),
+				To:          []string{"agent-1", "agent-2"},
+				Message:     "hello",
+				CreatedAt:   time.Unix(1700000000, 0).UTC(),
+			}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	msg, err := client.SendMessage(
+		context.Background(),
+		&p42.SendMessageRequest{
+			TenantID:  "abc",
+			TaskID:    "task1",
+			TurnIndex: 2,
+			MessageID: "msg-1",
+			From:      "sender",
+			FromType:  p42.FromTypeAgent,
+			To:        []string{"agent-1", "agent-2"},
+			Message:   "hello",
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, "msg-1", msg.MessageID)
+	require.Equal(t, "hello", msg.Message)
+}
+
+func TestSendMessageError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.SendMessage(
+		context.Background(),
+		&p42.SendMessageRequest{
+			TenantID:  "abc",
+			TaskID:    "task1",
+			TurnIndex: 2,
+			MessageID: "msg-1",
+			From:      "sender",
+			FromType:  p42.FromTypeAgent,
+			To:        []string{"agent-1"},
+			Message:   "hello",
+		},
+	)
+	var clientErr *p42.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestSendMessagePathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 10, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+			require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+			require.Equal(t, escapedMessageID, parts[9], "MessageID not properly escaped in URL path")
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.Message{MessageID: messageIDThatNeedsEscaping, To: []string{"agent-1"}, Message: "hello", CreatedAt: time.Unix(1700000000, 0).UTC()}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.SendMessage(
+		context.Background(),
+		&p42.SendMessageRequest{
+			TenantID:  tenantIDThatNeedsEscaping,
+			TaskID:    taskIDThatNeedsEscaping,
+			TurnIndex: 2,
+			MessageID: messageIDThatNeedsEscaping,
+			From:      "sender",
+			FromType:  p42.FromTypeAgent,
+			To:        []string{"agent-1"},
+			Message:   "hello",
+		},
+	)
+	require.NoError(t, err)
+}
+
+func TestSendMessageValidation(t *testing.T) {
+	t.Parallel()
+
+	client := p42.NewClient("https://example.com")
+
+	_, err := client.SendMessage(context.Background(), &p42.SendMessageRequest{TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
+	require.EqualError(t, err, "tenant id is required")
+
+	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
+	require.EqualError(t, err, "task id is required")
+
+	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: -1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
+	require.EqualError(t, err, "turn index is required")
+
+	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
+	require.EqualError(t, err, "message id is required")
+}
+
 func TestGetTurn(t *testing.T) {
 	t.Parallel()
 
@@ -8984,6 +9115,27 @@ func TestFeatureFlagsHeader(t *testing.T) {
 						TurnIndex:    2,
 						TaskVersion:  1,
 						Prompt:       "",
+					},
+				)
+				return err
+			},
+		},
+		{
+			name:   "SendMessage",
+			status: http.StatusOK,
+			resp:   p42.Message{},
+			call: func(c *p42.Client) error {
+				_, err := c.SendMessage(
+					context.Background(), &p42.SendMessageRequest{
+						FeatureFlags: p42.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+						TenantID:     "t",
+						TaskID:       "task",
+						TurnIndex:    2,
+						MessageID:    "msg",
+						From:         "from",
+						FromType:     p42.FromTypeAgent,
+						To:           []string{"agent"},
+						Message:      "hello",
 					},
 				)
 				return err
