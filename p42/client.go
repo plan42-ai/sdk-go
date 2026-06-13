@@ -1449,6 +1449,93 @@ func (c *Client) StreamTurnLogs(ctx context.Context, req *StreamTurnLogsRequest)
 	return resp.Body, nil
 }
 
+// StreamMessagesRequest is the request payload for StreamMessages.
+type StreamMessagesRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID    string  `json:"-"`
+	TaskID      string  `json:"-"`
+	TurnIndex   int     `json:"-"`
+	AgentID     string  `json:"-"`
+	LastEventID *string `json:"-"`
+}
+
+// GetField retrieves the value of a field by name.
+func (r *StreamMessagesRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "TurnIndex":
+		return r.TurnIndex, true
+	case "AgentID":
+		return r.AgentID, true
+	case "LastEventID":
+		return EvalNullable(r.LastEventID)
+	default:
+		return nil, false
+	}
+}
+
+// StreamMessages streams messages for an agent on a turn. The caller is responsible for closing the returned reader.
+func (c *Client) StreamMessages(ctx context.Context, req *StreamMessagesRequest) (io.ReadCloser, error) {
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+	if req.TurnIndex < 0 {
+		return nil, fmt.Errorf("turn index is required")
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"tasks",
+		url.PathEscape(req.TaskID),
+		"turns",
+		strconv.Itoa(req.TurnIndex),
+		"messages",
+	)
+	q := u.Query()
+	q.Set("to", req.AgentID)
+	u.RawQuery = q.Encode()
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "text/event-stream")
+	if req.LastEventID != nil {
+		httpReq.Header.Set("Last-Event-ID", *req.LastEventID)
+	}
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusNoContent {
+		resp.Body.Close()
+		return nil, nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		return nil, decodeError(resp)
+	}
+
+	return resp.Body, nil
+}
+
 // GetLastTurnLog retrieves the last log entry for a turn.
 func (c *Client) GetLastTurnLog(ctx context.Context, req *GetLastTurnLogRequest) (*LastTurnLog, error) {
 	if req == nil {

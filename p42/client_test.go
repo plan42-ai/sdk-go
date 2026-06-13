@@ -6527,6 +6527,143 @@ func TestStreamTurnLogsPathEscaping(t *testing.T) {
 	_ = body.Close()
 }
 
+func TestStreamMessages(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/abc/tasks/task/turns/0/messages", r.URL.Path)
+			require.Equal(t, "agent-1", r.URL.Query().Get("to"))
+			require.Equal(t, "text/event-stream", r.Header.Get("Accept"))
+			require.Empty(t, r.Header.Get("Last-Event-ID"))
+
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("event: UserMessage\ndata: {}\n\n"))
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	body, err := client.StreamMessages(
+		context.Background(), &p42.StreamMessagesRequest{
+			TenantID:  "abc",
+			TaskID:    "task",
+			TurnIndex: 0,
+			AgentID:   "agent-1",
+		},
+	)
+	require.NoError(t, err)
+	data, err := io.ReadAll(body)
+	require.NoError(t, err)
+	require.Equal(t, "event: UserMessage\ndata: {}\n\n", string(data))
+	_ = body.Close()
+}
+
+func TestStreamMessagesLastEventID(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "token-5", r.Header.Get("Last-Event-ID"))
+			w.WriteHeader(http.StatusOK)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	id := "token-5"
+	body, err := client.StreamMessages(
+		context.Background(), &p42.StreamMessagesRequest{
+			TenantID:    "abc",
+			TaskID:      "task",
+			TurnIndex:   0,
+			AgentID:     "agent-1",
+			LastEventID: &id,
+		},
+	)
+	require.NoError(t, err)
+	_ = body.Close()
+}
+
+func TestStreamMessagesNoContent(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	body, err := client.StreamMessages(
+		context.Background(), &p42.StreamMessagesRequest{
+			TenantID:  "abc",
+			TaskID:    "task",
+			TurnIndex: 0,
+			AgentID:   "agent-1",
+		},
+	)
+	require.NoError(t, err)
+	require.Nil(t, body)
+}
+
+func TestStreamMessagesError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.StreamMessages(
+		context.Background(), &p42.StreamMessagesRequest{
+			TenantID:  "abc",
+			TaskID:    "task",
+			TurnIndex: 0,
+			AgentID:   "agent-1",
+		},
+	)
+	require.Error(t, err)
+}
+
+func TestStreamMessagesPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 9, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3])
+			require.Equal(t, escapedTaskID, parts[5])
+			require.Equal(t, "0", parts[7])
+			require.Equal(t, messageIDThatNeedsEscaping, r.URL.Query().Get("to"))
+
+			w.WriteHeader(http.StatusOK)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	body, err := client.StreamMessages(
+		context.Background(), &p42.StreamMessagesRequest{
+			TenantID:  tenantIDThatNeedsEscaping,
+			TaskID:    taskIDThatNeedsEscaping,
+			TurnIndex: 0,
+			AgentID:   messageIDThatNeedsEscaping,
+		},
+	)
+	require.NoError(t, err)
+	_ = body.Close()
+}
+
 func TestCreateGithubConnection(t *testing.T) {
 	t.Parallel()
 
@@ -9000,6 +9137,26 @@ func TestFeatureFlagsHeader(t *testing.T) {
 						TenantID:     "t",
 						TaskID:       "task",
 						TurnIndex:    1,
+					},
+				)
+				if body != nil {
+					_ = body.Close()
+				}
+				return err
+			},
+		},
+		{
+			name:   "StreamMessages",
+			status: http.StatusNoContent,
+			resp:   nil,
+			call: func(c *p42.Client) error {
+				body, err := c.StreamMessages(
+					context.Background(), &p42.StreamMessagesRequest{
+						FeatureFlags: p42.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+						TenantID:     "t",
+						TaskID:       "task",
+						TurnIndex:    1,
+						AgentID:      "agent-1",
 					},
 				)
 				if body != nil {
