@@ -5355,15 +5355,6 @@ func TestSendMessageValidation(t *testing.T) {
 
 	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
 	require.EqualError(t, err, "message id is required")
-
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, MessageID: "msg", FromType: p42.FromTypeAgent, To: []string{"agent"}})
-	require.EqualError(t, err, "from is required")
-
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", To: []string{"agent"}})
-	require.EqualError(t, err, "from type is required")
-
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent})
-	require.EqualError(t, err, "to is required")
 }
 
 func TestGetTurn(t *testing.T) {

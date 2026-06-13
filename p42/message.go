@@ -157,15 +157,6 @@ func (c *Client) SendMessage(ctx context.Context, req *SendMessageRequest) (*Mes
 	if req.MessageID == "" {
 		return nil, fmt.Errorf("message id is required")
 	}
-	if req.From == "" {
-		return nil, fmt.Errorf("from is required")
-	}
-	if req.FromType == "" {
-		return nil, fmt.Errorf("from type is required")
-	}
-	if len(req.To) == 0 {
-		return nil, fmt.Errorf("to is required")
-	}
 
 	bodyBytes, err := json.Marshal(req)
 	if err != nil {
