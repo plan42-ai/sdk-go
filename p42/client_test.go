@@ -5240,7 +5240,7 @@ func TestSendMessage(t *testing.T) {
 			require.Equal(t, "hello", reqBody.Message)
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.SentMessage{
+			resp := p42.Message{
 				MessageID:   "msg-1",
 				FromAgentID: util.Pointer("sender"),
 				To:          []string{"agent-1", "agent-2"},
@@ -5311,7 +5311,7 @@ func TestSendMessagePathEscaping(t *testing.T) {
 			require.Equal(t, escapedMessageID, parts[9], "MessageID not properly escaped in URL path")
 
 			w.WriteHeader(http.StatusOK)
-			resp := p42.SentMessage{MessageID: messageIDThatNeedsEscaping, To: []string{"agent-1"}, Message: "hello", CreatedAt: time.Unix(1700000000, 0).UTC()}
+			resp := p42.Message{MessageID: messageIDThatNeedsEscaping, To: []string{"agent-1"}, Message: "hello", CreatedAt: time.Unix(1700000000, 0).UTC()}
 			_ = json.NewEncoder(w).Encode(resp)
 		},
 	)
@@ -9135,7 +9135,7 @@ func TestFeatureFlagsHeader(t *testing.T) {
 		{
 			name:   "SendMessage",
 			status: http.StatusOK,
-			resp:   p42.SentMessage{},
+			resp:   p42.Message{},
 			call: func(c *p42.Client) error {
 				_, err := c.SendMessage(
 					context.Background(), &p42.SendMessageRequest{

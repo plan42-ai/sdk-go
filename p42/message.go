@@ -90,8 +90,8 @@ const (
 	FromTypeTenant FromType = "Tenant"
 )
 
-// SentMessage represents a message sent between agents or from a tenant to the main agent.
-type SentMessage struct {
+// Message represents a message sent between agents or from a tenant to the main agent.
+type Message struct {
 	MessageID    string    `json:"MessageID"`
 	FromTenantID *string   `json:"FromTenantID,omitempty"`
 	FromAgentID  *string   `json:"FromAgentID,omitempty"`
@@ -141,7 +141,7 @@ func (r *SendMessageRequest) GetField(name string) (any, bool) {
 }
 
 // SendMessage sends a message to one or more agents participating in a turn.
-func (c *Client) SendMessage(ctx context.Context, req *SendMessageRequest) (*SentMessage, error) {
+func (c *Client) SendMessage(ctx context.Context, req *SendMessageRequest) (*Message, error) {
 	if req == nil {
 		return nil, fmt.Errorf("req is nil")
 	}
@@ -206,7 +206,7 @@ func (c *Client) SendMessage(ctx context.Context, req *SendMessageRequest) (*Sen
 		return nil, decodeError(resp)
 	}
 
-	var out SentMessage
+	var out Message
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
