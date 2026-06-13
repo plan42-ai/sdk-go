@@ -1,11 +1,13 @@
 package p42
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/plan42-ai/ecies"
@@ -78,6 +80,137 @@ func (m *RunnerMessage) UnmarshalJSON(bytes []byte) error {
 
 func (RunnerMessage) ObjectType() ObjectType {
 	return ObjectTypeRunnerMessage
+}
+
+// MessageFromType identifies the type of sender for turn messages.
+type MessageFromType string
+
+const (
+	MessageFromTypeAgent  MessageFromType = "Agent"
+	MessageFromTypeTenant MessageFromType = "Tenant"
+)
+
+// SentMessage represents a message sent between agents or from a tenant to the main agent.
+type SentMessage struct {
+	MessageID    string    `json:"MessageID"`
+	FromTenantID *string   `json:"FromTenantID,omitempty"`
+	FromAgentID  *string   `json:"FromAgentID,omitempty"`
+	To           []string  `json:"To"`
+	Message      string    `json:"Message"`
+	CreatedAt    time.Time `json:"CreatedAt"`
+}
+
+// SendMessageRequest contains the parameters for SendMessage.
+type SendMessageRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+
+	TenantID  string          `json:"-"`
+	TaskID    string          `json:"-"`
+	TurnIndex int             `json:"-"`
+	MessageID string          `json:"-"`
+	From      string          `json:"From"`
+	FromType  MessageFromType `json:"FromType"`
+	To        []string        `json:"To"`
+	Message   string          `json:"Message"`
+}
+
+// GetField retrieves the value of a field by name.
+// nolint: goconst
+func (r *SendMessageRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "TurnIndex":
+		return r.TurnIndex, true
+	case "MessageID":
+		return r.MessageID, true
+	case "From":
+		return r.From, true
+	case "FromType":
+		return r.FromType, true
+	case "To":
+		return r.To, true
+	case "Message":
+		return r.Message, true
+	default:
+		return nil, false
+	}
+}
+
+// SendMessage sends a message to one or more agents participating in a turn.
+func (c *Client) SendMessage(ctx context.Context, req *SendMessageRequest) (*SentMessage, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+	if req.TurnIndex < 0 {
+		return nil, fmt.Errorf("turn index is required")
+	}
+	if req.MessageID == "" {
+		return nil, fmt.Errorf("message id is required")
+	}
+	if req.From == "" {
+		return nil, fmt.Errorf("from is required")
+	}
+	if req.FromType == "" {
+		return nil, fmt.Errorf("from type is required")
+	}
+	if len(req.To) == 0 {
+		return nil, fmt.Errorf("to is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"tasks",
+		url.PathEscape(req.TaskID),
+		"turns",
+		strconv.Itoa(req.TurnIndex),
+		"messages",
+		url.PathEscape(req.MessageID),
+	)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out SentMessage
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // GetMessagesBatchRequest contains the parameters for GetMessagesBatch.
