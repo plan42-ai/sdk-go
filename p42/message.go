@@ -142,9 +142,6 @@ func (r *SendMessageRequest) GetField(name string) (any, bool) {
 
 // SendMessage sends a message to one or more agents participating in a turn.
 func (c *Client) SendMessage(ctx context.Context, req *SendMessageRequest) (*Message, error) {
-	if req == nil {
-		return nil, fmt.Errorf("req is nil")
-	}
 	if req.TenantID == "" {
 		return nil, fmt.Errorf("tenant id is required")
 	}

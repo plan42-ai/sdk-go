@@ -5341,10 +5341,7 @@ func TestSendMessageValidation(t *testing.T) {
 
 	client := p42.NewClient("https://example.com")
 
-	_, err := client.SendMessage(context.Background(), nil)
-	require.EqualError(t, err, "req is nil")
-
-	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
+	_, err := client.SendMessage(context.Background(), &p42.SendMessageRequest{TaskID: "task", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
 	require.EqualError(t, err, "tenant id is required")
 
 	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TurnIndex: 1, MessageID: "msg", From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
