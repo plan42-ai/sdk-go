@@ -5223,6 +5223,157 @@ func TestCreateTurnPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestCreateSubAgent(t *testing.T) {
+	t.Parallel()
+
+	autoExit := false
+	model := p42.ModelTypeGpt53Codex
+	reasoning := p42.ReasoningLevelHigh
+	prompt := "review this change"
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodPut, r.Method)
+			require.Equal(t, "/v1/tenants/abc/tasks/task1/turns/2/subagents/agent-1", r.URL.Path)
+
+			var reqBody p42.CreateSubAgentRequest
+			err := json.NewDecoder(r.Body).Decode(&reqBody)
+			require.NoError(t, err)
+			require.Equal(t, util.Pointer("ws"), reqBody.WorkstreamID)
+			require.Equal(t, p42.AgentTypeCustom, reqBody.AgentType)
+			require.Equal(t, &prompt, reqBody.Prompt)
+			require.Equal(t, &autoExit, reqBody.AutoExit)
+			require.Equal(t, "Reviewer", reqBody.Name)
+			require.Equal(t, &model, reqBody.Model)
+			require.Equal(t, &reasoning, reqBody.ReasoningLevel)
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.SubAgent{AgentID: "agent-1", AgentType: p42.AgentTypeCustom, Name: "Reviewer", Status: p42.AgentStatusRunning}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	agent, err := client.CreateSubAgent(
+		context.Background(),
+		&p42.CreateSubAgentRequest{
+			TenantID:       "abc",
+			TaskID:         "task1",
+			TurnIndex:      2,
+			AgentID:        "agent-1",
+			WorkstreamID:   util.Pointer("ws"),
+			AgentType:      p42.AgentTypeCustom,
+			Prompt:         &prompt,
+			AutoExit:       &autoExit,
+			Name:           "Reviewer",
+			Model:          &model,
+			ReasoningLevel: &reasoning,
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, "agent-1", agent.AgentID)
+	require.Equal(t, p42.AgentStatusRunning, agent.Status)
+}
+
+func TestCreateSubAgentError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.CreateSubAgent(
+		context.Background(),
+		&p42.CreateSubAgentRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, AgentID: "agent-1", AgentType: p42.AgentTypeCodeReview, Name: "Reviewer"},
+	)
+	var clientErr *p42.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func serveSubAgentConflict() (*httptest.Server, *p42.Client) {
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(
+				p42.ConflictError{
+					ResponseCode: http.StatusConflict,
+					Message:      "exists",
+					ErrorType:    "Conflict",
+					Current:      &p42.SubAgent{AgentID: "agent-1", Name: "Reviewer"},
+				},
+			)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	client := p42.NewClient(srv.URL)
+	return srv, client
+}
+
+func verifySubAgentConflict(t *testing.T, err error) {
+	var clientErr *p42.ConflictError
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusConflict, clientErr.ResponseCode)
+	require.Equal(t, "exists", clientErr.Message)
+	require.Equal(t, "Conflict", clientErr.ErrorType)
+	require.NotNil(t, clientErr.Current)
+	require.Equal(t, p42.ObjectTypeSubAgent, clientErr.Current.ObjectType())
+	agent, ok := clientErr.Current.(*p42.SubAgent)
+	require.True(t, ok, "Expected Current to be of type *p42.SubAgent")
+	require.Equal(t, p42.SubAgent{AgentID: "agent-1", Name: "Reviewer"}, *agent)
+}
+
+func TestCreateSubAgentConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveSubAgentConflict()
+	defer srv.Close()
+
+	_, err := client.CreateSubAgent(
+		context.Background(),
+		&p42.CreateSubAgentRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, AgentID: "agent-1", AgentType: p42.AgentTypeCodeReview, Name: "Reviewer"},
+	)
+	verifySubAgentConflict(t, err)
+}
+
+func TestCreateSubAgentPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 10, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+			require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+			require.Equal(t, "agent%2F1", parts[9], "AgentID not properly escaped in URL path")
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.SubAgent{AgentID: "agent/1"}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.CreateSubAgent(
+		context.Background(),
+		&p42.CreateSubAgentRequest{
+			TenantID:  tenantIDThatNeedsEscaping,
+			TaskID:    taskIDThatNeedsEscaping,
+			TurnIndex: 2,
+			AgentID:   "agent/1",
+			AgentType: p42.AgentTypeCustom,
+			Name:      "Reviewer",
+		},
+	)
+	require.NoError(t, err)
+}
+
 func TestSendMessage(t *testing.T) {
 	t.Parallel()
 
@@ -5353,7 +5504,6 @@ func TestSendMessageValidation(t *testing.T) {
 	_, err = client.SendMessage(context.Background(), &p42.SendMessageRequest{TenantID: "tenant", TaskID: "task", TurnIndex: 1, From: "from", FromType: p42.FromTypeAgent, To: []string{"agent"}})
 	require.EqualError(t, err, "message id is required")
 }
-
 func TestGetTurn(t *testing.T) {
 	t.Parallel()
 
@@ -9272,6 +9422,25 @@ func TestFeatureFlagsHeader(t *testing.T) {
 						TurnIndex:    2,
 						TaskVersion:  1,
 						Prompt:       "",
+					},
+				)
+				return err
+			},
+		},
+		{
+			name:   "CreateSubAgent",
+			status: http.StatusOK,
+			resp:   p42.SubAgent{},
+			call: func(c *p42.Client) error {
+				_, err := c.CreateSubAgent(
+					context.Background(), &p42.CreateSubAgentRequest{
+						FeatureFlags: p42.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+						TenantID:     "t",
+						TaskID:       "task",
+						TurnIndex:    2,
+						AgentID:      "agent",
+						AgentType:    p42.AgentTypeCustom,
+						Name:         "name",
 					},
 				)
 				return err
