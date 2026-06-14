@@ -495,6 +495,7 @@ const (
 	ObjectTypeWorkstreamTaskConflict ObjectType = "WorkstreamTaskConflict"
 	ObjectTypeProviderUsageEvent     ObjectType = "ProviderUsageEvent"
 	ObjectTypeRunnerMessage          ObjectType = "RunnerMessage"
+	ObjectTypeSubAgent               ObjectType = "SubAgent"
 )
 
 type ConflictObj interface {
@@ -580,6 +581,8 @@ func (e *ConflictError) UnmarshalJSON(b []byte) error {
 			current = &WorkstreamTaskConflict{}
 		case ObjectTypeProviderUsageEvent:
 			current = &ProviderUsageEvent{}
+		case ObjectTypeSubAgent:
+			current = &SubAgent{}
 		default:
 			return fmt.Errorf("unknown object type %s", tmp.CurrentType)
 		}
