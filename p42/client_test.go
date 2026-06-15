@@ -5374,6 +5374,115 @@ func TestCreateSubAgentPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestUpdateSubAgent(t *testing.T) {
+	t.Parallel()
+
+	status := p42.AgentStatusWaiting
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodPatch, r.Method)
+			require.Equal(t, "/v1/tenants/abc/tasks/task1/turns/2/subagents/agent-1", r.URL.Path)
+			require.Equal(t, "7", r.Header.Get("If-Match"))
+
+			var reqBody p42.UpdateSubAgentRequest
+			err := json.NewDecoder(r.Body).Decode(&reqBody)
+			require.NoError(t, err)
+			require.Equal(t, &status, reqBody.Status)
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.SubAgent{AgentID: "agent-1", AgentType: p42.AgentTypeCustom, Name: "Reviewer", Status: p42.AgentStatusWaiting, Version: 8}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	agent, err := client.UpdateSubAgent(
+		context.Background(),
+		&p42.UpdateSubAgentRequest{
+			TenantID:  "abc",
+			TaskID:    "task1",
+			TurnIndex: 2,
+			AgentID:   "agent-1",
+			Version:   7,
+			Status:    &status,
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, "agent-1", agent.AgentID)
+	require.Equal(t, p42.AgentStatusWaiting, agent.Status)
+	require.Equal(t, 8, agent.Version)
+}
+
+func TestUpdateSubAgentError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	status := p42.AgentStatusTerminated
+	_, err := client.UpdateSubAgent(
+		context.Background(),
+		&p42.UpdateSubAgentRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, AgentID: "agent-1", Version: 3, Status: &status},
+	)
+	var clientErr *p42.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestUpdateSubAgentConflictError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveSubAgentConflict()
+	defer srv.Close()
+
+	status := p42.AgentStatusTerminated
+	_, err := client.UpdateSubAgent(
+		context.Background(),
+		&p42.UpdateSubAgentRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, AgentID: "agent-1", Version: 3, Status: &status},
+	)
+	verifySubAgentConflict(t, err)
+}
+
+func TestUpdateSubAgentPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	status := p42.AgentStatusWaiting
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 10, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+			require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+			require.Equal(t, "agent%2F1", parts[9], "AgentID not properly escaped in URL path")
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.SubAgent{AgentID: "agent/1", Status: p42.AgentStatusWaiting}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.UpdateSubAgent(
+		context.Background(),
+		&p42.UpdateSubAgentRequest{
+			TenantID:  tenantIDThatNeedsEscaping,
+			TaskID:    taskIDThatNeedsEscaping,
+			TurnIndex: 2,
+			AgentID:   "agent/1",
+			Version:   7,
+			Status:    &status,
+		},
+	)
+	require.NoError(t, err)
+}
+
 func TestListSubAgents(t *testing.T) {
 	t.Parallel()
 
