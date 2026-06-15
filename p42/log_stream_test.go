@@ -52,7 +52,7 @@ func TestLogStream(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	ls := p42.NewLogStream(client, "ten", "task", 0, 10)
+	ls := p42.NewLogStream(client, "ten", "task", 0, 10, nil)
 	defer ls.Close()
 
 	var logs []p42.TurnLog
@@ -87,7 +87,7 @@ func TestLogStreamCloseDuringRead(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	ls := p42.NewLogStream(client, "ten", "task", 0, 1)
+	ls := p42.NewLogStream(client, "ten", "task", 0, 1, nil)
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -124,7 +124,7 @@ func TestLogStreamWithLastID_UsesHeader(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	ls := p42.NewLogStream(client, "ten", "task", 0, 1, p42.WithLastID(42))
+	ls := p42.NewLogStream(client, "ten", "task", 0, 1, &p42.LogStreamConfig{LastID: 42})
 
 	var logs []p42.TurnLog
 	var wg sync.WaitGroup
@@ -171,7 +171,7 @@ func TestLogStreamWithLastID_UpdatesLastID(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	ls := p42.NewLogStream(client, "ten", "task", 0, 1, p42.WithLastID(99))
+	ls := p42.NewLogStream(client, "ten", "task", 0, 1, &p42.LogStreamConfig{LastID: 99})
 
 	var logs []p42.TurnLog
 	var wg sync.WaitGroup
@@ -213,7 +213,7 @@ func TestLogStreamWorkstreamID(t *testing.T) {
 
 	client := p42.NewClient(srv.URL)
 	wsID := "ws-123"
-	ls := p42.NewLogStream(client, "ten", "task", 0, 1, p42.WithWorkstreamID(&wsID))
+	ls := p42.NewLogStream(client, "ten", "task", 0, 1, &p42.LogStreamConfig{WorkstreamID: &wsID})
 	defer ls.Close()
 
 	if err := ls.ShutdownTimeout(time.Second); err != nil {
@@ -241,7 +241,7 @@ func TestLogStreamAgentID(t *testing.T) {
 
 	client := p42.NewClient(srv.URL)
 	agentID := "agent-123"
-	ls := p42.NewLogStream(client, "ten", "task", 0, 1, p42.WithAgentID(&agentID))
+	ls := p42.NewLogStream(client, "ten", "task", 0, 1, &p42.LogStreamConfig{AgentID: &agentID})
 	defer ls.Close()
 
 	if err := ls.ShutdownTimeout(time.Second); err != nil {
@@ -268,7 +268,7 @@ func TestLogStreamReadBatchBounded(t *testing.T) {
 	)
 	defer srv.Close()
 
-	ls := p42.NewLogStream(p42.NewClient(srv.URL), "ten", "task", 0, 10)
+	ls := p42.NewLogStream(p42.NewClient(srv.URL), "ten", "task", 0, 10, nil)
 	defer ls.Close()
 
 	batch, err := ls.ReadBatch(context.Background(), 2, time.Second, "0")
@@ -296,7 +296,7 @@ func TestLogStreamReadBatchTimeout(t *testing.T) {
 	)
 	defer srv.Close()
 
-	ls := p42.NewLogStream(p42.NewClient(srv.URL), "ten", "task", 0, 1)
+	ls := p42.NewLogStream(p42.NewClient(srv.URL), "ten", "task", 0, 1, nil)
 	defer ls.Close()
 
 	batch, err := ls.ReadBatch(context.Background(), 1, 50*time.Millisecond, "0")
@@ -334,7 +334,7 @@ func TestLogStreamReadBatchResumeUsesLastEventID(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	first := p42.NewLogStream(client, "ten", "task", 0, 10)
+	first := p42.NewLogStream(client, "ten", "task", 0, 10, nil)
 	firstBatch, err := first.ReadBatch(context.Background(), 2, time.Second, "0")
 	require.NoError(t, err)
 	require.Len(t, firstBatch.Events, 2)
@@ -343,7 +343,7 @@ func TestLogStreamReadBatchResumeUsesLastEventID(t *testing.T) {
 
 	lastID, err := strconv.Atoi(firstBatch.LastEventID)
 	require.NoError(t, err)
-	second := p42.NewLogStream(client, "ten", "task", 0, 10, p42.WithLastID(lastID))
+	second := p42.NewLogStream(client, "ten", "task", 0, 10, &p42.LogStreamConfig{LastID: lastID})
 	defer second.Close()
 	close(allowSecondResponse)
 	secondBatch, err := second.ReadBatch(context.Background(), 1, 50*time.Millisecond, "2")
@@ -377,7 +377,7 @@ func TestLogStreamReadBatchReachedEnd(t *testing.T) {
 	)
 	defer srv.Close()
 
-	ls := p42.NewLogStream(p42.NewClient(srv.URL), "ten", "task", 0, 10)
+	ls := p42.NewLogStream(p42.NewClient(srv.URL), "ten", "task", 0, 10, nil)
 	defer ls.Close()
 
 	firstBatch, err := ls.ReadBatch(context.Background(), 1, time.Second, "0")

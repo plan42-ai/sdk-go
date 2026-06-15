@@ -15,51 +15,14 @@ type LogStream struct {
 	*SSEStream[TurnLog]
 }
 
-type LogStreamOption func(*logStreamConfig)
-
-type logStreamConfig struct {
-	includeDeleted bool
-	workstreamID   *string
-	agentID        *string
-	featureFlags   map[string]bool
-	delegatedAuth  DelegatedAuthInfo
-	lastID         int
-}
-
-func WithIncludeDeleted(value bool) LogStreamOption {
-	return func(cfg *logStreamConfig) {
-		cfg.includeDeleted = value
-	}
-}
-
-func WithWorkstreamID(workstreamID *string) LogStreamOption {
-	return func(cfg *logStreamConfig) {
-		cfg.workstreamID = workstreamID
-	}
-}
-
-func WithAgentID(agentID *string) LogStreamOption {
-	return func(cfg *logStreamConfig) {
-		cfg.agentID = agentID
-	}
-}
-
-func WithFeatureFlags(flags map[string]bool) LogStreamOption {
-	return func(cfg *logStreamConfig) {
-		cfg.featureFlags = flags
-	}
-}
-
-func WithLastID(lastID int) LogStreamOption {
-	return func(cfg *logStreamConfig) {
-		cfg.lastID = lastID
-	}
-}
-
-func WithDelegatedAuth(delegatedAuth DelegatedAuthInfo) LogStreamOption {
-	return func(cfg *logStreamConfig) {
-		cfg.delegatedAuth = delegatedAuth
-	}
+// LogStreamConfig configures a LogStream.
+type LogStreamConfig struct {
+	IncludeDeleted bool
+	WorkstreamID   *string
+	AgentID        *string
+	FeatureFlags   map[string]bool
+	DelegatedAuth  DelegatedAuthInfo
+	LastID         int
 }
 
 // NewLogStream creates and starts a LogStream.
@@ -68,27 +31,27 @@ func NewLogStream(
 	tenantID, taskID string,
 	turnIndex int,
 	buffer int,
-	options ...LogStreamOption,
+	config *LogStreamConfig,
 ) *LogStream {
-	cfg := logStreamConfig{}
-	for _, opt := range options {
-		opt(&cfg)
+	cfg := &LogStreamConfig{}
+	if config != nil {
+		cfg = config
 	}
 
 	stream := NewSSEStream[TurnLog](
 		buffer,
-		strconv.Itoa(cfg.lastID),
+		strconv.Itoa(cfg.LastID),
 		"LogStream",
 		func(ctx context.Context, lastEventID string) (io.ReadCloser, error) {
 			req := &StreamTurnLogsRequest{
-				FeatureFlags:      FeatureFlags{FeatureFlags: cfg.featureFlags},
-				DelegatedAuthInfo: cfg.delegatedAuth,
+				FeatureFlags:      FeatureFlags{FeatureFlags: cfg.FeatureFlags},
+				DelegatedAuthInfo: cfg.DelegatedAuth,
 				TenantID:          tenantID,
 				TaskID:            taskID,
 				TurnIndex:         turnIndex,
-				IncludeDeleted:    util.Pointer(cfg.includeDeleted),
-				WorkstreamID:      cfg.workstreamID,
-				AgentID:           cfg.agentID,
+				IncludeDeleted:    util.Pointer(cfg.IncludeDeleted),
+				WorkstreamID:      cfg.WorkstreamID,
+				AgentID:           cfg.AgentID,
 			}
 			if lastEventID != "" && lastEventID != "0" {
 				parsedLastID, err := strconv.Atoi(lastEventID)
