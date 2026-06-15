@@ -5374,6 +5374,105 @@ func TestCreateSubAgentPathEscaping(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestListSubAgents(t *testing.T) {
+	t.Parallel()
+
+	maxResults := 25
+	token := "next-page"
+	prompt := "review this change"
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, http.MethodGet, r.Method)
+			require.Equal(t, "/v1/tenants/abc/tasks/task1/turns/2/subagents", r.URL.Path)
+			require.Equal(t, "25", r.URL.Query().Get("maxResults"))
+			require.Equal(t, token, r.URL.Query().Get("token"))
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.List[*p42.SubAgent]{
+				Items: []*p42.SubAgent{{
+					AgentID:   "agent-1",
+					AgentType: p42.AgentTypeCustom,
+					Prompt:    &prompt,
+					Name:      "Reviewer",
+					Status:    p42.AgentStatusRunning,
+				}},
+				NextToken: util.Pointer("more"),
+			}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	resp, err := client.ListSubAgents(
+		context.Background(),
+		&p42.ListSubAgentsRequest{
+			TenantID:   "abc",
+			TaskID:     "task1",
+			TurnIndex:  2,
+			MaxResults: &maxResults,
+			Token:      &token,
+		},
+	)
+	require.NoError(t, err)
+	require.Len(t, resp.Items, 1)
+	require.Equal(t, "agent-1", resp.Items[0].AgentID)
+	require.Equal(t, p42.AgentStatusRunning, resp.Items[0].Status)
+	require.NotNil(t, resp.NextToken)
+	require.Equal(t, "more", *resp.NextToken)
+}
+
+func TestListSubAgentsError(t *testing.T) {
+	t.Parallel()
+	srv, client := serveBadRequest()
+	defer srv.Close()
+
+	_, err := client.ListSubAgents(
+		context.Background(),
+		&p42.ListSubAgentsRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2},
+	)
+	var clientErr *p42.Error
+	require.ErrorAs(t, err, &clientErr)
+	require.Equal(t, http.StatusBadRequest, clientErr.ResponseCode)
+	require.Equal(t, "bad", clientErr.Message)
+	require.Equal(t, "BadRequest", clientErr.ErrorType)
+}
+
+func TestListSubAgentsPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			escapedPath := r.URL.EscapedPath()
+			parts := strings.Split(escapedPath, "/")
+			require.Equal(t, 9, len(parts), "path doesn't have correct # of parts: %s", escapedPath)
+			require.Equal(t, escapedTenantID, parts[3], "TenantID not properly escaped in URL path")
+			require.Equal(t, escapedTaskID, parts[5], "TaskID not properly escaped in URL path")
+			require.Equal(t, "subagents", parts[8])
+
+			w.WriteHeader(http.StatusOK)
+			resp := p42.List[*p42.SubAgent]{Items: []*p42.SubAgent{{AgentID: "agent/1"}}}
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	)
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	client := p42.NewClient(srv.URL)
+	_, err := client.ListSubAgents(
+		context.Background(),
+		&p42.ListSubAgentsRequest{
+			TenantID:  tenantIDThatNeedsEscaping,
+			TaskID:    taskIDThatNeedsEscaping,
+			TurnIndex: 2,
+		},
+	)
+	require.NoError(t, err)
+}
+
 func TestSendMessage(t *testing.T) {
 	t.Parallel()
 
@@ -9441,6 +9540,22 @@ func TestFeatureFlagsHeader(t *testing.T) {
 						AgentID:      "agent",
 						AgentType:    p42.AgentTypeCustom,
 						Name:         "name",
+					},
+				)
+				return err
+			},
+		},
+		{
+			name:   "ListSubAgents",
+			status: http.StatusOK,
+			resp:   p42.List[*p42.SubAgent]{},
+			call: func(c *p42.Client) error {
+				_, err := c.ListSubAgents(
+					context.Background(), &p42.ListSubAgentsRequest{
+						FeatureFlags: p42.FeatureFlags{FeatureFlags: map[string]bool{"ff": true}},
+						TenantID:     "t",
+						TaskID:       "task",
+						TurnIndex:    2,
 					},
 				)
 				return err
