@@ -47,6 +47,80 @@ type SubAgent struct {
 // ObjectType returns the object type for ConflictError handling.
 func (SubAgent) ObjectType() ObjectType { return ObjectTypeSubAgent }
 
+// GetSubAgentRequest is the request payload for GetSubAgent.
+type GetSubAgentRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID  string `json:"-"`
+	TaskID    string `json:"-"`
+	TurnIndex int    `json:"-"`
+	AgentID   string `json:"-"`
+}
+
+// nolint: goconst
+func (r *GetSubAgentRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "TurnIndex":
+		return r.TurnIndex, true
+	case "AgentID":
+		return r.AgentID, true
+	default:
+		return nil, false
+	}
+}
+
+// UpdateSubAgentRequest is the request payload for UpdateSubAgent.
+type UpdateSubAgentRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID string      `json:"-"`
+	TaskID   string      `json:"-"`
+	TurnIndex int        `json:"-"`
+	AgentID  string      `json:"-"`
+	Version  int         `json:"-"`
+	Status   *AgentStatus `json:"Status,omitempty"`
+}
+
+// GetVersion returns the optimistic concurrency control version for the request.
+func (r *UpdateSubAgentRequest) GetVersion() int {
+	if r == nil {
+		return 0
+	}
+	return r.Version
+}
+
+// IsEmptyUpdate reports whether the request contains any mutations.
+func (r *UpdateSubAgentRequest) IsEmptyUpdate() bool {
+	if r == nil {
+		return true
+	}
+	return r.Status == nil
+}
+
+// nolint: goconst
+func (r *UpdateSubAgentRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "TurnIndex":
+		return r.TurnIndex, true
+	case "AgentID":
+		return r.AgentID, true
+	case "Version":
+		return r.Version, true
+	case "Status":
+		return EvalNullable(r.Status)
+	default:
+		return nil, false
+	}
+}
+
 // ListSubAgentsRequest is the request payload for ListSubAgents.
 type ListSubAgentsRequest struct {
 	FeatureFlags
@@ -93,6 +167,18 @@ type CreateSubAgentRequest struct {
 	ReasoningLevel *ReasoningLevel `json:"ReasoningLevel,omitempty"`
 }
 
+// UpdateSubAgentRequest is the request payload for UpdateSubAgent.
+type UpdateSubAgentRequest struct {
+	FeatureFlags
+	DelegatedAuthInfo
+	TenantID  string       `json:"-"`
+	TaskID    string       `json:"-"`
+	TurnIndex int          `json:"-"`
+	AgentID   string       `json:"-"`
+	Version   int          `json:"-"`
+	Status    *AgentStatus `json:"Status,omitempty"`
+}
+
 // nolint: goconst
 func (r *CreateSubAgentRequest) GetField(name string) (any, bool) {
 	switch name {
@@ -118,6 +204,26 @@ func (r *CreateSubAgentRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.Model)
 	case "ReasoningLevel":
 		return EvalNullable(r.ReasoningLevel)
+	default:
+		return nil, false
+	}
+}
+
+// nolint: goconst
+func (r *UpdateSubAgentRequest) GetField(name string) (any, bool) {
+	switch name {
+	case "TenantID":
+		return r.TenantID, true
+	case "TaskID":
+		return r.TaskID, true
+	case "TurnIndex":
+		return r.TurnIndex, true
+	case "AgentID":
+		return r.AgentID, true
+	case "Version":
+		return r.Version, true
+	case "Status":
+		return EvalNullable(r.Status)
 	default:
 		return nil, false
 	}
@@ -160,6 +266,67 @@ func (c *Client) CreateSubAgent(ctx context.Context, req *CreateSubAgentRequest)
 	}
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("Content-Type", "application/json")
+	processFeatureFlags(httpReq, req.FeatureFlags)
+
+	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient().Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, decodeError(resp)
+	}
+
+	var out SubAgent
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateSubAgent updates a previously created sub-agent.
+func (c *Client) UpdateSubAgent(ctx context.Context, req *UpdateSubAgentRequest) (*SubAgent, error) {
+	if req == nil {
+		return nil, fmt.Errorf("req is nil")
+	}
+	if req.TenantID == "" {
+		return nil, fmt.Errorf("tenant id is required")
+	}
+	if req.TaskID == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+	if req.AgentID == "" {
+		return nil, fmt.Errorf("agent id is required")
+	}
+
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u := c.BaseURL.JoinPath(
+		"v1",
+		"tenants",
+		url.PathEscape(req.TenantID),
+		"tasks",
+		url.PathEscape(req.TaskID),
+		"turns",
+		strconv.Itoa(req.TurnIndex),
+		"subagents",
+		url.PathEscape(req.AgentID),
+	)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, u.String(), bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("If-Match", strconv.Itoa(req.Version))
 	processFeatureFlags(httpReq, req.FeatureFlags)
 
 	if err := c.authenticate(req.DelegatedAuthInfo, httpReq); err != nil {

@@ -197,6 +197,7 @@ const (
 	ActionGetProviderUsageSummary      Action = "GetProviderUsageSummary"
 	ActionCreateSubAgent               Action = "CreateSubAgent"
 	ActionListSubAgents                Action = "ListSubAgents"
+	ActionUpdateSubAgent               Action = "UpdateSubAgent"
 )
 
 // TokenType defines the type of token a principal used to authenticate.
@@ -545,6 +546,7 @@ func init() {
 			ActionGetProviderUsageSummary,      // (0x0000_0040_0000_0000, 0)
 			ActionCreateSubAgent,               // (0x0000_0080_0000_0000, 0)
 			ActionListSubAgents,                // (0x0000_0100_0000_0000, 0)
+			ActionUpdateSubAgent,               // (0x0000_0200_0000_0000, 0)
 
 		},
 		ActionBitVector{
