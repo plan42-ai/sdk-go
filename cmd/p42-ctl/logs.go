@@ -32,16 +32,19 @@ func (o *StreamLogsOptions) Run(_ context.Context, s *SharedOptions) error {
 	if err != nil {
 		return err
 	}
+	config := &p42.LogStreamConfig{
+		IncludeDeleted: o.IncludeDeleted,
+		WorkstreamID:   o.WorkstreamID,
+		AgentID:        o.AgentID,
+		FeatureFlags:   flags.FeatureFlags,
+	}
 	ls := p42.NewLogStream(
 		s.Client,
 		o.TenantID,
 		o.TaskID,
 		o.TurnIndex,
 		1000,
-		p42.WithIncludeDeleted(o.IncludeDeleted),
-		p42.WithFeatureFlags(flags.FeatureFlags),
-		p42.WithWorkstreamID(o.WorkstreamID),
-		p42.WithAgentID(o.AgentID),
+		config,
 	)
 	defer ls.Close()
 
