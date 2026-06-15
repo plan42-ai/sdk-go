@@ -245,6 +245,64 @@ Content-Type: application/json; charset=utf-8
 
 See [Error Handling](#2-error-handling) for details on error responses.
 
+# 115. UpdateSubAgent
+
+The UpdateSubAgent API updates a previously created agent entry for a turn. It is most commonly used by
+sub-agents (or their parent orchestrator) to transition an agent between [AgentStatus](#1115-agentstatus)
+values such as `Running`, `Waiting`, and `Terminated` while a turn is still active.
+
+## 115.1 Request
+
+```http request
+PATCH /v1/tenants/{tenant_id}/tasks/{task_id}/turns/{turn_index}/subagents/{agent_id} HTTP/1.1
+Accept: application/json
+Content-Type: application/json; charset=utf-8
+Authorization: <authorization>
+X-Event-Horizon-Delegating-Authorization: <authorization>
+X-Event-Horizon-Signed-Headers: <signed headers>
+If-Match: <version>
+
+{
+  "Status": "*AgentStatus"
+}
+```
+
+| Parameter                                | Location | Type                              | Description                                                                                                                                                       |
+|------------------------------------------|----------|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| tenant_id                                | path     | string                            | The tenant ID that owns the turn the sub-agent belongs to.                                                                                                        |
+| task_id                                  | path     | string                            | The task ID that owns the turn the sub-agent belongs to.                                                                                                          |
+| turn_index                               | path     | int                               | The turn index the sub-agent is associated with.                                                                                                                  |
+| agent_id                                 | path     | string                            | The unique ID of the sub-agent to update. Must be a v4 UUID or the reserved ID `00000000-0000-0000-0000-000000000000` for the main agent.                          |
+| Authorization                            | header   | string                            | The authorization header for the request.                                                                                                                         |
+| X-Event-Horizon-Delegating-Authorization | header   | *string                           | The authorization header for the delegating principal.                                                                                                            |
+| X-Event-Horizon-Signed-Headers           | header   | *string                           | The signed headers for the request when authenticating with Sigv4.                                                                                                |
+| version                                  | header   | string                            | The expected version of the sub-agent document. Used for optimistic concurrency. A mismatch returns `409 Conflict` along with the latest sub-agent representation. |
+| Status                                   | body     | *[AgentStatus](#1115-agentstatus) | Optional. When provided, updates the status of the referenced agent.                                                                                              |
+
+## 115.2 Response
+
+```http response
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+
+{
+  "AgentID": "string",
+  "AgentType": "AgentType",
+  "Prompt": "*string",
+  "AutoExit": bool,
+  "Name": "string",
+  "Model": "ModelType",
+  "ReasoningLevel": "ReasoningLevel",
+  "Status": "AgentStatus",
+  "Version": int,
+  "CreatedAt": "string",
+  "UpdatedAt": "string"
+}
+```
+
+The response body matches the shape described in [CreateSubAgent response](#1113-response), reflecting the updated
+sub-agent after the patch is applied. See [Error Handling](#2-error-handling) for details on error responses.
+
 ## 3.3 TenantType
 
 TenantType is an enum that defines the valid type of tenants.
