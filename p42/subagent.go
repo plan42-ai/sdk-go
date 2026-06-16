@@ -24,6 +24,7 @@ const (
 type AgentStatus string
 
 const (
+	AgentStatusCreated    AgentStatus = "Created"
 	AgentStatusRunning    AgentStatus = "Running"
 	AgentStatusWaiting    AgentStatus = "Waiting"
 	AgentStatusTerminated AgentStatus = "Terminated"
@@ -153,6 +154,14 @@ func (r *UpdateSubAgentRequest) GetField(name string) (any, bool) {
 	default:
 		return nil, false
 	}
+}
+
+// GetVersion returns the optimistic concurrency control version for the request.
+func (r *UpdateSubAgentRequest) GetVersion() int {
+	if r == nil {
+		return 0
+	}
+	return r.Version
 }
 
 // CreateSubAgent launches a sub-agent for a turn.
