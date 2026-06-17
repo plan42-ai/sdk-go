@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,7 +18,6 @@ import (
 type ModelType string
 
 const (
-	ModelTypeCodexMini     ModelType = "Codex Mini"
 	ModelTypeGpt51Codex    ModelType = "GPT-5.1 Codex"
 	ModelTypeGpt51CodexMax ModelType = "GPT-5.1 Codex Max"
 	ModelTypeGpt52Codex    ModelType = "GPT-5.2 Codex"
@@ -49,7 +49,27 @@ const (
 	ReasoningLevelLow    ReasoningLevel = "Low"
 	ReasoningLevelMedium ReasoningLevel = "Medium"
 	ReasoningLevelHigh   ReasoningLevel = "High"
+	ReasoningLevelMax    ReasoningLevel = "Max"
 )
+
+// NormalizeReasoningLevel validates a reasoning level case-insensitively and
+// returns the canonical enum value. Historically the database holds values in
+// mixed casing, so callers should normalize before persisting or mapping. An
+// error is returned for values that are not one of the supported levels.
+func NormalizeReasoningLevel(level ReasoningLevel) (ReasoningLevel, error) {
+	switch strings.ToUpper(string(level)) {
+	case strings.ToUpper(string(ReasoningLevelLow)):
+		return ReasoningLevelLow, nil
+	case strings.ToUpper(string(ReasoningLevelMedium)):
+		return ReasoningLevelMedium, nil
+	case strings.ToUpper(string(ReasoningLevelHigh)):
+		return ReasoningLevelHigh, nil
+	case strings.ToUpper(string(ReasoningLevelMax)):
+		return ReasoningLevelMax, nil
+	default:
+		return "", fmt.Errorf("invalid reasoning level: %q", level)
+	}
+}
 
 // RepoInfo contains information about a repository used in a task's environment.
 type RepoInfo struct {
@@ -1041,16 +1061,15 @@ func (c *Client) UpdateWorkstreamTask(ctx context.Context, req *UpdateWorkstream
 type UpdateTaskRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID       string                `json:"-"`
-	TaskID         string                `json:"-"`
-	Version        int                   `json:"-"`
-	Title          *string               `json:"Title,omitempty"`
-	Prompt         *string               `json:"Prompt,omitempty"`
-	Model          *ModelType            `json:"Model,omitempty"`
-	ReasoningLevel *ReasoningLevel       `json:"ReasoningLevel,omitempty"`
-	RepoInfo       *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
-	Deleted        *bool                 `json:"Deleted,omitempty"`
-	NewFileIDs     *[]string             `json:"NewFileIDs,omitempty"`
+	TenantID   string                `json:"-"`
+	TaskID     string                `json:"-"`
+	Version    int                   `json:"-"`
+	Title      *string               `json:"Title,omitempty"`
+	Prompt     *string               `json:"Prompt,omitempty"`
+	Model      *ModelType            `json:"Model,omitempty"`
+	RepoInfo   *map[string]*RepoInfo `json:"RepoInfo,omitempty"`
+	Deleted    *bool                 `json:"Deleted,omitempty"`
+	NewFileIDs *[]string             `json:"NewFileIDs,omitempty"`
 }
 
 func (r *UpdateTaskRequest) GetVersion() int {
@@ -1058,7 +1077,7 @@ func (r *UpdateTaskRequest) GetVersion() int {
 }
 
 func (r *UpdateTaskRequest) IsEmptyUpdate() bool {
-	return r.Title == nil && r.Prompt == nil && r.Model == nil && r.ReasoningLevel == nil && r.RepoInfo == nil && r.Deleted == nil && r.NewFileIDs == nil
+	return r.Title == nil && r.Prompt == nil && r.Model == nil && r.RepoInfo == nil && r.Deleted == nil && r.NewFileIDs == nil
 }
 
 // GetField retrieves the value of a field by name.
@@ -1077,8 +1096,6 @@ func (r *UpdateTaskRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.Prompt)
 	case "Model":
 		return EvalNullable(r.Model)
-	case "ReasoningLevel":
-		return EvalNullable(r.ReasoningLevel)
 	case "RepoInfo":
 		return EvalNullable(r.RepoInfo)
 	case "Deleted":

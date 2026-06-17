@@ -154,7 +154,6 @@ var helpMap = map[string]string{
 
 --- ModelType Enum Values ---
 
-* Codex Mini
 * GPT-5.1 Codex
 * GPT-5.1 Codex Max
 * GPT-5.2 Codex
@@ -237,7 +236,6 @@ var helpMap = map[string]string{
 
 --- ModelType Enum Values ---
 
-* Codex Mini
 * GPT-5.1 Codex
 * GPT-5.1 Codex Max
 * GPT-5.2 Codex
