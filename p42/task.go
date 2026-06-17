@@ -71,6 +71,30 @@ func NormalizeReasoningLevel(level ReasoningLevel) (ReasoningLevel, error) {
 	}
 }
 
+// SupportedReasoningLevels returns the reasoning levels the model supports, in
+// ascending order. "Max" is the modern top tier, so the models that cap at "High"
+// are a denylist here — every other model (including future ones) supports the
+// full range without changes.
+func (m ModelType) SupportedReasoningLevels() []ReasoningLevel {
+	switch m {
+	case ModelTypeClaude45Opus, ModelTypeGpt51Codex:
+		return []ReasoningLevel{ReasoningLevelLow, ReasoningLevelMedium, ReasoningLevelHigh}
+	default:
+		return []ReasoningLevel{ReasoningLevelLow, ReasoningLevelMedium, ReasoningLevelHigh, ReasoningLevelMax}
+	}
+}
+
+// SupportsReasoningLevel reports whether the model supports the given reasoning
+// level.
+func (m ModelType) SupportsReasoningLevel(level ReasoningLevel) bool {
+	for _, l := range m.SupportedReasoningLevels() {
+		if l == level {
+			return true
+		}
+	}
+	return false
+}
+
 // RepoInfo contains information about a repository used in a task's environment.
 type RepoInfo struct {
 	PRLink            *string    `json:"PRLink,omitempty"`

@@ -1,6 +1,43 @@
 package p42
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
+
+func TestSupportedReasoningLevels(t *testing.T) {
+	t.Parallel()
+
+	full := []ReasoningLevel{ReasoningLevelLow, ReasoningLevelMedium, ReasoningLevelHigh, ReasoningLevelMax}
+	noMax := []ReasoningLevel{ReasoningLevelLow, ReasoningLevelMedium, ReasoningLevelHigh}
+
+	cases := []struct {
+		model ModelType
+		want  []ReasoningLevel
+	}{
+		{ModelTypeClaude45Opus, noMax},
+		{ModelTypeGpt51Codex, noMax},
+		{ModelTypeClaude46Opus, full},
+		{ModelTypeClaude48Opus, full},
+		{ModelTypeGpt51CodexMax, full},
+		{ModelTypeChatGpt55, full},
+		// Unknown/future models default to the full range (no per-model change needed).
+		{ModelType("Some Future Model"), full},
+	}
+
+	for _, tc := range cases {
+		if got := tc.model.SupportedReasoningLevels(); !slices.Equal(got, tc.want) {
+			t.Errorf("%q: SupportedReasoningLevels() = %v, want %v", tc.model, got, tc.want)
+		}
+	}
+
+	if ModelTypeClaude45Opus.SupportsReasoningLevel(ReasoningLevelMax) {
+		t.Error("Claude 4.5 Opus should not support Max")
+	}
+	if !ModelTypeClaude46Opus.SupportsReasoningLevel(ReasoningLevelMax) {
+		t.Error("Claude 4.6 Opus should support Max")
+	}
+}
 
 func TestNormalizeReasoningLevel(t *testing.T) {
 	t.Parallel()
