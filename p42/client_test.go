@@ -4042,7 +4042,7 @@ func TestCreateTask(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	model := p42.ModelTypeCodexMini
+	model := p42.ModelTypeGpt54OneM
 	task, err := client.CreateTask(
 		context.Background(), &p42.CreateTaskRequest{
 			TenantID:      "abc",
@@ -4081,7 +4081,7 @@ func TestCreateWorkstreamTask(t *testing.T) {
 			require.NotNil(t, reqBody.Parallel)
 			require.True(t, *reqBody.Parallel)
 			require.NotNil(t, reqBody.Model)
-			require.Equal(t, p42.ModelTypeCodexMini, *reqBody.Model)
+			require.Equal(t, p42.ModelTypeGpt54OneM, *reqBody.Model)
 			require.Nil(t, reqBody.AssignedToTenantID)
 			require.True(t, reqBody.AssignedToAI)
 			require.NotNil(t, reqBody.State)
@@ -4103,7 +4103,7 @@ func TestCreateWorkstreamTask(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	model := p42.ModelTypeCodexMini
+	model := p42.ModelTypeGpt54OneM
 	parallel := true
 	state := p42.TaskStatePending
 	task, err := client.CreateWorkstreamTask(
@@ -4231,7 +4231,7 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 			require.NotNil(t, reqBody.Parallel)
 			require.True(t, *reqBody.Parallel)
 			require.NotNil(t, reqBody.Model)
-			require.Equal(t, p42.ModelTypeCodexMini, *reqBody.Model)
+			require.Equal(t, p42.ModelTypeGpt54OneM, *reqBody.Model)
 			require.NotNil(t, reqBody.AssignedToTenantID)
 			require.NotNil(t, *reqBody.AssignedToTenantID)
 			require.Equal(t, "tenant-b", *reqBody.AssignedToTenantID)
@@ -4268,7 +4268,7 @@ func TestUpdateWorkstreamTask(t *testing.T) {
 	title := util.Pointer(taskTitle)
 	prompt := util.Pointer("prompt")
 	parallel := true
-	model := p42.ModelTypeCodexMini
+	model := p42.ModelTypeGpt54OneM
 	assignedToAI := false
 	repoInfo := map[string]*p42.RepoInfo{
 		"repo": {
@@ -4484,7 +4484,7 @@ func TestCreateTaskError(t *testing.T) {
 	t.Parallel()
 	srv, client := serveBadRequest()
 	defer srv.Close()
-	model := p42.ModelTypeCodexMini
+	model := p42.ModelTypeGpt54OneM
 	_, err := client.CreateTask(
 		context.Background(), &p42.CreateTaskRequest{
 			TenantID:      "abc",
@@ -4507,7 +4507,7 @@ func TestCreateTaskConflictError(t *testing.T) {
 	t.Parallel()
 	srv, client := serveTaskConflict()
 	defer srv.Close()
-	model := p42.ModelTypeCodexMini
+	model := p42.ModelTypeGpt54OneM
 	_, err := client.CreateTask(
 		context.Background(), &p42.CreateTaskRequest{
 			TenantID:      "abc",
@@ -4543,7 +4543,7 @@ func TestCreateTaskPathEscaping(t *testing.T) {
 	defer srv.Close()
 
 	client := p42.NewClient(srv.URL)
-	model := p42.ModelTypeCodexMini
+	model := p42.ModelTypeGpt54OneM
 	_, err := client.CreateTask(
 		context.Background(), &p42.CreateTaskRequest{
 			TenantID:      tenantIDThatNeedsEscaping,
