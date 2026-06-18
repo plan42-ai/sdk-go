@@ -18,6 +18,7 @@ import (
 type ModelType string
 
 const (
+	ModelTypeCodexMini     ModelType = "Codex Mini"
 	ModelTypeGpt51Codex    ModelType = "GPT-5.1 Codex"
 	ModelTypeGpt51CodexMax ModelType = "GPT-5.1 Codex Max"
 	ModelTypeGpt52Codex    ModelType = "GPT-5.2 Codex"
