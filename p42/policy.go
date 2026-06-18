@@ -230,6 +230,7 @@ type PolicyPrincipal struct {
 	Enterprise          *string        `json:"Enterprise,omitempty"`
 	EnterpriseRole      *MemberRole    `json:"EnterpriseRole,omitempty"`
 	RunnerID            *string        `json:"RunnerID,omitempty"`
+	AgentID             *string        `json:"AgentID,omitempty"`
 	TokenTypesBitVector SmallBitVector `json:"-"`
 }
 
@@ -257,6 +258,8 @@ func (p *PolicyPrincipal) GetField(name string) (any, bool) {
 		return EvalNullable(p.EnterpriseRole)
 	case "RunnerID":
 		return EvalNullable(p.RunnerID)
+	case "AgentID":
+		return EvalNullable(p.AgentID)
 	default:
 		return nil, false
 	}
