@@ -26,6 +26,7 @@ type InvokeAgentRequest struct {
 	AgentToken                string
 	FeedBack                  *map[string][]PRFeedback
 	AnchorTask                *p42.Task
+	SubAgent                  *p42.SubAgent
 }
 
 func (r *InvokeAgentRequest) Type() MessageType {
@@ -33,7 +34,10 @@ func (r *InvokeAgentRequest) Type() MessageType {
 }
 
 func (r *InvokeAgentRequest) GetModel() p42.ModelType {
-	if r.Task.Model == nil {
+	if r != nil && r.SubAgent != nil && r.SubAgent.Model != "" {
+		return r.SubAgent.Model
+	}
+	if r == nil || r.Task == nil || r.Task.Model == nil {
 		return p42.ModelTypeGpt51Codex
 	}
 	return *r.Task.Model
@@ -52,6 +56,7 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 		AgentToken                string
 		FeedBack                  *map[string][]PRFeedback
 		AnchorTask                *p42.Task
+		SubAgent                  *p42.SubAgent
 	}
 
 	tmp.Type = InvokeAgentRequestMessage
@@ -65,6 +70,7 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 	tmp.AgentToken = r.AgentToken
 	tmp.FeedBack = r.FeedBack
 	tmp.AnchorTask = r.AnchorTask
+	tmp.SubAgent = r.SubAgent
 
 	return json.Marshal(tmp)
 }
