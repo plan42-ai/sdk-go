@@ -23,6 +23,10 @@ type InvokeAgentRequest struct {
 	GithubToken               *string
 	GithubURL                 *string
 	PrivateGithubConnectionID *string
+	OpenAIEndpoint            *string
+	OpenAIToken               *string
+	ClaudeEndpoint            *string
+	ClaudeToken               *string
 	AgentToken                string
 	FeedBack                  *map[string][]PRFeedback
 	AnchorTask                *p42.Task
@@ -53,6 +57,10 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 		GithubToken               *string
 		GithubURL                 *string
 		PrivateGithubConnectionID *string
+		OpenAIEndpoint            *string
+		OpenAIToken               *string
+		ClaudeEndpoint            *string
+		ClaudeToken               *string
 		AgentToken                string
 		FeedBack                  *map[string][]PRFeedback
 		AnchorTask                *p42.Task
@@ -67,6 +75,10 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 	tmp.GithubToken = r.GithubToken
 	tmp.GithubURL = r.GithubURL
 	tmp.PrivateGithubConnectionID = r.PrivateGithubConnectionID
+	tmp.OpenAIEndpoint = r.OpenAIEndpoint
+	tmp.OpenAIToken = r.OpenAIToken
+	tmp.ClaudeEndpoint = r.ClaudeEndpoint
+	tmp.ClaudeToken = r.ClaudeToken
 	tmp.AgentToken = r.AgentToken
 	tmp.FeedBack = r.FeedBack
 	tmp.AnchorTask = r.AnchorTask

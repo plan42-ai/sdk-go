@@ -12,7 +12,15 @@ import (
 func TestInvokeAgentRequestRoundTripSubAgent(t *testing.T) {
 	t.Parallel()
 
+	openAIEndpoint := "https://openai.example.test/v1"
+	openAIToken := "openai-token"
+	claudeEndpoint := "https://claude.example.test"
+	claudeToken := "claude-token"
 	req := messages.InvokeAgentRequest{
+		OpenAIEndpoint: &openAIEndpoint,
+		OpenAIToken:    &openAIToken,
+		ClaudeEndpoint: &claudeEndpoint,
+		ClaudeToken:    &claudeToken,
 		SubAgent: &p42.SubAgent{
 			AgentID:        "agent-1",
 			AgentType:      p42.AgentTypeCustom,
@@ -29,9 +37,21 @@ func TestInvokeAgentRequestRoundTripSubAgent(t *testing.T) {
 	var raw map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(data, &raw))
 	require.Contains(t, raw, "SubAgent")
+	require.Contains(t, raw, "OpenAIEndpoint")
+	require.Contains(t, raw, "OpenAIToken")
+	require.Contains(t, raw, "ClaudeEndpoint")
+	require.Contains(t, raw, "ClaudeToken")
 
 	var got messages.InvokeAgentRequest
 	require.NoError(t, json.Unmarshal(data, &got))
+	require.NotNil(t, got.OpenAIEndpoint)
+	require.Equal(t, openAIEndpoint, *got.OpenAIEndpoint)
+	require.NotNil(t, got.OpenAIToken)
+	require.Equal(t, openAIToken, *got.OpenAIToken)
+	require.NotNil(t, got.ClaudeEndpoint)
+	require.Equal(t, claudeEndpoint, *got.ClaudeEndpoint)
+	require.NotNil(t, got.ClaudeToken)
+	require.Equal(t, claudeToken, *got.ClaudeToken)
 	require.NotNil(t, got.SubAgent)
 	require.Equal(t, req.SubAgent.AgentID, got.SubAgent.AgentID)
 	require.Equal(t, req.SubAgent.AgentType, got.SubAgent.AgentType)
