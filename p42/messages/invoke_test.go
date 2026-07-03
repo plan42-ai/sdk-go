@@ -21,6 +21,13 @@ func TestInvokeAgentRequestRoundTripSubAgent(t *testing.T) {
 		OpenAIToken:    &openAIToken,
 		ClaudeEndpoint: &claudeEndpoint,
 		ClaudeToken:    &claudeToken,
+		ModelMappings: messages.ModelMappings{
+			p42.ModelTypeGpt51Codex: {
+				Provider:        "openai",
+				Model:           "gpt-5.1-codex-custom",
+				ExtendedContext: true,
+			},
+		},
 		SubAgent: &p42.SubAgent{
 			AgentID:        "agent-1",
 			AgentType:      p42.AgentTypeCustom,
@@ -41,6 +48,7 @@ func TestInvokeAgentRequestRoundTripSubAgent(t *testing.T) {
 	require.Contains(t, raw, "OpenAIToken")
 	require.Contains(t, raw, "ClaudeEndpoint")
 	require.Contains(t, raw, "ClaudeToken")
+	require.Contains(t, raw, "ModelMappings")
 
 	var got messages.InvokeAgentRequest
 	require.NoError(t, json.Unmarshal(data, &got))
@@ -52,6 +60,7 @@ func TestInvokeAgentRequestRoundTripSubAgent(t *testing.T) {
 	require.Equal(t, claudeEndpoint, *got.ClaudeEndpoint)
 	require.NotNil(t, got.ClaudeToken)
 	require.Equal(t, claudeToken, *got.ClaudeToken)
+	require.Equal(t, req.ModelMappings, got.ModelMappings)
 	require.NotNil(t, got.SubAgent)
 	require.Equal(t, req.SubAgent.AgentID, got.SubAgent.AgentID)
 	require.Equal(t, req.SubAgent.AgentType, got.SubAgent.AgentType)

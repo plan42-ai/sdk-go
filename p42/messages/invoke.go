@@ -31,6 +31,18 @@ type InvokeAgentRequest struct {
 	FeedBack                  *map[string][]PRFeedback
 	AnchorTask                *p42.Task
 	SubAgent                  *p42.SubAgent
+	ModelMappings             ModelMappings
+}
+
+// ModelMappings maps Plan42 model enum values to provider-specific models.
+type ModelMappings map[p42.ModelType]ModelMapping
+
+// ModelMapping maps a Plan42 model enum value to the provider/model pair the
+// agent should use when invoking the underlying model provider.
+type ModelMapping struct {
+	Provider        string `json:"Provider" toml:"provider"`
+	Model           string `json:"Model" toml:"model"`
+	ExtendedContext bool   `json:"ExtendedContext,omitempty" toml:"extended_context,omitempty"`
 }
 
 func (r *InvokeAgentRequest) Type() MessageType {
@@ -65,6 +77,7 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 		FeedBack                  *map[string][]PRFeedback
 		AnchorTask                *p42.Task
 		SubAgent                  *p42.SubAgent
+		ModelMappings             ModelMappings
 	}
 
 	tmp.Type = InvokeAgentRequestMessage
@@ -83,6 +96,7 @@ func (r InvokeAgentRequest) MarshalJSON() ([]byte, error) {
 	tmp.FeedBack = r.FeedBack
 	tmp.AnchorTask = r.AnchorTask
 	tmp.SubAgent = r.SubAgent
+	tmp.ModelMappings = r.ModelMappings
 
 	return json.Marshal(tmp)
 }
