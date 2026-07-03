@@ -35,11 +35,11 @@ type InvokeAgentRequest struct {
 }
 
 // ModelMappings maps Plan42 model enum values to provider-specific models.
-type ModelMappings map[p42.ModelType]ModelMapping
+type ModelMappings map[p42.ModelType]ProviderModel
 
-// ModelMapping maps a Plan42 model enum value to the provider/model pair the
+// ProviderModel maps a Plan42 model enum value to the provider/model pair the
 // agent should use when invoking the underlying model provider.
-type ModelMapping struct {
+type ProviderModel struct {
 	Provider        string `json:"Provider" toml:"provider"`
 	Model           string `json:"Model" toml:"model"`
 	ExtendedContext bool   `json:"ExtendedContext,omitempty" toml:"extended_context,omitempty"`
