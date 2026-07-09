@@ -13,21 +13,23 @@ import (
 
 // Turn represents a single execution turn of a task.
 type Turn struct {
-	TenantID           string                `json:"TenantId"`
-	WorkstreamID       *string               `json:"WorkstreamId,omitempty"`
-	TaskID             string                `json:"TaskId"`
-	TurnIndex          int                   `json:"TurnIndex"`
-	Prompt             string                `json:"Prompt"`
-	ReasoningLevel     *ReasoningLevel       `json:"ReasoningLevel,omitempty"`
-	PreviousResponseID *string               `json:"PreviousResponseID,omitempty"`
-	CommitInfo         map[string]CommitInfo `json:"CommitInfo"`
-	Status             string                `json:"Status"`
-	OutputMessage      *string               `json:"OutputMessage,omitempty"`
-	ErrorMessage       *string               `json:"ErrorMessage,omitempty"`
-	CreatedAt          time.Time             `json:"CreatedAt"`
-	UpdatedAt          time.Time             `json:"UpdatedAt"`
-	CompletedAt        *time.Time            `json:"CompletedAt,omitempty"`
-	Version            int                   `json:"Version"`
+	TenantID            string                `json:"TenantId"`
+	WorkstreamID        *string               `json:"WorkstreamId,omitempty"`
+	TaskID              string                `json:"TaskId"`
+	TurnIndex           int                   `json:"TurnIndex"`
+	Prompt              string                `json:"Prompt"`
+	ReasoningLevel      *ReasoningLevel       `json:"ReasoningLevel,omitempty"`
+	PreviousResponseID  *string               `json:"PreviousResponseID,omitempty"`
+	CommitInfo          map[string]CommitInfo `json:"CommitInfo"`
+	GithubCommentSource *GithubCommentSource  `json:"GithubCommentSource,omitempty"`
+	PushedRepos         []string              `json:"PushedRepos,omitempty"`
+	Status              string                `json:"Status"`
+	OutputMessage       *string               `json:"OutputMessage,omitempty"`
+	ErrorMessage        *string               `json:"ErrorMessage,omitempty"`
+	CreatedAt           time.Time             `json:"CreatedAt"`
+	UpdatedAt           time.Time             `json:"UpdatedAt"`
+	CompletedAt         *time.Time            `json:"CompletedAt,omitempty"`
+	Version             int                   `json:"Version"`
 }
 
 // ObjectType returns the object type for ConflictError handling.
@@ -38,18 +40,28 @@ type CommitInfo struct {
 	LastCommitHash     *string `json:"LastCommitHash"`
 }
 
+// GithubCommentSource identifies the pull request comment that created a turn.
+type GithubCommentSource struct {
+	Owner          string `json:"Owner"`
+	Repo           string `json:"Repo"`
+	IssueNumber    int    `json:"IssueNumber"`
+	PullRequestID  int64  `json:"PullRequestID"`
+	InstallationID int64  `json:"InstallationID,omitempty"`
+}
+
 // CreateTurnRequest is the request payload for CreateTurn.
 type CreateTurnRequest struct {
 	FeatureFlags
 	DelegatedAuthInfo
-	TenantID          string          `json:"-"`
-	TaskID            string          `json:"-"`
-	TurnIndex         int             `json:"-"`
-	TaskVersion       int             `json:"-"`
-	Prompt            string          `json:"Prompt"`
-	ReasoningLevel    *ReasoningLevel `json:"ReasoningLevel,omitempty"`
-	WorkstreamID      *string         `json:"WorkstreamID,omitempty"`
-	AdditionalFileIDs []string        `json:"AdditionalFileIDs,omitempty"`
+	TenantID            string               `json:"-"`
+	TaskID              string               `json:"-"`
+	TurnIndex           int                  `json:"-"`
+	TaskVersion         int                  `json:"-"`
+	Prompt              string               `json:"Prompt"`
+	ReasoningLevel      *ReasoningLevel      `json:"ReasoningLevel,omitempty"`
+	WorkstreamID        *string              `json:"WorkstreamID,omitempty"`
+	AdditionalFileIDs   []string             `json:"AdditionalFileIDs,omitempty"`
+	GithubCommentSource *GithubCommentSource `json:"GithubCommentSource,omitempty"`
 }
 
 // nolint: goconst
@@ -71,6 +83,8 @@ func (c *CreateTurnRequest) GetField(name string) (any, bool) {
 		return EvalNullable(c.WorkstreamID)
 	case "AdditionalFileIDs":
 		return c.AdditionalFileIDs, true
+	case "GithubCommentSource":
+		return EvalNullable(c.GithubCommentSource)
 	default:
 		return nil, false
 	}
@@ -325,6 +339,7 @@ type UpdateTurnRequest struct {
 	ErrorMessage       *string                `json:"ErrorMessage,omitempty"`
 	CompletedAt        *time.Time             `json:"CompletedAt,omitempty"`
 	UploadedFileIDs    []string               `json:"UploadedFileIDs,omitempty"`
+	PushedRepos        []string               `json:"PushedRepos,omitempty"`
 }
 
 // IsEmptyUpdate reports whether the request contains any turn mutations.
@@ -338,7 +353,8 @@ func (r *UpdateTurnRequest) IsEmptyUpdate() bool {
 		r.OutputMessage == nil &&
 		r.ErrorMessage == nil &&
 		r.CompletedAt == nil &&
-		len(r.UploadedFileIDs) == 0
+		len(r.UploadedFileIDs) == 0 &&
+		len(r.PushedRepos) == 0
 }
 
 // GetVersion returns the optimistic concurrency control version for the request.
@@ -377,6 +393,8 @@ func (r *UpdateTurnRequest) GetField(name string) (any, bool) {
 		return EvalNullable(r.CompletedAt)
 	case "UploadedFileIDs":
 		return r.UploadedFileIDs, true
+	case "PushedRepos":
+		return r.PushedRepos, true
 	default:
 		return nil, false
 	}
