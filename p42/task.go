@@ -26,10 +26,15 @@ const (
 	ModelTypeGpt54OneM     ModelType = "GPT 5.4 (1M)"
 	ModelTypeChatGpt55     ModelType = "Chat GPT 5.5"
 	ModelTypeChatGpt55OneM ModelType = "Chat GPT 5.5 (1M)"
+	ModelTypeGpt56Sol      ModelType = "GPT-5.6 Sol"
+	ModelTypeGpt56Tera     ModelType = "GPT-5.6 Tera"
+	ModelTypeGptAstra      ModelType = "GPT Astra"
 	ModelTypeClaude45Opus  ModelType = "Claude 4.5 Opus"
+	ModelTypeClaudeOpus45  ModelType = "Claude Opus 4.5"
 	ModelTypeClaude46Opus  ModelType = "Claude 4.6 Opus"
 	ModelTypeClaude47Opus  ModelType = "Claude 4.7 Opus"
 	ModelTypeClaude48Opus  ModelType = "Claude 4.8 Opus"
+	ModelTypeClaudeFable51 ModelType = "Claude Fable 5.1"
 )
 
 // TaskState represents the state of a task.
