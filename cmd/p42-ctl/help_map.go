@@ -159,13 +159,18 @@ var helpMap = map[string]string{
 * GPT-5.2 Codex
 * GPT-5.3 Codex
 * GPT 5.4
-* GPT 5.4 (1M)
-* Chat GPT 5.5
-* Chat GPT 5.5 (1M)
-* Claude 4.5 Opus
-* Claude 4.6 Opus
-* Claude 4.7 Opus
-* Claude 4.8 Opus
+	* GPT 5.4 (1M)
+	* Chat GPT 5.5
+	* Chat GPT 5.5 (1M)
+	* GPT-5.6 Sol
+	* GPT-5.6 Tera
+	* GPT 6 Astra
+	* Claude 4.5 Opus
+	* Claude Opus 4.5
+	* Claude 4.6 Opus
+	* Claude 4.7 Opus
+	* Claude 4.8 Opus
+	* Claude Fable 5.1
 
 --- TaskState Enum Values ---
 
@@ -241,13 +246,18 @@ var helpMap = map[string]string{
 * GPT-5.2 Codex
 * GPT-5.3 Codex
 * GPT 5.4
-* GPT 5.4 (1M)
-* Chat GPT 5.5
-* Chat GPT 5.5 (1M)
-* Claude 4.5 Opus
-* Claude 4.6 Opus
-* Claude 4.7 Opus
-* Claude 4.8 Opus
+	* GPT 5.4 (1M)
+	* Chat GPT 5.5
+	* Chat GPT 5.5 (1M)
+	* GPT-5.6 Sol
+	* GPT-5.6 Tera
+	* GPT 6 Astra
+	* Claude 4.5 Opus
+	* Claude Opus 4.5
+	* Claude 4.6 Opus
+	* Claude 4.7 Opus
+	* Claude 4.8 Opus
+	* Claude Fable 5.1
 
 --- TaskState Enum Values ---
 

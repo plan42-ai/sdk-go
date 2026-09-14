@@ -1386,8 +1386,17 @@ ModelType is an enum that defines the type of model to use for the task.
 | GPT-5.3 Codex     |
 | GPT 5.4           |
 | GPT 5.4 (1M)      |
+| Chat GPT 5.5      |
+| Chat GPT 5.5 (1M) |
+| GPT-5.6 Sol       |
+| GPT-5.6 Tera      |
+| GPT 6 Astra       |
 | Claude 4.5 Opus   |
+| Claude Opus 4.5   |
 | Claude 4.6 Opus   |
+| Claude 4.7 Opus   |
+| Claude 4.8 Opus   |
+| Claude Fable 5.1  |
 
 ## 18.3 Response
 
