@@ -28,7 +28,7 @@ const (
 	ModelTypeChatGpt55OneM ModelType = "Chat GPT 5.5 (1M)"
 	ModelTypeGpt56Sol      ModelType = "GPT-5.6 Sol"
 	ModelTypeGpt56Tera     ModelType = "GPT-5.6 Tera"
-	ModelTypeGptAstra      ModelType = "GPT Astra"
+	ModelTypeGpt6Astra     ModelType = "GPT 6 Astra"
 	ModelTypeClaude45Opus  ModelType = "Claude 4.5 Opus"
 	ModelTypeClaudeOpus45  ModelType = "Claude Opus 4.5"
 	ModelTypeClaude46Opus  ModelType = "Claude 4.6 Opus"

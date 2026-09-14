@@ -164,7 +164,7 @@ var helpMap = map[string]string{
 	* Chat GPT 5.5 (1M)
 	* GPT-5.6 Sol
 	* GPT-5.6 Tera
-	* GPT Astra
+	* GPT 6 Astra
 	* Claude 4.5 Opus
 	* Claude Opus 4.5
 	* Claude 4.6 Opus
@@ -251,7 +251,7 @@ var helpMap = map[string]string{
 	* Chat GPT 5.5 (1M)
 	* GPT-5.6 Sol
 	* GPT-5.6 Tera
-	* GPT Astra
+	* GPT 6 Astra
 	* Claude 4.5 Opus
 	* Claude Opus 4.5
 	* Claude 4.6 Opus
