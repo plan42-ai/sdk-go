@@ -22,6 +22,7 @@ const (
 	ModelTypeGpt51CodexMax ModelType = "GPT-5.1 Codex Max"
 	ModelTypeGpt52Codex    ModelType = "GPT-5.2 Codex"
 	ModelTypeGpt53Codex    ModelType = "GPT-5.3 Codex"
+	ModelTypeCodexMini     ModelType = "codex-mini"
 	ModelTypeGpt54         ModelType = "GPT 5.4"
 	ModelTypeGpt54OneM     ModelType = "GPT 5.4 (1M)"
 	ModelTypeChatGpt55     ModelType = "Chat GPT 5.5"

@@ -5109,6 +5109,7 @@ func TestCreateTurn(t *testing.T) {
 			require.Equal(t, "prompt", reqBody.Prompt)
 			require.Equal(t, util.Pointer("ws"), reqBody.WorkstreamID)
 			require.Equal(t, []string{"file-1", "file-2"}, reqBody.AdditionalFileIDs)
+			require.Equal(t, &p42.GithubCommentSource{Owner: "octo", Repo: "demo", IssueNumber: 17, PullRequestID: 1234, InstallationID: 9001}, reqBody.GithubCommentSource)
 
 			w.WriteHeader(http.StatusCreated)
 			resp := p42.Turn{TenantID: "abc", TaskID: "task1", TurnIndex: 1}
@@ -5122,7 +5123,22 @@ func TestCreateTurn(t *testing.T) {
 	client := p42.NewClient(srv.URL)
 	turn, err := client.CreateTurn(
 		context.Background(),
-		&p42.CreateTurnRequest{TenantID: "abc", TaskID: "task1", TurnIndex: 2, Prompt: "prompt", TaskVersion: 1, WorkstreamID: util.Pointer("ws"), AdditionalFileIDs: []string{"file-1", "file-2"}},
+		&p42.CreateTurnRequest{
+			TenantID:          "abc",
+			TaskID:            "task1",
+			TurnIndex:         2,
+			Prompt:            "prompt",
+			TaskVersion:       1,
+			WorkstreamID:      util.Pointer("ws"),
+			AdditionalFileIDs: []string{"file-1", "file-2"},
+			GithubCommentSource: &p42.GithubCommentSource{
+				Owner:          "octo",
+				Repo:           "demo",
+				IssueNumber:    17,
+				PullRequestID:  1234,
+				InstallationID: 9001,
+			},
+		},
 	)
 	require.NoError(t, err)
 	require.Equal(t, 1, turn.TurnIndex)
@@ -6576,6 +6592,7 @@ func TestUpdateTurn(t *testing.T) {
 			require.Equal(t, turnStatus, *reqBody.Status)
 			require.NotNil(t, reqBody.WorkstreamID)
 			require.Equal(t, "ws", *reqBody.WorkstreamID)
+			require.Equal(t, []string{"octo/demo"}, reqBody.PushedRepos)
 
 			w.WriteHeader(http.StatusOK)
 			resp := p42.Turn{TenantID: "abc", TaskID: "task1", TurnIndex: 1}
@@ -6596,6 +6613,7 @@ func TestUpdateTurn(t *testing.T) {
 			Version:      1,
 			WorkstreamID: util.Pointer("ws"),
 			Status:       &status,
+			PushedRepos:  []string{"octo/demo"},
 		},
 	)
 	require.NoError(t, err)
